@@ -19,13 +19,13 @@ Upright robot faces in the reference are an acceptable stylistic cheat. Keep one
 
 The generated reference is not authoritative for player count, pitch dimensions, clock values or assets. Rebuild these from the rules. Never paste the screenshot behind a fake running game.
 
-## Rendering proposals
+## Current rendering
 
-Canvas 2D for the world, HTML/React for controls. Choose logical resolution after checking 22 players at desktop and mobile sizes; 640x360 is a candidate, not a requirement. Prefer integer nearest-neighbour scaling when it fits and define a small-screen fallback instead of silently clipping the field.
+Canvas 2D renders the world at a logical 960×660 resolution, with HTML/React controls. The broadcast occupies 100dvh; the canvas contains the full pitch at every size, using nearest-neighbour pixel rendering and letterboxing where needed. The desktop inspector sits beside the pitch and overlays on narrow screens. It is closed by default.
 
 World metres are independent of pixels. Round at drawing boundaries, not in physics. Stable foot anchors and layered drawing prevent sliding and overlap errors. An aerial ball separates from its ground shadow. Keep it visible near players. Tactical overlays are opt-in.
 
-Cache static pitch/stadium layers where useful. Animate actors and selected crowd details; do not drive every sprite frame through React state.
+The static pitch/stadium is cached on a canvas. Actors and selected crowd details animate from recorded samples. React receives control updates at roughly 10 Hz; each sprite frame is drawn independently. Selecting an order adds a team-coloured player ring, number and target line without affecting the match.
 
 ## Animation
 

@@ -1,60 +1,54 @@
 # Football mechanics and referee
 
-This is a proposed game ruleset, not a claim of complete compliance with official football laws. Implement recognisable football with explicit simplifications. Verify any rule presented as official against current authoritative sources during implementation.
+The current ruleset is `football-0.3`. It provides recognisable football with explicit simplifications. It is not a claim of complete compliance with the official Laws. [Decision 002](decisions/002-MATCH-RULES.md) records the physical/restart foundation; [decision 004](decisions/004-CONTACT-REFEREE.md) records contact officiating, offside and primary rule references.
 
-## State machine
+## Match and phases
 
-Proposed phases: kickoff setup, open play, stoppage, restart setup, restart ready, halftime, full time. Restart data identifies type, awarded team, location, eligible taker, restrictions and setup budget. Prefer variants over independent flags that permit contradictory states.
+Eleven stable players per team, including one keeper. One model chooses each team's orders. Two halves contain 180 seconds of playing time each; draws stand. Both teams switch ends at halftime. Simulation ticks include a two-second restart setup, up to six seconds for delivery, and a three-second halftime interval. These periods pause the playing clock.
 
-The engine decides phase changes. The referee sprite, whistle, flag and cards display that decision. No referee LLM is needed. Referee animation position must not affect decisions.
+Phases are explicit variants: `open_play`, `restart_setup`, `restart_ready`, `halftime` and `full_time`. The engine owns transitions. Referee position, cards, whistles and goal effects only display recorded state/events. The fixed half clock ends after the final tick's incidents; it does not extend for an awarded or in-flight penalty.
 
-## Ball and boundaries
+## Actions and assistance
 
-- Track ball radius, last-touch player/team, and whether the ball has fully crossed a boundary.
-- A valid crossing of the goal plane between posts and below the crossbar yields a goal, then kickoff for the conceding team.
-- Crossing a touchline yields a throw-in to the opponent of the last-touch team.
-- Crossing a goal line outside the goal after a defending-team touch yields a corner; after an attacking-team touch, a goal kick.
-- Posts may rebound the ball into play. Continuous crossing/contact checks should prevent a fast ball tunnelling through the frame or skipping a boundary.
-- Define stable precedence for near-simultaneous contact, boundary crossing, foul and half-ending events. Emit one authoritative result per incident.
+- `move`: accelerate and brake toward one chosen point at the chosen pace. No automatic pursuit, marking or supporting runs.
+- `hold`: decelerate to rest.
+- `kick` / `shoot`: one immediate attempt from possession, using the chosen direction, speed and loft. Neither guarantees a pass or goal, and neither waits for future possession.
+- `guard`: keeper-only movement toward a chosen point, with extended automatic catching reach inside its own penalty area. No automatic shot prediction or position selection.
+- `tackle`: one immediate attempt at the named opposing carrier; no approach movement is added.
+- `restart_taker`: select an eligible taker during the awarded team's setup opportunity.
 
-## Tackles and fouls
+Movement/guarding lasts up to three seconds unless replaced or cleared. Omitted orders continue until expiry. Ground first-touch control and symmetric body separation are mechanical assistance shared by both sides. Faster/higher ball contacts can rebound. Kicks commit before tackles; the earliest swept frame/player/boundary incident owns a ball-contact tick. Exact ties have declared priorities and explicit seeded selection.
 
-A model orders an attempt; the engine evaluates it. It cannot order guaranteed dispossession or declare its own foul.
+## Ball and scoring
 
-Proposed ingredients: contact with player versus ball, relative speed, approach angle, tackle phase and opponent possession. Thresholds belong in ruleset configuration and need boundary tests. Do not claim that a single contact heuristic represents the full real-world law.
+The ball has three-dimensional position/velocity, radius, owner, last touch, recapture cooldown and restart-touch marker. A whole-ball crossing between the posts and beneath the crossbar scores, followed by a kickoff for the conceding team. The goal frame can rebound a shot. The engine does not continue a pending shot after full time.
 
-Start with a small foul model and no advantage. A qualifying defender foul inside its own penalty area yields a penalty; elsewhere, a free kick under our ruleset. Use incident location, not the ball's later resting position.
+A touchline crossing awards a throw to the opponent of the last toucher. A goal-line miss after a defender touch awards a corner; after an attacker touch, a goal kick. Direct throw-in/indirect-kick goals are disallowed, as are direct own goals from a restart. A taker's second touch before another player yields an indirect free kick.
 
-Later add severity-based yellow/red cards, second-yellow handling and dismissal. Orders to dismissed players fail explicitly. Define abandonment/minimum-roster rules before enabling enough dismissals to create invalid teams.
+## Restart procedure
 
-## Restart lifecycle
+1. Store the incident, stop open play, clear old orders and award the restart.
+2. Both teams choose setup positions; the awarded team may choose a taker.
+3. At ready, project players to legal positions, put the ball at the taker's foot and clear setup orders.
+4. Both teams lock their delivery/defensive responses against the same observation. Only the selected taker can deliver.
+5. A physically valid kick resumes play. A missing delivery at the deadline abandons the game, preserving its incomplete status.
 
-1. Detect incident; emit stable event ID, tick, cause and result.
-2. Stop open-play interaction; cancel phase-incompatible orders.
-3. Award the restart and place the ball at its defined location.
-4. Give both controllers a bounded setup opportunity for positioning and taker selection.
-5. Enforce placement and distance restrictions symmetrically. Specify whether repositioning is simulated or a presentation transition to valid setup positions.
-6. Publish the resulting visible setup. Collect delivery and defensive responses simultaneously.
-7. Resume open play on the legal restart trigger.
+Opponents remain 9.15 m away, or 2 m at a throw. Kickoffs use the initial formation and enforce own halves. Goal-kick opponents start outside the penalty area. Throws have an elevated release and speed cap. Penalties use the 11 m spot; the keeper starts between the posts on the goal line, and everyone else is behind/outside the area and 9.15 m away. A backward penalty yields an indirect free kick. Placements are projections during stopped play, not hidden tactics.
 
-The defender never sees a pending kick trajectory before locking its response. Setup cannot wait indefinitely for a model to find an arrangement. Old tackles or shots cannot leak across the phase transition.
+## Fouls and cards
 
-## Corners
+A straight tackle reach through the carrier before the ball is careless. Closing speed of at least 5 m/s is reckless and cautioned; at least 10 m/s is excessive and dismissed. These are declared game heuristics, not thresholds in the official Laws. A foul awards a direct free kick at the victim's position, or a penalty when that point is inside/on the offender's own penalty-area boundary. No advantage is played.
 
-The attacker chooses taker, runs and short-pass/cross delivery. The defender positions its players and goalkeeper. The engine does not secretly invent marking assignments or attacking runs.
-
-Example phase fields: restartType=corner, awardedTeam=coral, location=[105,0], setupRoundsRemaining=1. Include normal public world state and legal actions. Aerial crosses require ball height; top-down rendering uses a ground shadow and a height cue.
+A second caution dismisses. Dismissed players keep their IDs but cannot be ordered or interact with play. Fewer than seven active players abandons the match without a fabricated forfeit score. A dismissed keeper is not automatically replaced.
 
 ## Offside
 
-Treat offside as a dedicated later milestone. It requires a snapshot at the relevant attacking touch and subsequent involvement logic, with exclusions for specified restarts. It is not just a flag from current player x coordinates. Verify official details, document simplifications and test incident sequences. Before enabled, label the ruleset as not enforcing offside.
+At a teammate touch, store players in the opponent half whose centres are beyond both the ball and second-last active defender, with a 1 cm tolerance. Being in this position alone is not an offence. A stored candidate is penalized on touching the ball or completing a tackle, even after returning onside.
 
-## Clock and completion
+Direct throws, corners and goal kicks are exempt. An opponent's controlled reception or deliberate kick replaces the snapshot; a body deflection or guarding save preserves it. Offside awards an indirect free kick at involvement. The stored IDs and touch tick are part of deterministic state, not a renderer flag.
 
-180 seconds of playing time per half; attack directions swapped at halftime; kickoff assignment specified in configuration; draws permitted. Proposed default pauses playing time during restart setup. Simulation tick remains separate and monotonic.
+## Current omissions
 
-Specify what happens at a half boundary during an in-flight shot or an awarded penalty. No pending action may create goals after full time. Restart delays, halftime presentation and knockout extensions remain proposed decisions.
+No advantage, substitutions, handball, heading, keeper back-pass/holding limit, penalty extension or encroachment retakes. Offside screening/obstruction without a touch or completed tackle is omitted. Free kicks use incident positions without special goal-area relocation. Cards only judge the specified tackle contact model; they do not cover denial of scoring opportunities, dissent or repeated ordinary offences. Automatic contacts use fixed-tick geometry without a separate sub-tick reconstruction of all player bodies.
 
-## Fixtures
-
-Test each boundary/last-touch combination; ball on versus fully over line; goal versus over-bar shot; post rebound; tackle win versus foul; penalty-area inside/outside incident; corner setup restrictions; stale pre-stoppage order; incident precedence; half ending; attack-direction swap; offside involvement; second yellow and dismissed-player orders.
+Focused tests cover physical boundaries, delivery restrictions, stale orders, half endings, severity thresholds, dismissal, minimum team size and offside incident sequences. Scripted fixtures are explicitly labelled and never substituted for model decisions.

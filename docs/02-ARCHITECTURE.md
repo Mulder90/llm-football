@@ -1,61 +1,57 @@
 # Architecture
 
-All choices below are design proposals to refine through implementation; invariants in AGENTS.md remain binding unless the user revises them.
+The implementation is one strict TypeScript package: React and Canvas 2D in the spectator browser, a local Node runner for generation, Zod at external JSON boundaries and Vitest for rules and replay checks. There is no generic game framework, database, account system or provider SDK.
 
 ## Responsibilities
 
-| Component               | Owns                                                                 | Must not own                             |
-| ----------------------- | -------------------------------------------------------------------- | ---------------------------------------- |
-| Football simulation     | State, movement, ball physics, contacts, referee, phases and results | Provider requests or rendering           |
-| Observation builder     | Public world snapshot, perspective, recent public events             | Opponent private notes or pending orders |
-| Team controller adapter | Converting observation to unknown action payload                     | Direct state mutation                    |
-| Match runner            | Decision barriers, validation, fallbacks, generation lifecycle       | Hidden tactical decisions                |
-| Recorder                | Inputs, applied ticks, events, provenance, checkpoints               | Re-running models during replay          |
-| Playback controller     | Playhead, speed, pause, seeking                                      | Changing canonical outcomes              |
-| Canvas renderer/audio   | Visual and sound presentation of playback state                      | Scoring, collisions or refereeing        |
-| React shell             | Match selection, controls and inspection                             | Per-frame physics in React state         |
+| Location                    | Owns                                                                           | Does not own                                    |
+| --------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------- |
+| `src/sim/`                  | Fixed-step physics, actions, referee, phases and results                       | React, browser, network, storage or wall clocks |
+| `src/protocol/`             | Observations, shared rulebook, response schema and prompt wording              | Opponent private notes or pending orders        |
+| `src/generation/`           | Provider requests, paired decision barriers, validation, fallbacks and budgets | Hidden tactical decisions                       |
+| `src/recording/`            | Canonical replay, viewer samples, provenance and import validation             | Inference during playback                       |
+| `src/render/`, `src/audio/` | Pixel stadium, sprites, selection overlays, celebrations and sound             | Match outcomes                                  |
+| `src/ui/`                   | Playback controls, catalogue/import, score and optional inspection             | Per-frame simulation                            |
+| `src/fixtures/`             | Explicit passing and full-match scripted baselines                             | Secret assistance to model-controlled players   |
+| `scripts/`                  | Local CLI generation, export and catalogue publishing                          | Credentials in browser assets                   |
 
-## Core loop
+## Decision boundary
 
-Freeze state at a decision boundary. Build both observations from this same state. Call both controllers concurrently. Lock their responses independently, validate them, resolve failures using a declared bounded policy, and apply both order sets at one effective simulation tick. Advance a fixed number of ticks or stop earlier at a defined interrupt event. Record everything needed to repeat that progression.
+The runner serializes both observations before either request is dispatched. It calls both models concurrently and freezes the state until both replies have settled. A valid reply is locked while only the rejected team is repaired, at most once, against the identical observation. Exhaustion records an empty batch: existing orders continue until expiry. A permanent provider failure stops generation with an incomplete record.
 
-Response arrival order must not let one side observe the other side's pending action or move first. Simultaneous conflicting contacts require a documented stable resolution rule that does not systematically favour array order or team colour.
+Both batches are validated against the same match, team, tick and decision identity before either is applied. Arrival order cannot expose an opponent's pending orders or let one side move earlier. Instantaneous kicks resolve before tackles, then movement/body separation, then the ball, then the match clock. A stopped phase skips subsequent open-play work. Equal physical contacts have declared priority and explicit seeded tie-breaking.
 
-The conceptual observation stream is a sequence of immutable snapshots and events. It does not require a persistent WebSocket to a provider. Token streaming is transport detail: partially generated JSON is never a committed action.
+A scheduled decision is due after one simulated second. Phase changes interrupt sooner; a possession change can interrupt after a minimum 15 ticks. Both teams always receive the same opportunity. A model order can be structurally valid yet physically fail—for example a kick without possession. Such an outcome is a recorded football event, distinct from a rejected JSON batch or operational fallback.
+
+The observation stream shown to spectators follows these recorded boundaries. It is not a WebSocket or a claim of live model token streaming. Partial JSON never becomes a committed action.
 
 ## Four clocks
 
-1. Simulation tick: integer, monotonic, advances the physical world.
-2. Playing clock: accumulates eligible ticks toward 180 seconds per half; may pause during restarts.
-3. Generation wall time: waiting on inference, retries and local computation; does not alter match results in lockstep mode.
-4. Presentation time: timeline containing playable motion, restart transitions, halftime and celebrations; can be paused, sought and sped up.
+1. **Simulation:** integer ticks at 60 Hz, including setup and halftime.
+2. **Playing time:** 10,800 eligible ticks per half, paused during restart setup/ready and halftime. Ends swap after the interval.
+3. **Generation wall time:** provider latency, validation, retries and checkpoint writes. It cannot alter physics through response arrival order.
+4. **Presentation:** the recorded simulation timeline, sampled/interpolated at the browser's frame rate. The spectator can pause, seek and change speed; a hidden tab pauses instead of catching up.
 
-Use explicit phase and timing mappings. A goal animation must not extend the canonical shot or accidentally allow another goal. Model timeouts are operational limits; record their resolved fallback so replay is repeatable.
-
-At one decision per simulated second, six minutes of active play imply approximately 720 team responses (360 boundaries times two teams), plus extra restart/interrupt decisions and retries. This is a design-budget estimate, not a measured cost or latency promise. Measure shorter test runs before generating many full matches.
+Goal huddles use a presentation copy of pre-goal poses during the recorded stopped-clock setup. They do not extend a shot or move canonical players. The renderer bounds a single elapsed frame to 0.25 seconds and updates React controls at roughly 10 Hz; sprite rendering uses `requestAnimationFrame` independently.
 
 ## Physical world
 
-Proposed coordinates: metres, x along pitch length, y across width, z upward. Initial field proposal 105 by 68 metres. Team/player IDs remain stable across halves; attack direction changes. Rendering converts these coordinates independently.
+Positions are metres on a 105×68 field: x along its length, y across its width, z upward. Speeds are metres per second. IDs and jersey numbers persist through halftime and dismissal. Attack direction derives from team and half.
 
-Players have position, velocity, facing, radius, locomotion limits, active order and action phase. Ball state includes position/velocity in 3D even though the view is top-down. Aerial movement later enables crosses, catches and shots over the crossbar. Decide possession/contact mechanics explicitly rather than treating the ball as permanently glued to a player.
+A movement order steers toward one fixed target with bounded acceleration and braking. It does not chase, mark or choose a passing lane. Possession follows a carrier's foot; loose-ball control, guarding catches, deflections and swept goal-frame/boundary contacts have explicit rules. The model chooses kick direction, speed and loft. The referee alone awards goals, restarts, offside and contact sanctions. [The current rules](04-FOOTBALL-RULES.md) and [decision 004](decisions/004-CONTACT-REFEREE.md) describe deliberate simplifications.
 
-Use simple explainable execution primitives before complex biomechanics. A movement controller may steer toward an explicitly ordered target with acceleration limits. It must not secretly choose a tactical target. Ball contacts and first-touch assistance need documented, identical rules for both teams.
+## Canonical replay and viewer samples
 
-## Determinism scope
+One versioned JSON recording contains initial state, accepted paired batches and their ticks, explicit fallbacks, ordered events, diagnostic final hash, named viewer frame fields, exact observations and generation provenance. Samples are captured every three ticks and at incidents, phase changes and decision checkpoints. The browser interpolates adjacent samples within a phase; contacts and phase changes remain discrete.
 
-Fixed steps, seeded randomness and stable iteration are necessary, not sufficient. Floating-point transcendental functions, collision ties, rounding and engine changes can cause drift. Start by specifying supported-runtime reproducibility. Add golden PRNG tests, replay state checks and cross-runtime tests before making broader guarantees.
+`verifyRecording` clones the initial state and executes recorded batches through the matching engine. It must consume every decision and reproduce the final hash. It makes no model requests. The FNV-1a hash is a diagnostic over canonical JSON property order, not a cryptographic proof or archival promise across arbitrary runtimes. Import validation checks the original JSON without returning a reordered object. The current viewer accepts the current engine version only.
 
-Keep simulation randomness distinct from presentation randomness. Extra confetti must never change the next ball deflection. If no randomness is needed for a mechanic, do not add it for spectacle.
+The simulation uses explicit seeded randomness and stable ordering, with no platform clock or hidden mutable state. Tests cover replay, numerical boundaries and the import boundary. Drawing rounds to pixels; physics retains its numerical precision. Presentation variation never consumes the simulation seed.
 
-## Two records
+## Generation and publication
 
-The canonical simulation record includes rules/game version, configuration, initial state or seed, applied order batches, effective ticks, explicit fallback decisions and optional checkpoint hashes. Re-simulation requires the compatible engine version; a version string alone does not preserve old code.
+`scripts/generate.ts` loads ignored local `.env`, validates known provider models/prices, reserves a paired boundary and its allowed retries against explicit request/token/cost limits, and keeps a single-job filesystem lock. Checkpoints use a temporary file followed by atomic rename. Cancellation, budget exhaustion, timeout or abandonment retain an incomplete record; they never fabricate full time. Current jobs start fresh; automatic resume is not implemented.
 
-The viewer artifact can additionally contain compact state samples/keyframes and ordered events, allowing smooth playback and seeking without inference. Start with enough recording for one local fixture. Add checkpoint intervals and compression after measuring size. Decide whether old games retain a compatible engine or play recorded state samples.
+Publishing validates and re-simulates the record, gzip-compresses it, then writes the local static catalogue. The viewer validates downloaded/imported JSON and bounds decompressed imports at 80 MiB. It accounts for browsers already decoding HTTP Content-Encoding so a gzip file is not decompressed twice. API credentials are absent from export schemas and browser imports.
 
-A generation record separately contains exact provider/model identity, prompt/rulebook version, memory policy, budgets, request durations, validation failures and usage when available. Export no credentials. Public inspection shows observations, accepted orders and explicitly retained notes, not invented private reasoning.
-
-## Deployment boundary, later
-
-Initially run generation locally in a Node process with environment-configured credentials and explicit limits; export finished match artifacts. The spectator web app serves and plays those artifacts. Every visitor watching the same match reuses its data. A server-side job system is a later need, not required for the initial demonstration.
+Visitors reuse the same recorded artifact; watching costs no inference. A hosted job service or public deployment is a later slice. The current deliverable runs locally with Vite and pushes source/artifacts to the user's configured Git repository.
