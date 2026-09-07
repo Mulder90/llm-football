@@ -1,1 +1,47 @@
-# llm-football
+# AI Football — project foundation
+
+> Watch two AI teams play a short, complete football match. Replay every moment and inspect the decisions behind it.
+
+This is a new standalone project, starting from scratch. It is not an extension of Agentathlon and not a multi-sport framework. “AI Football” is a working title, not an approved product name.
+
+The destination is eleven players per team, one LLM controller per team, two three-minute halves, a deterministic football simulation, and a beautiful top-down pixel-art broadcast website.
+
+This folder contains design documents and a visual reference. It does not contain an implemented game.
+
+## Start in Codex
+
+1. Extract this folder into a new project workspace.
+2. Open the folder in Codex.
+3. Paste the contents of [FIRST_PROMPT.md](FIRST_PROMPT.md).
+4. Review the proposed first slice before approving implementation.
+
+Codex should follow [AGENTS.md](AGENTS.md). Documents communicate intent and should be challenged where incomplete. Do not silently turn illustrative examples into permanent contracts.
+
+## Read in order
+
+| Document | Purpose |
+| --- | --- |
+| [Product](docs/01-PRODUCT.md) | Audience, settled decisions, scope |
+| [Architecture](docs/02-ARCHITECTURE.md) | Simulation, controllers, clocks, recording, playback |
+| [LLM control](docs/03-LLM-CONTROL.md) | Rulebook, observations, team orders, memory, fairness |
+| [Football rules](docs/04-FOOTBALL-RULES.md) | Play, referee, fouls, restarts and unresolved mechanics |
+| [Visual and audio direction](docs/05-VISUAL-AUDIO.md) | Top-down camera, pixel art, animation, sound |
+| [Build plan](docs/06-BUILD-PLAN.md) | Incremental implementation and acceptance criteria |
+| [Providers](docs/07-PROVIDERS.md) | Cheap OpenAI/Gemini defaults, local keys, bounded test runs |
+| [Decision records](docs/decisions/README.md) | Lightweight ADR process |
+
+## Selected visual reference
+
+![Selected top-down broadcast direction](docs/references/top-down-football.png)
+
+Use the image for palette, atmosphere, layout, and camera direction. It is not an exact pitch specification, roster count, sprite sheet, or finished asset. Rebuild geometry and player count from the game rules.
+
+## Proposed stack
+
+TypeScript strict, pnpm, Vite, React for surrounding UI, Canvas 2D for the game, Vitest for meaningful rules and determinism tests. Start with one package. A later local Node runner can generate matches using provider adapters while the browser plays exported match files. Versions and exact dependencies should be selected during scaffolding and locked.
+
+## First deliverable
+
+A beautiful top-down pitch with 22 identifiable animated players and a ball, demonstrating a small deterministic pass-and-move sequence from explicit fixture orders. It runs headlessly, can be replayed, and is clearly labelled a development fixture. Real LLM control follows once the action semantics work.
+
+The end goal remains a complete LLM-played game. Small implementation slices are milestones toward that goal, not a pivot to penalties or a different sport.
