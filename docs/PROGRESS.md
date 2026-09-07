@@ -1,6 +1,6 @@
-# Progress toward the first complete LLM match
+# The first complete LLM match
 
-The active objective is a complete, beautiful, watchable LLM-controlled football game, with periodic commits and pushes. A fixture is not goal completion.
+The first complete model-controlled game is recorded and replay-verified: `north-garden-001`, GPT-5 nano versus Gemini 3.1 Flash-Lite. Both 180-second playing halves completed, with a final score of Coral 1–2 Cyan and canonical replay hash `f0421b48`. The default viewer loads the full recording.
 
 ## Implemented
 
@@ -14,7 +14,9 @@ The active objective is a complete, beautiful, watchable LLM-controlled football
 
 - Slice 4: deterministic tackle fouls, cautions/dismissals, penalties, offside snapshots and indirect free kicks; 59 tests pass. Referee sprite, card signals and incident banners read recorded events. A 6.9-second real excerpt under football-0.3 is preserved. See [handoff](slices/04-REFEREE.md).
 
-- Slice 5: selectable player/order links on the pitch, exact repair-message inspection, generation metadata and lighter initial loading. The full `north-garden-001` run is in progress with explicit $4 / four-hour limits; it is not complete yet. See [handoff](slices/05-PLAYER-INSPECTION.md).
+- Slice 5: selectable player/order links on the pitch, exact repair-message inspection, generation metadata, lighter initial loading, goal-effect timing and exact replay endpoints. 60 tests pass. See [handoff](slices/05-PLAYER-INSPECTION.md).
+
+- Slice 6: preserved and published the full `north-garden-001` recording with exact prompts, observations, accepted decisions, rejected attempts and one explicit fallback. Generation used 637 paired boundaries and 1,283 requests, taking 63 minutes 40 seconds and an estimated $1.3533. See [complete-match handoff](slices/06-COMPLETE-MODEL-MATCH.md).
 
 ## Code quality agreement
 
@@ -22,18 +24,19 @@ Use descriptive names, explicit units for physics constants, named replay fields
 
 ## Next slice
 
-Generate a complete two-half LLM match under the tested football-0.3 rules, verify its canonical replay, publish it to the local viewer and complete browser acceptance.
+Improve controller comprehension, particularly direction after the halftime end swap and actions that require ball ownership. Keep this first recording as the baseline; do not replace its mistakes with scripted play or choose a result for drama.
 
-## Still required before completion
+## Limitations
 
-- A real complete match, generated and preserved with model provenance. No scripted controller silently substituted and no fabricated result.
-- Final visual/audio and football-quality acceptance for the complete model game.
-- Periodic commits and successful pushes to the configured repository. The user explicitly authorized the configured GitHub destination after automatic approval review requested clarification. The initial brief has been pushed successfully.
+- Model football is still rough. Coral's two conceded goals follow its own wrong-end shots after halftime; failed orders remain visible in the record. The engine never corrects tactical intent.
+- The football-0.3 rules intentionally simplify contact, offside involvement and several referee decisions; [the rules document](04-FOOTBALL-RULES.md) states the omissions.
+- Playback is a recording. Observations follow its playhead, not a live provider token stream. Sound is synthetic and muted until enabled; event timing is checked, but there is no human listening assessment.
+- The viewer runs locally and can be built as a static site; public deployment is a separate slice. Generation cannot resume a private checkpoint yet.
 
 ## Operational notes
 
-`.env` exists and is ignored. Slice 3 has made bounded paid test requests; successful test usage and failures are documented. Its values have not been printed or copied into the browser. Provider IDs/prices/API schemas must be verified at integration time. A Vite dev server can select the next available port: use its printed URL, not an assumed port.
+`.env` exists and is ignored. Paid test and full-run usage are documented. Its values have not been printed or copied into the browser. Provider IDs/prices/API schemas were checked during integration and should be rechecked when changed. A Vite dev server can select the next available port: use its printed URL, not an assumed port.
 
 The user requested direct work and pushes on `main`; the foundation commits have been fast-forwarded and pushed there. Continue on main.
 
-Latest user direction: only the game/viewport by default; optional desktop side panel for clear team/player decisions, prompt/rules and streamed observations; goal effects and player celebrations. The initial implementation of this direction is in slice 3.
+Latest user direction is implemented: game/viewport by default; optional desktop side panel for clear team/player decisions, exact prompt/rules and observations following playback; goal effects and player celebrations.
