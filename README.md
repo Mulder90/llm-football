@@ -6,29 +6,42 @@ This is a new standalone project, starting from scratch. It is not an extension 
 
 The destination is eleven players per team, one LLM controller per team, two three-minute halves, a deterministic football simulation, and a beautiful top-down pixel-art broadcast website.
 
-This folder contains design documents and a visual reference. It does not contain an implemented game.
+The first implemented slice is a top-down stadium with 22 animated robot players and a deterministic 24-second passing fixture. It has play/pause, seeking, speed controls, player numbers, fullscreen, a decision inspector and record download. This is **scripted development footage**, not yet an LLM-played match.
 
-## Start in Codex
+## Run locally
 
-1. Extract this folder into a new project workspace.
-2. Open the folder in Codex.
-3. Paste the contents of [FIRST_PROMPT.md](FIRST_PROMPT.md).
-4. Review the proposed first slice before approving implementation.
+Use Node 24.2 or newer and pnpm 11.20.
+
+```sh
+pnpm install
+pnpm dev
+```
+
+Open the local URL printed by Vite. Click **Watch the first exchange**. Space toggles playback; left/right arrows seek five seconds when focus is outside a control. Replay position also supports the keyboard. No API keys or API calls are needed for this fixture.
+
+```sh
+pnpm check     # strict TypeScript and deterministic engine tests
+pnpm format    # format source and docs with Prettier
+pnpm build     # typecheck and production viewer
+pnpm fixture   # headless generation, replay verification, local JSON export
+```
+
+The original [first-task brief](FIRST_PROMPT.md) remains available. Implementation is now authorized by the user's subsequent goal: finish a beautiful, complete LLM-controlled match in tested, committed slices. See [current progress](docs/PROGRESS.md) and the [foundation handoff](docs/slices/01-FOUNDATION.md).
 
 Codex should follow [AGENTS.md](AGENTS.md). Documents communicate intent and should be challenged where incomplete. Do not silently turn illustrative examples into permanent contracts.
 
 ## Read in order
 
-| Document | Purpose |
-| --- | --- |
-| [Product](docs/01-PRODUCT.md) | Audience, settled decisions, scope |
-| [Architecture](docs/02-ARCHITECTURE.md) | Simulation, controllers, clocks, recording, playback |
-| [LLM control](docs/03-LLM-CONTROL.md) | Rulebook, observations, team orders, memory, fairness |
-| [Football rules](docs/04-FOOTBALL-RULES.md) | Play, referee, fouls, restarts and unresolved mechanics |
-| [Visual and audio direction](docs/05-VISUAL-AUDIO.md) | Top-down camera, pixel art, animation, sound |
-| [Build plan](docs/06-BUILD-PLAN.md) | Incremental implementation and acceptance criteria |
-| [Providers](docs/07-PROVIDERS.md) | Cheap OpenAI/Gemini defaults, local keys, bounded test runs |
-| [Decision records](docs/decisions/README.md) | Lightweight ADR process |
+| Document                                              | Purpose                                                     |
+| ----------------------------------------------------- | ----------------------------------------------------------- |
+| [Product](docs/01-PRODUCT.md)                         | Audience, settled decisions, scope                          |
+| [Architecture](docs/02-ARCHITECTURE.md)               | Simulation, controllers, clocks, recording, playback        |
+| [LLM control](docs/03-LLM-CONTROL.md)                 | Rulebook, observations, team orders, memory, fairness       |
+| [Football rules](docs/04-FOOTBALL-RULES.md)           | Play, referee, fouls, restarts and unresolved mechanics     |
+| [Visual and audio direction](docs/05-VISUAL-AUDIO.md) | Top-down camera, pixel art, animation, sound                |
+| [Build plan](docs/06-BUILD-PLAN.md)                   | Incremental implementation and acceptance criteria          |
+| [Providers](docs/07-PROVIDERS.md)                     | Cheap OpenAI/Gemini defaults, local keys, bounded test runs |
+| [Decision records](docs/decisions/README.md)          | Lightweight ADR process                                     |
 
 ## Selected visual reference
 

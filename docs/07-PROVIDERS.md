@@ -5,9 +5,9 @@ The user has OpenAI and Gemini API keys and wants cheap models first. Keep real 
 ## Suggested first model pair
 
 | Provider | Configurable model ID | Standard text input / 1M tokens | Output / 1M tokens |
-| --- | --- | --- | --- |
-| OpenAI | gpt-5-nano | $0.05 | $0.40 |
-| Gemini | gemini-2.5-flash-lite | $0.10 | $0.40 |
+| -------- | --------------------- | ------------------------------- | ------------------ |
+| OpenAI   | gpt-5-nano            | $0.05                           | $0.40              |
+| Gemini   | gemini-2.5-flash-lite | $0.10                           | $0.40              |
 
 These are inexpensive development candidates, not a claim of good football ability. Rates were checked for this handoff against [OpenAI GPT-5 nano documentation](https://developers.openai.com/api/docs/models/gpt-5-nano) and [Google Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing). Recheck availability, deprecation and pricing when implementing. Account access and quotas have not been tested. [Google model catalogue](https://ai.google.dev/gemini-api/docs/models) lists the Gemini model ID.
 

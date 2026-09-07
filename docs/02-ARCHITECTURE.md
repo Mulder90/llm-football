@@ -4,16 +4,16 @@ All choices below are design proposals to refine through implementation; invaria
 
 ## Responsibilities
 
-| Component | Owns | Must not own |
-| --- | --- | --- |
-| Football simulation | State, movement, ball physics, contacts, referee, phases and results | Provider requests or rendering |
-| Observation builder | Public world snapshot, perspective, recent public events | Opponent private notes or pending orders |
-| Team controller adapter | Converting observation to unknown action payload | Direct state mutation |
-| Match runner | Decision barriers, validation, fallbacks, generation lifecycle | Hidden tactical decisions |
-| Recorder | Inputs, applied ticks, events, provenance, checkpoints | Re-running models during replay |
-| Playback controller | Playhead, speed, pause, seeking | Changing canonical outcomes |
-| Canvas renderer/audio | Visual and sound presentation of playback state | Scoring, collisions or refereeing |
-| React shell | Match selection, controls and inspection | Per-frame physics in React state |
+| Component               | Owns                                                                 | Must not own                             |
+| ----------------------- | -------------------------------------------------------------------- | ---------------------------------------- |
+| Football simulation     | State, movement, ball physics, contacts, referee, phases and results | Provider requests or rendering           |
+| Observation builder     | Public world snapshot, perspective, recent public events             | Opponent private notes or pending orders |
+| Team controller adapter | Converting observation to unknown action payload                     | Direct state mutation                    |
+| Match runner            | Decision barriers, validation, fallbacks, generation lifecycle       | Hidden tactical decisions                |
+| Recorder                | Inputs, applied ticks, events, provenance, checkpoints               | Re-running models during replay          |
+| Playback controller     | Playhead, speed, pause, seeking                                      | Changing canonical outcomes              |
+| Canvas renderer/audio   | Visual and sound presentation of playback state                      | Scoring, collisions or refereeing        |
+| React shell             | Match selection, controls and inspection                             | Per-frame physics in React state         |
 
 ## Core loop
 

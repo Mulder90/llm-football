@@ -7,3 +7,4 @@ coverage/
 artifacts/private/
 .DS_Store
 artifacts/qa/
+artifacts/passing-fixture.json

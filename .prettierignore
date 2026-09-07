@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+dist/
+coverage/
+node_modules/
+artifacts/
+.env
+.env.*
+docs/references/

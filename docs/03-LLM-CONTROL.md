@@ -26,14 +26,14 @@ This is a structural example, not a complete schema; the actual roster array con
   "playingSecondsRemaining": 173,
   "you": "coral",
   "attackDirection": "positive_x",
-  "score": {"coral": 0, "cyan": 0},
+  "score": { "coral": 0, "cyan": 0 },
   "ball": {
     "position": [52, 31, 0.11],
     "velocity": [0, 0, 0],
     "possessorId": "coral-8"
   },
   "players": [],
-  "recentEvents": [{"type": "interception", "playerId": "coral-8"}],
+  "recentEvents": [{ "type": "interception", "playerId": "coral-8" }],
   "orderFeedback": [],
   "privateMemory": "Their right winger stays high."
 }
@@ -47,8 +47,8 @@ This is a structural example, not a complete schema; the actual roster array con
   "matchId": "demo-001",
   "decisionId": 7,
   "orders": [
-    {"playerId": "coral-8", "type": "pass", "target": [65, 18], "power": 0.6},
-    {"playerId": "coral-7", "type": "move", "target": [65, 18], "effort": 0.9}
+    { "playerId": "coral-8", "type": "pass", "target": [65, 18], "power": 0.6 },
+    { "playerId": "coral-7", "type": "move", "target": [65, 18], "effort": 0.9 }
   ],
   "memory": "Use the right channel when their midfield presses."
 }
