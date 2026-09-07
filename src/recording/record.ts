@@ -134,7 +134,11 @@ function interpolatePosition(start: Vec2, end: Vec2, fraction: number): Vec2 {
 
 /** Pure sampling: playback speed, seeking and frame rate cannot affect outcomes. */
 export function sample(record: Recording, seconds: number): Frame {
-  const tick = clamp(seconds * TICK_RATE, 0, record.durationTicks);
+  // The seconds→ticks round trip can fall just below an integer endpoint (e.g. 30723 ticks).
+  const tick =
+    seconds >= record.durationTicks / TICK_RATE
+      ? record.durationTicks
+      : clamp(seconds * TICK_RATE, 0, record.durationTicks);
   const previousIndex = frameIndexAtTick(record.frames, tick);
   const nextIndex = Math.min(previousIndex + 1, record.frames.length - 1);
   const previousFrame = record.frames[previousIndex]!;

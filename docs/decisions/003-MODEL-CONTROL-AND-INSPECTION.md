@@ -33,3 +33,5 @@ Synthetic audio starts only after an explicit unmute gesture. Ambient crowd and 
 Player-order inspection now adds a presentation-only selection ring and target line. Exact repair user messages use the same pure formatter as the adapters, so the displayed wording cannot drift from the request template. The optional Match tab distinguishes generation wall time, request counts and estimated usage from the playing clock.
 
 Goal incidents are stamped inside a fixed simulation step; their updated score appears in the following frame. Goal banners, huddles and cheers wait for that completed step. This matters when a sample lands exactly on the incident tick: otherwise the banner could briefly accompany the old score. Halftime/full-time events already use their completed clock boundary.
+
+Playback clamps against the duration in seconds before converting back to ticks, because values such as 512.05 × 60 can land just below an integer endpoint. The final frame must still be selected exactly. Audio is silenced directly on visibilitychange; hidden tabs may stop requestAnimationFrame, so waiting for the next draw is insufficient.

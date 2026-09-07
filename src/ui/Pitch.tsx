@@ -91,6 +91,15 @@ export function Pitch({
     // Returning to a tab resumes at the existing playhead without catching up.
     const resetTiming = () => {
       previousTimestamp = null;
+      // Hidden tabs may stop rAF entirely; silence audio here instead of waiting for a frame.
+      if (document.hidden)
+        audio.current?.advance(
+          recording.events,
+          playhead.current * TICK_RATE,
+          false,
+          speed,
+          seekRevision,
+        );
     };
     document.addEventListener('visibilitychange', resetTiming);
     animationFrameId = requestAnimationFrame(draw);

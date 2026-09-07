@@ -10,6 +10,13 @@ import { TICK_RATE } from '../src/sim/rules.ts';
 
 const passing = createPassingFixture();
 describe('recording import and presentation boundaries', () => {
+  it('lands on the final frame even when converting seconds back to ticks loses precision', () => {
+    // 512.05 seconds × 60 becomes 30722.999999999996 in JavaScript.
+    const durationTicks = 30723;
+    const finalFrame = { ...passing.frames.at(-1)!, tick: durationTicks };
+    const timeline = { ...passing, durationTicks, frames: [passing.frames[0]!, finalFrame] };
+    expect(sample(timeline, durationTicks / TICK_RATE)).toBe(finalFrame);
+  });
   it('only sounds events crossed forward, with no historical effects after seeking backwards', () => {
     const kick = passing.events.find((event) => event.type === 'kick')!;
     expect(crossedAudioEvents(passing.events, kick.tick - 1, kick.tick, 1)).toContain(kick);

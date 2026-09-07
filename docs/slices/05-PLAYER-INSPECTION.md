@@ -13,3 +13,5 @@ Strict TypeScript, all 59 existing tests and the production build pass. Browser 
 The full real run `north-garden-001` is generating independently from the committed football-0.3 engine and unchanged request semantics, with a $4 estimated ceiling, 2,000-boundary ceiling and four-hour wall limit. Its checkpoints are private; a temporary local viewer snapshot is labelled incomplete. No incomplete checkpoint counts as goal completion or gets substituted for a full result.
 
 Next: verify both completed halves, publish the finished recording, perform the final playback checks and push the complete watchable result to main.
+
+Final playback checks add a real floating-point endpoint counterexample (30,723 ticks), bringing the suite to 60 passing tests. Native fullscreen enters a 1920×1080 viewport and returns to 1280×720 with the expected control state and no error notice. Hidden-tab audio is silenced from the visibility event rather than relying on an animation frame that the browser may suspend.
