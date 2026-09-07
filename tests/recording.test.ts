@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { createPassingFixture } from '../src/fixtures/passing.ts';
 import { createFullMatchFixture } from '../src/fixtures/full-match.ts';
-import { sample, verifyRecording } from '../src/recording/record.ts';
+import { sample, verifyRecording, SAMPLE_INTERVAL_TICKS } from '../src/recording/record.ts';
 import { parseRecording, readRecordingStream } from '../src/recording/validate.ts';
 import { celebrationFrame } from '../src/render/celebration.ts';
 import { crossedAudioEvents } from '../src/audio/playback-audio.ts';
+import { MatchMoment } from '../src/ui/MatchMoment.tsx';
 import { TICK_RATE } from '../src/sim/rules.ts';
 
 const passing = createPassingFixture();
@@ -53,6 +54,22 @@ describe('recording import and presentation boundaries', () => {
   it('creates a goal huddle from past footage without altering any match state or showing it early', () => {
     const recording = createFullMatchFixture();
     const goal = recording.events.find((event) => event.type === 'goal')!;
+    // Events inside a step become visible in the following frame, after its score updates.
+    const sampledGoal = recording.events.find(
+      (event) => event.type === 'goal' && event.tick % SAMPLE_INTERVAL_TICKS === 0,
+    )!;
+    const atContact = sample(recording, sampledGoal.tick / TICK_RATE);
+    expect(atContact.tick).toBe(sampledGoal.tick);
+    expect(MatchMoment({ recording, frame: atContact })).toBeNull();
+    expect(
+      crossedAudioEvents(recording.events, sampledGoal.tick - 1, sampledGoal.tick, 1),
+    ).not.toContain(sampledGoal);
+    expect(
+      crossedAudioEvents(recording.events, sampledGoal.tick, sampledGoal.tick + 1, 1),
+    ).toContain(sampledGoal);
+    expect(
+      MatchMoment({ recording, frame: sample(recording, (sampledGoal.tick + 1) / TICK_RATE) }),
+    ).not.toBeNull();
     const before = JSON.stringify(recording);
     const early = celebrationFrame(
       recording,

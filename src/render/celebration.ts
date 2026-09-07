@@ -16,7 +16,7 @@ export function celebrationFrame(
   frame: Frame,
   reducedMotion: boolean,
 ): { frame: Frame; playerIds: Set<string> } {
-  const goal = record.events.findLast((event) => event.type === 'goal' && event.tick <= frame.tick);
+  const goal = record.events.findLast((event) => event.type === 'goal' && event.tick < frame.tick);
   const playerIds = new Set<string>();
   if (
     !goal ||

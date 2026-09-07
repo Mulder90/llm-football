@@ -317,7 +317,6 @@ input:focus-visible {
   text-align: center;
   color: #fff2d0;
   pointer-events: none;
-  filter: drop-shadow(0 6px 0 #143035);
   animation: goal-arrival 0.25s ease-out both;
 }
 .goal-moment.cyan {
@@ -328,7 +327,7 @@ input:focus-visible {
   font-size: clamp(8px, 1vw, 11px);
   letter-spacing: 5px;
   margin-bottom: 4px;
-  text-shadow: 0 2px 0 #143035;
+  text-shadow: 0 1px 2px #143035;
 }
 .goal-moment strong {
   display: block;
@@ -362,7 +361,7 @@ input:focus-visible {
   margin-top: 12px;
   font-size: 32px;
   font-family: 'Space Grotesk', sans-serif;
-  text-shadow: 2px 3px 0 #173b39;
+  text-shadow: 0 2px 2px #173b39;
 }
 @keyframes goal-arrival {
   from {

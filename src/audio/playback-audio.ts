@@ -17,12 +17,15 @@ export function crossedAudioEvents(
 ): MatchEvent[] {
   if (tick <= previousTick) return [];
   return events
-    .filter(
-      (event) =>
-        event.tick > previousTick &&
-        event.tick <= tick &&
-        (speed <= 2 || SIGNIFICANT_EVENTS.has(event.type)),
-    )
+    .filter((event) => {
+      // A goal's new score is visible after the incident's fixed step completes.
+      const audibleTick = event.tick + (event.type === 'goal' ? 1 : 0);
+      return (
+        audibleTick > previousTick &&
+        audibleTick <= tick &&
+        (speed <= 2 || SIGNIFICANT_EVENTS.has(event.type))
+      );
+    })
     .slice(-AUDIO.maximumEventsPerFrame);
 }
 function noiseBuffer(context: AudioContext, seconds: number): AudioBuffer {

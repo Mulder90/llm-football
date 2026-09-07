@@ -5,7 +5,7 @@ import { formatPlayerId } from './format.ts';
 const GOAL_BANNER_TICKS = 1.8 * TICK_RATE;
 export function MatchMoment({ recording, frame }: { recording: Recording; frame: Frame }) {
   const goal = recording.events.findLast(
-    (event) => event.type === 'goal' && event.tick <= frame.tick,
+    (event) => event.type === 'goal' && event.tick < frame.tick,
   );
   if (goal && frame.tick - goal.tick < GOAL_BANNER_TICKS && frame.phase.type !== 'full_time') {
     return (
