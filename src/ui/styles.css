@@ -984,3 +984,16 @@ input:focus-visible {
   cursor: progress;
   opacity: 0.85;
 }
+
+.stream-pause {
+  flex: 0 0 auto;
+  border: 1px solid #405b4e;
+  border-radius: 4px;
+  padding: 7px 9px;
+  background: #bdddac0a;
+  color: #d5e7c6;
+  font-size: 10px;
+}
+.stream-pause:hover {
+  background: #bdddac19;
+}

@@ -80,6 +80,8 @@ export function DecisionInspector({
   onImport,
   selectedPlayer,
   onSelectPlayer,
+  isPlaying,
+  onTogglePlayback,
 }: {
   recording: Recording;
   frame: Frame;
@@ -93,6 +95,8 @@ export function DecisionInspector({
   onImport: (file: File) => void;
   selectedPlayer: string | null;
   onSelectPlayer: (id: string) => void;
+  isPlaying: boolean;
+  onTogglePlayback: () => void;
 }) {
   const [team, setTeam] = useState<Team>('coral');
   const decision = recording.decisions.findLast((candidate) => candidate.tick <= frame.tick);
@@ -107,13 +111,20 @@ export function DecisionInspector({
       (receipt) => receipt.decisionId === decisionId && receipt.team === team,
     ) ?? [];
   return (
-    <aside className="inspector-panel" aria-label="Match inspector" id="decision-inspector">
+    <aside
+      className="inspector-panel"
+      aria-label="Match inspector"
+      id="decision-inspector"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') onClose();
+      }}
+    >
       <header className="inspector-header">
         <div>
           <p className="eyebrow">BEHIND THE MATCH</p>
           <h2>Every decision, visible.</h2>
         </div>
-        <button className="close-button" onClick={onClose} aria-label="Close inspector">
+        <button className="close-button" onClick={onClose} aria-label="Close inspector" autoFocus>
           ×
         </button>
       </header>
@@ -131,6 +142,13 @@ export function DecisionInspector({
             <span>
               {formatTime(frame.playingTicks / TICK_RATE)} · #{decisionId ?? 0}
             </span>
+            <button
+              className="stream-pause"
+              onClick={onTogglePlayback}
+              aria-label={isPlaying ? 'Pause match to inspect' : 'Play match from inspector'}
+            >
+              {isPlaying ? 'Ⅱ Pause' : '▶ Play'}
+            </button>
           </p>
         )}
         {tab === 'decisions' && (

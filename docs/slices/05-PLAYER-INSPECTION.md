@@ -1,6 +1,6 @@
 # Slice 5 — Connect decisions to the pitch
 
-The optional decision panel now lets a spectator select an order. Its player receives a team-coloured ring and shirt-number label, with a dotted line to the requested target. The selection follows that player during playback; switching away from Decisions or closing the inspector hides it. The panel uses semantic toggle buttons and supports keyboard focus.
+The optional decision panel now lets a spectator select an order. Its player receives a team-coloured ring and shirt-number label, with a dotted line to the requested target. The selection follows that player during playback; switching away from Decisions or closing the inspector hides it. The panel uses semantic toggle buttons and supports keyboard focus. Its own Play/Pause control freezes the match for reading on narrow screens; Escape closes it and restores focus to the opener. The ring uses the presented pose during goal celebrations, so it stays attached to the visible sprite.
 
 The invariant is presentation-only inspection. The renderer locates a player by stable roster ID, reads the sampled position and the most recent paired decision at or before the playhead, then draws a marker. It never writes to the recording or simulation. A player omitted from the latest batch keeps a selection ring but has no new-order target line. This distinction avoids presenting an old instantaneous kick as a pending action. A dismissed player has no pitch marker.
 
@@ -8,7 +8,7 @@ The observer can also expand each request's exact user-message text, including t
 
 Initial page loading uses the inexpensive passing fixture while fetching the default recording, instead of generating an entire scripted match twice under React development Strict Mode. The opening Watch control remains disabled during loading. The complete scripted fixture remains selectable.
 
-Strict TypeScript, all 59 existing tests and the production build pass. Browser inspection verifies that selecting Coral #2 highlights the correct player and target while leaving the match paused; the side panel remains readable at 1280×720. The new UI does not need a parallel set of implementation-mirroring tests. Final complete-match browser acceptance follows when generation finishes.
+Strict TypeScript, all 59 existing tests and the production build pass. Browser inspection verifies that selecting Coral #2 highlights the correct player and target while leaving the match paused; the side panel remains readable at 1280×720. At 390×844, the observation panel has no horizontal overflow, its pause control holds the same boundary, and Escape closes it with focus returned to the opener. A longer real checkpoint plays to its exact endpoint at normal speed. The new UI does not need a parallel set of implementation-mirroring tests. Final complete-match browser acceptance follows when generation finishes.
 
 The full real run `north-garden-001` is generating independently from the committed football-0.3 engine and unchanged request semantics, with a $4 estimated ceiling, 2,000-boundary ceiling and four-hour wall limit. Its checkpoints are private; a temporary local viewer snapshot is labelled incomplete. No incomplete checkpoint counts as goal completion or gets substituted for a full result.
 

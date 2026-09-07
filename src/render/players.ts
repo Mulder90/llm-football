@@ -134,7 +134,7 @@ export function drawPlayers(
   record: Recording,
   showNumbers: boolean,
   reducedMotion: boolean,
-): void {
+): Frame {
   const celebration = celebrationFrame(record, frame, reducedMotion);
   frame = celebration.frame;
   const drawingOrder = record.initial.players
@@ -155,4 +155,5 @@ export function drawPlayers(
     );
   }
   drawBall(context, frame);
+  return frame;
 }

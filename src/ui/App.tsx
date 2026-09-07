@@ -21,12 +21,17 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
   const playback = usePlayback(recording);
   const frame = sample(recording, playback.seconds);
   const broadcastRef = useRef<HTMLElement>(null);
+  const inspectorTrigger = useRef<HTMLButtonElement>(null);
   const [showPlayerNumbers, setShowPlayerNumbers] = useState(false);
   const [panel, setPanel] = useState<InspectorTab | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [notice, setNotice] = useState('');
   const sound = useSound(setNotice);
+  function closeInspector() {
+    setPanel(null);
+    inspectorTrigger.current?.focus();
+  }
 
   useEffect(() => {
     const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -66,6 +71,7 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
             · RECORDED
           </span>
           <button
+            ref={inspectorTrigger}
             onClick={() => setPanel(panel ? null : 'decisions')}
             aria-expanded={panel !== null}
             aria-controls="decision-inspector"
@@ -145,7 +151,9 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
           frame={frame}
           tab={panel}
           onTab={setPanel}
-          onClose={() => setPanel(null)}
+          onClose={closeInspector}
+          isPlaying={playback.isPlaying}
+          onTogglePlayback={playback.togglePlayback}
           selectedPlayer={selectedPlayer}
           onSelectPlayer={(id) => setSelectedPlayer((selected) => (selected === id ? null : id))}
           matches={library.matches}

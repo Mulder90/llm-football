@@ -68,8 +68,14 @@ export function Pitch({
       context.drawImage(background, 0, 0);
       drawCrowd(context, frame.tick, reducedMotion);
       drawReferee(context, frame, recording);
-      drawPlayers(context, frame, recording, showPlayerNumbers, reducedMotion);
-      drawDecisionFocus(context, frame, recording, selectedPlayer);
+      const presentedFrame = drawPlayers(
+        context,
+        frame,
+        recording,
+        showPlayerNumbers,
+        reducedMotion,
+      );
+      drawDecisionFocus(context, presentedFrame, recording, selectedPlayer);
       audio.current?.advance(recording.events, frame.tick, isPlaying, speed, seekRevision);
 
       const hasEnded = playhead.current === durationSeconds;
