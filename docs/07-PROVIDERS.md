@@ -2,7 +2,13 @@
 
 The user has OpenAI and Gemini API keys and wants cheap models first. Keep real keys in an ignored local .env file or the runner environment. .env.example has empty placeholders. Never paste keys into prompts, commit them, use VITE_ prefixes or expose them to the spectator browser.
 
-## Suggested first model pair
+## Current tested configuration
+
+The original Gemini 2.5 Flash-Lite suggestion returned HTTP 404 on this account in the integration smoke test: unavailable to new users. The runner now deliberately defaults to Gemini 3.1 Flash-Lite (minimal thinking, temperature 0.4), $0.25 input / $1.50 output per million tokens. GPT-5 nano uses low reasoning, after the minimal setting failed to deliver a kickoff. See [decision 003](decisions/003-MODEL-CONTROL-AND-INSPECTION.md) and the [measured test](slices/03-FIRST-MODEL-POSSESSION.md). Prices were rechecked against the official pages linked below on 2026-09-07. No automatic upgrade is permitted.
+
+The table below preserves the initial proposal; it is not the current adapter default.
+
+## Original suggested model pair
 
 | Provider | Configurable model ID | Standard text input / 1M tokens | Output / 1M tokens |
 | -------- | --------------------- | ------------------------------- | ------------------ |
@@ -33,4 +39,4 @@ Reserve budget for both concurrent requests and retry allowance before dispatch.
 
 Do not silently upgrade models. Report failure and allow deliberate configuration changes. Save controller configuration in match provenance. Watching/replaying makes zero inference calls.
 
-.env.example is a proposed configuration contract for the later local runner. The initial provider-free slice neither reads it nor calls APIs.
+.env.example now describes the implemented local runner. Browser playback never reads it or calls a provider.

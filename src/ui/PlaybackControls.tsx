@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import type { Playback } from './usePlayback.ts';
 import { formatTime } from './format.ts';
 import { TICK_RATE } from '../sim/rules.ts';
+import type { useSound } from './useSound.ts';
 
 const PLAYBACK_SPEEDS = [0.5, 1, 1.5, 2, 4];
 
@@ -13,6 +14,7 @@ type ControlsProps = {
   onToggleNumbers: () => void;
   onToggleInspector: () => void;
   onToggleFullscreen: () => void;
+  sound: ReturnType<typeof useSound>;
 };
 
 export function PlaybackControls({
@@ -23,6 +25,7 @@ export function PlaybackControls({
   onToggleNumbers,
   onToggleInspector,
   onToggleFullscreen,
+  sound,
 }: ControlsProps) {
   const playLabel = playback.isPlaying ? 'Pause' : playback.hasEnded ? 'Replay' : 'Play';
   const playIcon = playback.isPlaying ? 'Ⅱ' : playback.hasEnded ? '↻' : '▶';
@@ -76,6 +79,25 @@ export function PlaybackControls({
           </label>
         </div>
         <div className="control-group">
+          <button
+            className="icon-button sound-button"
+            aria-label={sound.muted ? 'Unmute stadium sound' : 'Mute stadium sound'}
+            onClick={() => void sound.toggleMute()}
+          >
+            {sound.muted ? '♩' : '♫'}
+          </button>
+          {!sound.muted && (
+            <input
+              className="volume-control"
+              aria-label="Stadium volume"
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={sound.volume}
+              onChange={(event) => sound.changeVolume(Number(event.target.value))}
+            />
+          )}
           <button
             className={`text-button numbers ${showPlayerNumbers ? 'selected' : ''}`}
             onClick={onToggleNumbers}

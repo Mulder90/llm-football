@@ -126,7 +126,11 @@ export function validateBatch(raw: unknown, state: MatchState, team: Team): Batc
     const ownsPlayer = state.players.some(
       (player) => player.id === playerId && player.team === team,
     );
-    if (!ownsPlayer || orderedPlayers.has(playerId)) throw new Error('Duplicate or unowned player');
+    if (!ownsPlayer) throw new Error(`Unowned player: ${playerId}`);
+    if (orderedPlayers.has(playerId))
+      throw new Error(
+        `Duplicate player: ${playerId}. Send only one order per player; guard already includes movement.`,
+      );
     orderedPlayers.add(playerId);
     const order = parseOrder(candidate, playerId);
     const player = state.players.find((player) => player.id === playerId)!;

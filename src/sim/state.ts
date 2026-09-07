@@ -80,7 +80,7 @@ export function opponent(team: Team): Team {
   return team === 'coral' ? 'cyan' : 'coral';
 }
 
-function cloneOrder(order: Order): Order {
+export function cloneOrder(order: Order): Order {
   return 'target' in order ? { ...order, target: { ...order.target } } : { ...order };
 }
 

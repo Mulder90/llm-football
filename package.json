@@ -15,11 +15,14 @@
     "check": "tsc --noEmit && vitest run",
     "fixture": "node --experimental-strip-types scripts/fixture.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "generate": "node --experimental-strip-types scripts/generate.ts",
+    "publish-recording": "node --experimental-strip-types scripts/publish-recording.ts"
   },
   "dependencies": {
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/node": "26.4.1",

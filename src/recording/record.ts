@@ -4,6 +4,7 @@ import { ENGINE_VERSION, TICK_RATE } from '../sim/rules.ts';
 import { cloneState, clonePhase } from '../sim/state.ts';
 import { step } from '../sim/step.ts';
 import type { Decision, MatchEvent, MatchState, Team, Vec2, Vec3 } from '../sim/types.ts';
+import type { GenerationProvenance } from './provenance.ts';
 
 export const SAMPLE_INTERVAL_TICKS = 3;
 
@@ -44,6 +45,7 @@ export type Recording = {
   events: MatchEvent[];
   finalHash: string;
   durationTicks: number;
+  generation?: GenerationProvenance;
 };
 
 export function capture(state: MatchState): Frame {

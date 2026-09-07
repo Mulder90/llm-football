@@ -6,7 +6,9 @@ This is a new standalone project, starting from scratch. It is not an extension 
 
 The destination is eleven players per team, one LLM controller per team, two three-minute halves, a deterministic football simulation, and a beautiful top-down pixel-art broadcast website.
 
-The viewer has a top-down stadium with 22 animated robot players and a complete scripted match across two three-minute playing halves. A 24-second passing fixture is also available. It has play/pause, seeking, speed controls, player numbers, fullscreen, a decision inspector and record download. This is **scripted development footage**, not yet an LLM-played match.
+The broadcast fills the viewport with a top-down pixel-art stadium. A real **incomplete LLM excerpt** is available: GPT-5 nano versus Gemini 3.1 Flash-Lite, alongside a complete scripted baseline. The goal is still a full, six-minute LLM match.
+
+Open **Behind the match** for team/player decisions, the exact observation stream, rules/prompt and recording import/export. The panel follows replay time. Goal celebrations and synthetic stadium sound are available; click the sound control to unmute. Playback never calls an LLM.
 
 ## Run locally
 
@@ -17,7 +19,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the local URL printed by Vite. Click **Watch the match**. Space toggles playback; left/right arrows seek five seconds when focus is outside a control. Replay position also supports the keyboard. No API keys or API calls are needed for this fixture.
+Open the local URL printed by Vite. Click **Watch the match**. Space toggles playback; left/right arrows seek five seconds when focus is outside a control. Replay position also supports the keyboard. No API keys or API calls are needed to watch recordings.
 
 ```sh
 pnpm check     # strict TypeScript and deterministic engine tests
@@ -27,7 +29,19 @@ pnpm fixture   # passing fixture, replay verification, local JSON export
 pnpm fixture --full # both halves of the scripted baseline
 ```
 
-The original [first-task brief](FIRST_PROMPT.md) remains available. Implementation is now authorized by the user's subsequent goal: finish a beautiful, complete LLM-controlled match in tested, committed slices. See [current progress](docs/PROGRESS.md) and the [latest slice handoff](docs/slices/02-FULL-MATCH-ENGINE.md).
+## Generate locally
+
+Keep `OPENAI_API_KEY` and `GEMINI_API_KEY` in ignored `.env`, using `.env.example` for names. The runner sends football state only. Defaults are a bounded ten-decision test, one repair per team, and a $0.25 estimated ceiling.
+
+```sh
+pnpm generate --smoke                       # one request per provider, no retries
+pnpm generate --decisions 10 --name trial-01 # bounded real possession
+pnpm publish-recording artifacts/private/trial-01/match.json
+```
+
+Publishing here validates and replay-verifies the file, then places gzip data in the local viewer catalogue. It does not deploy a site. Refresh the viewer to load the new recording. Incomplete runs remain labelled incomplete. Model availability, measured usage, limits and execution assistance are documented in [decision 003](docs/decisions/003-MODEL-CONTROL-AND-INSPECTION.md).
+
+The original [first-task brief](FIRST_PROMPT.md) remains available. Implementation is now authorized by the user's subsequent goal: finish a beautiful, complete LLM-controlled match in tested, committed slices. See [current progress](docs/PROGRESS.md) and the [latest slice handoff](docs/slices/03-FIRST-MODEL-POSSESSION.md).
 
 Codex should follow [AGENTS.md](AGENTS.md). Documents communicate intent and should be challenged where incomplete. Do not silently turn illustrative examples into permanent contracts.
 

@@ -3,6 +3,7 @@ import type { Player, Team } from '../sim/types.ts';
 import type { Frame, PlayerFrame, Recording } from '../recording/record.ts';
 import { worldToScreen } from './layout.ts';
 import { drawPixelRect } from './pixels.ts';
+import { celebrationFrame } from './celebration.ts';
 
 type KitPalette = { highlight: string; shirt: string; shade: string; boots: string };
 const TEAM_KITS: Record<Team, KitPalette> = {
@@ -33,8 +34,11 @@ function drawRobot(
   hasBall: boolean,
   showNumbers: boolean,
   reducedMotion: boolean,
+  celebrating: boolean,
 ): void {
   const anchor = worldToScreen(frame.position);
+  if (celebrating && !reducedMotion)
+    anchor.y -= Math.round(Math.abs(Math.sin(tick / 7 + player.number)) * 4);
   const speed = Math.sqrt(frame.velocity.x ** 2 + frame.velocity.y ** 2);
   const isMoving = speed > ANIMATION.movementThreshold;
   const runFrame =
@@ -46,7 +50,7 @@ function drawRobot(
   const isKicking = ticksSinceKick >= 0 && ticksSinceKick < ANIMATION.kickDurationTicks;
   const isTackling = tick - frame.lastTackleTick < ANIMATION.tackleDurationTicks;
   const isSaving = tick - frame.lastSaveTick < ANIMATION.saveDurationTicks;
-  const armLift = isSaving ? 5 : frame.guarding ? 2 : 0;
+  const armLift = isSaving || celebrating ? 5 : frame.guarding ? 2 : 0;
   const headBob = isMoving && !reducedMotion && runFrame % 2 === 1 ? -1 : 0;
   const kit = player.role === 'keeper' ? KEEPER_KITS[player.team] : TEAM_KITS[player.team];
 
@@ -130,6 +134,8 @@ export function drawPlayers(
   showNumbers: boolean,
   reducedMotion: boolean,
 ): void {
+  const celebration = celebrationFrame(record, frame, reducedMotion);
+  frame = celebration.frame;
   const drawingOrder = record.initial.players
     .map((player, index) => ({ player, frame: frame.players[index]! }))
     .sort((first, second) => first.frame.position.y - second.frame.position.y);
@@ -143,6 +149,7 @@ export function drawPlayers(
       frame.owner === entry.player.id,
       showNumbers,
       reducedMotion,
+      celebration.playerIds.has(entry.player.id),
     );
   }
   drawBall(context, frame);

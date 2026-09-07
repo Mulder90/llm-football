@@ -6,6 +6,7 @@ import { createStadium, drawCrowd } from '../render/stadium.ts';
 import { STADIUM_SIZE } from '../render/layout.ts';
 import { drawPlayers } from '../render/players.ts';
 import { TICK_RATE } from '../sim/rules.ts';
+import type { PlaybackAudio } from '../audio/playback-audio.ts';
 
 const PRESENTATION_TIMING = {
   millisecondsPerSecond: 1000,
@@ -21,6 +22,7 @@ type PitchProps = {
   showPlayerNumbers: boolean;
   seekRevision: number;
   onAdvance: (seconds: number, ended: boolean) => void;
+  audio: RefObject<PlaybackAudio | null>;
 };
 
 export function Pitch({
@@ -31,6 +33,7 @@ export function Pitch({
   showPlayerNumbers,
   seekRevision,
   onAdvance,
+  audio,
 }: PitchProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const backgroundRef = useRef<HTMLCanvasElement | null>(null);
@@ -61,6 +64,7 @@ export function Pitch({
       context.drawImage(background, 0, 0);
       drawCrowd(context, frame.tick, reducedMotion);
       drawPlayers(context, frame, recording, showPlayerNumbers, reducedMotion);
+      audio.current?.advance(recording.events, frame.tick, isPlaying, speed, seekRevision);
 
       const hasEnded = playhead.current === durationSeconds;
       const controlsNeedUpdate =
@@ -82,7 +86,7 @@ export function Pitch({
       cancelAnimationFrame(animationFrameId);
       document.removeEventListener('visibilitychange', resetTiming);
     };
-  }, [recording, playhead, isPlaying, speed, showPlayerNumbers, seekRevision, onAdvance]);
+  }, [recording, playhead, isPlaying, speed, showPlayerNumbers, seekRevision, onAdvance, audio]);
 
   return (
     <canvas

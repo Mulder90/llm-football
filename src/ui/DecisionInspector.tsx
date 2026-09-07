@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import type { Frame, Recording } from '../recording/record.ts';
-import type { MatchEvent, Order, Vec2 } from '../sim/types.ts';
+import type { MatchEvent, Order, Team, Vec2 } from '../sim/types.ts';
 import { TICK_RATE } from '../sim/rules.ts';
-import { formatPlayerId } from './format.ts';
+import { formatPlayerId, formatTime } from './format.ts';
+import { rulebook } from '../protocol/observation.ts';
+import { RESPONSE_JSON_SCHEMA } from '../protocol/schema.ts';
+import type { MatchListing } from './useRecordings.ts';
 
+export type InspectorTab = 'decisions' | 'observations' | 'prompt' | 'match';
 function formatTarget(target: Vec2): string {
   return `(${target.x.toFixed(1)}, ${target.y.toFixed(1)})`;
 }
-
 function describeOrder(order: Order): string {
   switch (order.type) {
     case 'hold':
@@ -18,79 +22,298 @@ function describeOrder(order: Order): string {
     case 'restart_taker':
       return 'Take this restart';
     case 'move':
-      return `Move to ${formatTarget(order.target)}`;
+      return `Move to ${formatTarget(order.target)} · ${Math.round(order.pace * 100)}% pace`;
     case 'shoot':
     case 'kick':
-      return `${order.type === 'shoot' ? 'Shoot' : 'Kick'} toward ${formatTarget(order.target)} · ${order.speed.toFixed(1)} m/s`;
+      return `${order.type === 'shoot' ? 'Shoot' : 'Kick'} → ${formatTarget(order.target)} · ${order.speed.toFixed(1)} m/s`;
   }
 }
-
-function describeEvent(event: MatchEvent): string {
+export function describeEvent(event: MatchEvent): string {
   const player = event.playerId ? formatPlayerId(event.playerId) : 'Referee';
   switch (event.type) {
     case 'kick':
-      return `${player} · plays the ball`;
+      return `${player} plays the ball`;
     case 'shot':
-      return `${player} · shoots`;
+      return `${player} shoots`;
     case 'goal':
-      return `${event.team} · GOAL`;
+      return `${event.team === 'coral' ? 'Coral' : 'Cyan'} score!`;
     case 'save':
-      return `${player} · makes the save`;
+      return `${player} makes the save`;
     case 'tackle':
-      return `${player} · wins the ball`;
+      return `${player} wins the ball`;
     case 'interception':
-      return `${player} · intercepts the pass`;
+      return `${player} intercepts the pass`;
     case 'receive':
-      return `${player} · takes a touch`;
+      return `${player} takes a touch`;
     default:
       return `${player} · ${event.detail}`;
   }
 }
-
 export function EventStrip({ recording, frame }: { recording: Recording; frame: Frame }) {
-  const latestEvent = recording.events.findLast((event) => event.tick <= frame.tick);
-  const isCyan = latestEvent?.playerId?.startsWith('cyan');
+  const event = recording.events.findLast((candidate) => candidate.tick <= frame.tick);
   return (
     <div className="event-strip">
-      <span className="event-label">ON THE PITCH</span>
-      <span className={`event-dot ${isCyan ? 'cyan' : ''}`} />
-      <span>
-        {latestEvent ? describeEvent(latestEvent) : 'The teams are ready. Press play to begin.'}
+      <span className={`event-dot ${event?.team ?? ''}`} />
+      <span>{event ? describeEvent(event) : 'The teams are ready.'}</span>
+      <span className="recording-label">
+        {recording.kind === 'llm'
+          ? recording.generation?.status === 'complete'
+            ? 'MODEL-CONTROLLED'
+            : 'LLM EXCERPT · INCOMPLETE'
+          : 'SCRIPTED FIXTURE'}
       </span>
-      <span className="engine-tag">{TICK_RATE} TICKS / SEC</span>
     </div>
   );
 }
 
-export function DecisionInspector({ recording, frame }: { recording: Recording; frame: Frame }) {
-  const decision = recording.decisions.findLast((decision) => decision.tick <= frame.tick);
-  const orders = decision?.batches.flatMap((batch) => batch.orders) ?? [];
+export function DecisionInspector({
+  recording,
+  frame,
+  tab,
+  onTab,
+  onClose,
+  onSelectFixture,
+  onDownload,
+  matches,
+  loading,
+  onImport,
+}: {
+  recording: Recording;
+  frame: Frame;
+  tab: InspectorTab;
+  onTab: (tab: InspectorTab) => void;
+  onClose: () => void;
+  onSelectFixture: (fixture: string) => void;
+  onDownload: () => void;
+  matches: MatchListing[];
+  loading: boolean;
+  onImport: (file: File) => void;
+}) {
+  const [team, setTeam] = useState<Team>('coral');
+  const decision = recording.decisions.findLast((candidate) => candidate.tick <= frame.tick);
+  const decisionId = decision?.batches[0].decisionId;
+  const observation = decision?.observations?.[team];
+  const requests =
+    recording.generation?.requests.filter(
+      (receipt) => receipt.decisionId === decisionId && receipt.team === team,
+    ) ?? [];
   return (
-    <div className="inspector" id="decision-inspector">
-      <div>
-        <p className="eyebrow">THE DECISION BEHIND THE MOMENT</p>
-        <h3>Explicit instructions. Real outcomes.</h3>
-        <p>
-          This fixture uses scripted orders. The engine resolves each kick and contact. No model has
-          been called.
-        </p>
-        <span className="mono">
-          DECISION {decision?.batches[0].decisionId ?? 0} · TICK {Math.floor(frame.tick)}
-        </span>
-        <p className="verification">
-          ENGINE {recording.engine} · RECORD {recording.finalHash}
-        </p>
-      </div>
-      <div className="order-list">
-        {orders.map((order) => (
-          <div key={order.playerId}>
-            <b className={order.playerId.startsWith('coral') ? 'coral-text' : 'cyan-text'}>
-              {formatPlayerId(order.playerId)}
-            </b>
-            <span>{describeOrder(order)}</span>
-          </div>
+    <aside className="inspector-panel" aria-label="Match inspector" id="decision-inspector">
+      <header className="inspector-header">
+        <div>
+          <p className="eyebrow">BEHIND THE MATCH</p>
+          <h2>Every decision, visible.</h2>
+        </div>
+        <button className="close-button" onClick={onClose} aria-label="Close inspector">
+          ×
+        </button>
+      </header>
+      <nav className="inspector-tabs" aria-label="Inspector sections">
+        {(['decisions', 'observations', 'prompt', 'match'] as const).map((section) => (
+          <button key={section} aria-pressed={tab === section} onClick={() => onTab(section)}>
+            {section === 'prompt' ? 'Rules / prompt' : section[0]!.toUpperCase() + section.slice(1)}
+          </button>
         ))}
+      </nav>
+      <div className="inspector-body">
+        {tab !== 'match' && (
+          <p className="stream-boundary">
+            <span className="status-dot" /> FOLLOWING PLAYBACK{' '}
+            <span>
+              {formatTime(frame.playingTicks / TICK_RATE)} · #{decisionId ?? 0}
+            </span>
+          </p>
+        )}
+        {tab === 'decisions' && (
+          <>
+            <p className="panel-explanation">
+              One {recording.kind === 'llm' ? 'AI model' : 'scripted controller'} chooses orders for
+              each team. The engine decides what succeeds.
+            </p>
+            {(['coral', 'cyan'] as const).map((side) => {
+              const batch = decision?.batches.find((candidate) => candidate.team === side);
+              const note = decision?.notes?.[side];
+              return (
+                <section className={`team-decisions ${side}`} key={side}>
+                  <header>
+                    <span className="team-chip">{side === 'coral' ? 'C' : 'Y'}</span>
+                    <div>
+                      <h3>{recording.teams[side].name}</h3>
+                      <p>{recording.teams[side].controller}</p>
+                    </div>
+                    <span className="order-count">{batch?.orders.length ?? 0} orders</span>
+                  </header>
+                  {note?.intent && <p className="tactical-note">{note.intent}</p>}
+                  {decision?.fallback.includes(side) && (
+                    <p className="fallback-note">
+                      No accepted reply. Existing orders continue until expiry.
+                    </p>
+                  )}
+                  <div className="order-list">
+                    {batch?.orders.map((order) => (
+                      <div className="order-row" key={order.playerId}>
+                        <span className="player-number">
+                          #
+                          {
+                            recording.initial.players.find((player) => player.id === order.playerId)
+                              ?.number
+                          }
+                        </span>
+                        <div>
+                          <b>{order.playerId}</b>
+                          <span>{describeOrder(order)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {!batch?.orders.length && (
+                    <p className="empty-note">No new orders at this boundary.</p>
+                  )}
+                </section>
+              );
+            })}
+          </>
+        )}
+        {tab === 'observations' && (
+          <>
+            <div className="team-switch" aria-label="Observation team">
+              {(['coral', 'cyan'] as const).map((side) => (
+                <button
+                  key={side}
+                  className={side}
+                  aria-pressed={team === side}
+                  onClick={() => setTeam(side)}
+                >
+                  {recording.teams[side].name}
+                </button>
+              ))}
+            </div>
+            <p className="panel-explanation">
+              The exact input sent at this boundary, updated as the replay moves. Opponent pending
+              orders and private memory were never shared.
+            </p>
+            {observation ? (
+              <pre className="json-view" aria-label={`${team} observation`}>
+                {JSON.stringify(JSON.parse(observation), null, 2)}
+              </pre>
+            ) : (
+              <p className="empty-note">
+                This scripted fixture has no model requests. Choose a generated match to inspect the
+                observation stream.
+              </p>
+            )}
+            {requests.map((request) => (
+              <details className="request-detail" key={request.attempt}>
+                <summary>
+                  Attempt {request.attempt + 1} · {request.status} ·{' '}
+                  {(request.latencyMs / 1000).toFixed(1)}s
+                </summary>
+                <p>{request.failure ?? 'Accepted at the shared simulation boundary.'}</p>
+                {request.feedback && (
+                  <pre className="json-view">Repair feedback: {request.feedback}</pre>
+                )}
+                <pre className="json-view">{request.responseText ?? 'No response body.'}</pre>
+              </details>
+            ))}
+          </>
+        )}
+        {tab === 'prompt' && (
+          <>
+            <p className="panel-explanation">
+              {recording.generation
+                ? 'Both models received this same system prompt. Their team observation was the user message; a repair attempt also included the feedback shown under Observations.'
+                : 'Current engine rules for this scripted fixture. No AI was prompted for this recording.'}
+            </p>
+            <pre className="rulebook-view">{recording.generation?.rulebook ?? rulebook()}</pre>
+            <details className="request-detail">
+              <summary>Response JSON schema · identities fixed per request</summary>
+              <pre className="json-view">
+                {JSON.stringify(
+                  recording.generation?.responseSchema
+                    ? JSON.parse(recording.generation.responseSchema)
+                    : RESPONSE_JSON_SCHEMA,
+                  null,
+                  2,
+                )}
+              </pre>
+            </details>
+          </>
+        )}
+        {tab === 'match' && (
+          <>
+            <p className="eyebrow">NORTH GARDEN STADIUM</p>
+            <h3>{recording.title}</h3>
+            <p className="panel-explanation">{recording.description}</p>
+            <dl className="record-facts">
+              <dt>Controller</dt>
+              <dd>{recording.kind === 'llm' ? 'Real model requests' : 'Scripted baseline'}</dd>
+              <dt>Ruleset</dt>
+              <dd>{recording.engine}</dd>
+              <dt>Replay checksum</dt>
+              <dd>{recording.finalHash}</dd>
+              <dt>Recording</dt>
+              <dd>{recording.generation?.status ?? 'Development fixture'}</dd>
+            </dl>
+            {recording.generation?.status === 'incomplete' && (
+              <p className="fallback-note">
+                Incomplete run: {recording.generation.stopReason}. The rest of the match has not
+                been invented.
+              </p>
+            )}
+            <button className="panel-action" onClick={onDownload}>
+              Download match record ↗
+            </button>
+            <label className="fixture-picker">
+              Recordings
+              <select
+                disabled={loading}
+                value={
+                  recording.kind === 'llm'
+                    ? matches.some((entry) => entry.id === recording.initial.matchId)
+                      ? recording.initial.matchId
+                      : ''
+                    : recording.frames.at(-1)?.phase.type === 'full_time'
+                      ? 'full'
+                      : 'passing'
+                }
+                onChange={(event) => onSelectFixture(event.target.value)}
+              >
+                <option value="" disabled>
+                  Imported match
+                </option>
+                {matches.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.title}
+                    {entry.complete ? '' : ' · incomplete'}
+                  </option>
+                ))}
+                <option value="full">Full scripted match</option>
+                <option value="passing">First exchange · 24 seconds</option>
+              </select>
+            </label>
+            <label className="fixture-picker">
+              Open a local recording
+              <input
+                type="file"
+                accept=".json,.gz"
+                disabled={loading}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) onImport(file);
+                }}
+              />
+            </label>
+            <a
+              className="source-link"
+              href="https://github.com/Mulder90/llm-football"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Project source ↗
+            </a>
+          </>
+        )}
       </div>
-    </div>
+    </aside>
   );
 }
