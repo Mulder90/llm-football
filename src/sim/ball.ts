@@ -1,6 +1,7 @@
 import { firstBoundaryCrossing, pointOnSegment, resolveBoundary } from './boundaries.ts';
 import { emitEvent } from './events.ts';
 import { goalFrameContacts } from './goal-frame.ts';
+import { notePlayerTouch, penalizeOffsideInvolvement, snapshotOffside } from './offside.ts';
 import { contactTime, nextRandom, unitVector, vectorLength } from './math.ts';
 import { awardRestart, releaseRestart } from './restarts.ts';
 import {
@@ -11,7 +12,7 @@ import {
   RESTART_RULES,
   SECONDS_PER_TICK,
 } from './rules.ts';
-import { inOwnPenaltyArea, opponent } from './state.ts';
+import { attackDirection, inOwnPenaltyArea, opponent } from './state.ts';
 import type { Ball, MatchState, Player, Vec2, Vec3 } from './types.ts';
 
 type PlayerContact = {
@@ -31,6 +32,7 @@ export function footPosition(player: Player): Vec3 {
 }
 
 export function executeKick(state: MatchState, player: Player): void {
+  if (player.dismissed) return;
   const activeOrder = player.active;
   if (activeOrder?.order.type !== 'kick' && activeOrder?.order.type !== 'shoot') return;
   const order = activeOrder.order;
@@ -49,7 +51,17 @@ export function executeKick(state: MatchState, player: Player): void {
     return;
   }
 
+  if (
+    state.phase.type === 'restart_ready' &&
+    state.phase.restart.type === 'penalty' &&
+    direction.x * attackDirection(state, player.team) <= 0
+  ) {
+    emitEvent(state, 'restart_violation', player.id, 'Penalty must travel forward', player.team);
+    awardRestart(state, 'indirect_free_kick', opponent(player.team), state.phase.restart.position);
+    return;
+  }
   const restart = releaseRestart(state);
+  snapshotOffside(state, player, restart?.type);
   const isThrow = restart?.type === 'throw_in';
   const speed = isThrow ? Math.min(order.speed, RESTART_RULES.maximumThrowSpeed) : order.speed;
   player.facing = direction;
@@ -106,6 +118,7 @@ function findPlayerContacts(
 ): PlayerContact[] {
   const contacts: PlayerContact[] = [];
   for (const player of state.players) {
+    if (player.dismissed) continue;
     const justKicked =
       player.id === state.ball.lastTouch &&
       state.tick - state.ball.kickedAt < BALL_CONTROL.kickerRecaptureDelayTicks;
@@ -160,12 +173,14 @@ function reflectVelocity(ball: Ball, normal: Vec3, restitution: number): void {
 
 function resolvePlayerContact(state: MatchState, contact: PlayerContact, position: Vec3): void {
   const receiver = contact.player;
+  if (penalizeOffsideInvolvement(state, receiver)) return;
   if (state.ball.restartTouch?.takerId === receiver.id) {
     emitEvent(state, 'restart_violation', receiver.id, 'Restart taker touched the ball twice');
-    awardRestart(state, 'free_kick', opponent(receiver.team), receiver.position);
+    awardRestart(state, 'indirect_free_kick', opponent(receiver.team), receiver.position);
     return;
   }
   state.ball.restartTouch = null;
+  notePlayerTouch(state, receiver, contact.canControl, contact.isSave);
   const previousPlayer = state.players.find((player) => player.id === state.ball.lastTouch);
   state.ball.lastTouch = receiver.id;
   if (contact.canControl) {

@@ -17,6 +17,8 @@ export type PlayerFrame = {
   lastTackleTick: number;
   lastSaveTick: number;
   guarding: boolean;
+  yellowCards: number;
+  dismissed: boolean;
   distanceTravelled: number;
 };
 
@@ -63,6 +65,8 @@ export function capture(state: MatchState): Frame {
       lastTackleTick: player.lastTackleTick,
       lastSaveTick: player.lastSaveTick,
       guarding: player.active?.order.type === 'guard',
+      yellowCards: player.yellowCards,
+      dismissed: player.dismissed,
       distanceTravelled: player.distance,
     })),
     ball: { ...state.ball.position },
@@ -160,6 +164,8 @@ export function sample(record: Recording, seconds: number): Frame {
         lastTackleTick: player.lastTackleTick,
         lastSaveTick: player.lastSaveTick,
         guarding: player.guarding,
+        yellowCards: player.yellowCards,
+        dismissed: player.dismissed,
         distanceTravelled: interpolate(
           player.distanceTravelled,
           nextPlayer.distanceTravelled,

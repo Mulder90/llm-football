@@ -91,8 +91,13 @@ export function resolveBoundary(state: MatchState, crossing: BoundaryCrossing): 
   const directRestart = state.ball.restartTouch;
 
   if (insidePosts && belowCrossbar) {
-    // Direct throws cannot score; other direct restarts cannot score an own goal.
-    if (directRestart && (directRestart.type === 'throw_in' || directRestart.team === defending)) {
+    // Throws and indirect kicks need another touch; no restart scores a direct own goal.
+    if (
+      directRestart &&
+      (directRestart.type === 'throw_in' ||
+        directRestart.type === 'indirect_free_kick' ||
+        directRestart.team === defending)
+    ) {
       emitEvent(state, 'restart_violation', lastTouch.id, 'Direct restart goal is not permitted');
       if (directRestart.team === defending)
         awardRestart(state, 'corner', attacking, cornerPosition(goalX, crossing.position.y));

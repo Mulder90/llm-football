@@ -1,5 +1,6 @@
 import type { Frame, Recording } from '../recording/record.ts';
 import { TICK_RATE } from '../sim/rules.ts';
+import { formatPlayerId } from './format.ts';
 
 const GOAL_BANNER_TICKS = 1.8 * TICK_RATE;
 export function MatchMoment({ recording, frame }: { recording: Recording; frame: Frame }) {
@@ -28,5 +29,26 @@ export function MatchMoment({ recording, frame }: { recording: Recording; frame:
         <p>The teams are changing ends.</p>
       </div>
     );
+  const incident = recording.events.findLast(
+    (event) =>
+      event.tick <= frame.tick &&
+      (['foul', 'offside', 'yellow_card', 'red_card'].includes(event.type) ||
+        (event.type === 'restart_awarded' && event.detail === 'penalty')),
+  );
+  if (incident && frame.tick - incident.tick < 2 * TICK_RATE && frame.phase.type !== 'full_time') {
+    const label =
+      incident.type === 'restart_awarded'
+        ? 'PENALTY'
+        : incident.type.replaceAll('_', ' ').toUpperCase();
+    return (
+      <div className={`referee-moment ${incident.type}`}>
+        <span className="referee-signal" aria-hidden="true" />
+        <div>
+          <strong>{label}</strong>
+          <span>{incident.playerId ? formatPlayerId(incident.playerId) : 'Referee decision'}</span>
+        </div>
+      </div>
+    );
+  }
   return null;
 }

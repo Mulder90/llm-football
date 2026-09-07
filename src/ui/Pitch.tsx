@@ -5,6 +5,7 @@ import type { Recording } from '../recording/record.ts';
 import { createStadium, drawCrowd } from '../render/stadium.ts';
 import { STADIUM_SIZE } from '../render/layout.ts';
 import { drawPlayers } from '../render/players.ts';
+import { drawReferee } from '../render/referee.ts';
 import { TICK_RATE } from '../sim/rules.ts';
 import type { PlaybackAudio } from '../audio/playback-audio.ts';
 
@@ -63,6 +64,7 @@ export function Pitch({
       const frame = sample(recording, playhead.current);
       context.drawImage(background, 0, 0);
       drawCrowd(context, frame.tick, reducedMotion);
+      drawReferee(context, frame, recording);
       drawPlayers(context, frame, recording, showPlayerNumbers, reducedMotion);
       audio.current?.advance(recording.events, frame.tick, isPlaying, speed, seekRevision);
 
@@ -93,7 +95,7 @@ export function Pitch({
       ref={canvasRef}
       width={STADIUM_SIZE.width}
       height={STADIUM_SIZE.height}
-      aria-label="Top-down football pitch with 22 robot players. Teams swap ends at halftime."
+      aria-label="Top-down football pitch with robot players and a referee. Teams swap ends at halftime."
       role="img"
     />
   );

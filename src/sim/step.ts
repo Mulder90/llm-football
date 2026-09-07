@@ -23,6 +23,8 @@ export function step(state: MatchState): void {
   if (wasPlaying) {
     // Instant kicks commit before tackles; neither side gets priority from request arrival.
     resolveTackles(state);
+  }
+  if (state.phase.type === 'open_play') {
     const previousPositions = new Map(
       state.players.map((player) => [player.id, { ...player.position }]),
     );

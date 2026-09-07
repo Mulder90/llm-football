@@ -11,7 +11,11 @@ export function clearOrders(state: MatchState): void {
   }
 }
 
-export function finishMatch(state: MatchState, reason: 'completed' | 'abandoned'): void {
+export function finishMatch(
+  state: MatchState,
+  reason: 'completed' | 'abandoned',
+  detail?: string,
+): void {
   clearOrders(state);
   state.ball.velocity = { x: 0, y: 0, z: 0 };
   state.phase = { type: 'full_time', sinceTick: state.tick, reason };
@@ -19,7 +23,8 @@ export function finishMatch(state: MatchState, reason: 'completed' | 'abandoned'
     state,
     reason === 'completed' ? 'full_time' : 'abandoned',
     null,
-    reason === 'completed' ? 'Two halves completed' : 'Restart delivery deadline expired',
+    detail ??
+      (reason === 'completed' ? 'Two halves completed' : 'Restart delivery deadline expired'),
   );
 }
 
@@ -31,10 +36,10 @@ export function awardRestart(
 ): void {
   clearOrders(state);
   if (type === 'kickoff') resetFormation(state);
-  const eligible = state.players.filter((player) => player.team === team);
+  const eligible = state.players.filter((player) => player.team === team && !player.dismissed);
   const defaultTaker =
     type === 'goal_kick'
-      ? eligible.find((player) => player.role === 'keeper')!
+      ? (eligible.find((player) => player.role === 'keeper') ?? eligible[0]!)
       : [...eligible].sort(
           (first, second) =>
             distanceBetween(first.position, position) -
@@ -44,6 +49,7 @@ export function awardRestart(
   state.ball.velocity = { x: 0, y: 0, z: 0 };
   state.ball.owner = null;
   state.ball.restartTouch = null;
+  state.offside = null;
   state.phase = {
     type: 'restart_setup',
     sinceTick: state.tick,
@@ -87,7 +93,30 @@ function applyPlacementRestrictions(state: MatchState, restart: Restart): void {
       ? RESTART_RULES.throwInOpponentDistance
       : RESTART_RULES.opponentDistance;
   for (const player of state.players) {
+    if (player.dismissed) continue;
     if (player.id === restart.takerId) continue;
+    if (restart.type === 'penalty') {
+      const direction = attackDirection(state, restart.team);
+      const goalX = direction === 1 ? FIELD.length : 0;
+      if (player.team !== restart.team && player.role === 'keeper') {
+        player.position = {
+          x: goalX,
+          y: clamp(
+            player.position.y,
+            (FIELD.width - FIELD.goalWidth) / 2 + MOVEMENT.playerRadius,
+            (FIELD.width + FIELD.goalWidth) / 2 - MOVEMENT.playerRadius,
+          ),
+        };
+      } else {
+        keepDistance(player, restart.position, RESTART_RULES.opponentDistance);
+        const areaEdge = goalX - direction * (FIELD.penaltyAreaDepth + MOVEMENT.playerRadius);
+        player.position.x =
+          direction === 1
+            ? Math.min(player.position.x, areaEdge)
+            : Math.max(player.position.x, areaEdge);
+      }
+      continue;
+    }
     if (restart.type === 'kickoff') {
       const direction = attackDirection(state, player.team);
       player.position.x =
@@ -166,6 +195,7 @@ export function advanceMatchClock(state: MatchState, wasPlaying: boolean): void 
   if (wasPlaying) {
     state.playingTicks++;
     state.halfPlayingTicks++;
+    if (state.phase.type === 'full_time') return;
     if (state.halfPlayingTicks >= MATCH_TIMING.halfPlayingTicks) {
       if (state.half === 2) finishMatch(state, 'completed');
       else {

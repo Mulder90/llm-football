@@ -1,5 +1,7 @@
 import { footPosition } from './ball.ts';
 import { emitEvent } from './events.ts';
+import { awardFoul, tackleFoul, type FoulSeverity } from './fouls.ts';
+import { notePlayerTouch, penalizeOffsideInvolvement } from './offside.ts';
 import { distanceBetween, nextRandom } from './math.ts';
 import { BALL_CONTROL, NUMERIC_TOLERANCE, TACKLE } from './rules.ts';
 import type { MatchState, Player } from './types.ts';
@@ -7,8 +9,9 @@ import type { MatchState, Player } from './types.ts';
 /** One attempt at the named opponent. This never moves or chases for the player. */
 export function resolveTackles(state: MatchState): void {
   const carrier = state.players.find((player) => player.id === state.ball.owner);
-  const eligible: { player: Player; ballDistance: number }[] = [];
+  const eligible: { player: Player; ballDistance: number; foul: FoulSeverity | null }[] = [];
   for (const player of state.players) {
+    if (player.dismissed) continue;
     const active = player.active;
     if (active?.order.type !== 'tackle') continue;
     player.active = null;
@@ -23,22 +26,31 @@ export function resolveTackles(state: MatchState): void {
       carrier?.id === active.order.targetId &&
       carrier.team !== player.team &&
       distanceBetween(player.position, carrier.position) <= TACKLE.maximumOpponentDistance &&
-      ballDistance <= TACKLE.ballReach &&
       state.ball.position.z <= BALL_CONTROL.maximumFootControlHeight;
     if (!canReach) {
       emitEvent(state, 'order_failed', player.id, 'Tackle did not reach the carrier and ball');
       continue;
     }
-    eligible.push({ player, ballDistance });
+    const foul = tackleFoul(state, player, carrier!);
+    if (!foul && ballDistance > TACKLE.ballReach) {
+      emitEvent(state, 'order_failed', player.id, 'Tackle did not reach the ball');
+      continue;
+    }
+    eligible.push({ player, ballDistance, foul });
   }
+  const severityRank = (foul: FoulSeverity | null) =>
+    foul === 'excessive' ? 3 : foul === 'reckless' ? 2 : foul === 'careless' ? 1 : 0;
   eligible.sort(
     (first, second) =>
-      first.ballDistance - second.ballDistance || (first.player.id < second.player.id ? -1 : 1),
+      severityRank(second.foul) - severityRank(first.foul) ||
+      first.ballDistance - second.ballDistance ||
+      (first.player.id < second.player.id ? -1 : 1),
   );
   const nearest = eligible[0];
   if (!nearest) return;
   const tied = eligible.filter(
     (candidate) =>
+      candidate.foul === nearest.foul &&
       Math.abs(candidate.ballDistance - nearest.ballDistance) < NUMERIC_TOLERANCE.vectorLength,
   );
   let winner = nearest.player;
@@ -47,6 +59,12 @@ export function resolveTackles(state: MatchState): void {
     state.seed = random.seed;
     winner = tied[Math.floor(random.value * tied.length)]!.player;
   }
+  if (nearest.foul) {
+    awardFoul(state, winner, carrier!, nearest.foul);
+    return;
+  }
+  if (penalizeOffsideInvolvement(state, winner)) return;
+  notePlayerTouch(state, winner, true, false);
   state.ball.owner = winner.id;
   state.ball.lastTouch = winner.id;
   state.ball.restartTouch = null;

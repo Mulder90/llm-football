@@ -919,3 +919,49 @@ input:focus-visible {
     display: none;
   }
 }
+
+.referee-moment {
+  position: absolute;
+  bottom: 7%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 22px;
+  border: 1px solid #e4d88944;
+  border-radius: 8px;
+  background: #102a2aeb;
+  box-shadow: 0 8px 28px #0004;
+  pointer-events: none;
+}
+.referee-moment strong,
+.referee-moment div > span {
+  display: block;
+}
+.referee-moment strong {
+  color: #f5e7b7;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+}
+.referee-moment div > span {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #a7bfaf;
+}
+.referee-signal {
+  width: 12px;
+  height: 18px;
+  border-radius: 2px;
+  background: #dfd7b0;
+}
+.yellow_card .referee-signal {
+  background: #ffdd64;
+}
+.red_card .referee-signal {
+  background: #ef685b;
+}
+.offside .referee-signal {
+  background: linear-gradient(45deg, #ef9e55 50%, #ffe59a 50%);
+}

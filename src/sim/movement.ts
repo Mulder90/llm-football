@@ -29,6 +29,7 @@ function desiredVelocity(player: Player): Vec2 {
 
 /** Mechanical steering toward an ordered point. Never chooses a tactical target. */
 export function movePlayer(state: MatchState, player: Player): void {
+  if (player.dismissed) return;
   if (player.active && player.active.expires <= state.tick) player.active = null;
 
   const desired = desiredVelocity(player);

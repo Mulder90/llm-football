@@ -6,7 +6,9 @@ const SEPARATION_PASSES = 2;
 
 /** Symmetric circle separation, with stable pair order. No avoidance steering. */
 export function separatePlayers(state: MatchState): void {
-  const players = [...state.players].sort((first, second) => (first.id < second.id ? -1 : 1));
+  const players = state.players
+    .filter((player) => !player.dismissed)
+    .sort((first, second) => (first.id < second.id ? -1 : 1));
   const minimumDistance = MOVEMENT.playerRadius * 2;
   for (let pass = 0; pass < SEPARATION_PASSES; pass++) {
     for (let firstIndex = 0; firstIndex < players.length; firstIndex++) {

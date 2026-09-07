@@ -132,7 +132,7 @@ function chooseDelivery(state: MatchState, player: Player): KickOrder | null {
 export function scriptedOrders(state: MatchState, team: Team): Order[] {
   if (state.phase.type === 'halftime' || state.phase.type === 'full_time') return [];
   const direction = attackDirection(state, team);
-  const ownPlayers = state.players.filter((player) => player.team === team);
+  const ownPlayers = state.players.filter((player) => player.team === team && !player.dismissed);
   const owner = state.players.find((player) => player.id === state.ball.owner);
   const predictedBall = onPitch({
     x: state.ball.position.x + state.ball.velocity.x * BASELINE.ballPredictionSeconds,

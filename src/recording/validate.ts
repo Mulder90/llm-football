@@ -15,7 +15,15 @@ const text = z.string().max(1000);
 const point = z.strictObject({ x: z.number(), y: z.number() });
 const point3 = point.extend({ z: z.number() });
 const score = z.strictObject({ coral: z.int().nonnegative(), cyan: z.int().nonnegative() });
-const restartType = z.enum(['kickoff', 'throw_in', 'corner', 'goal_kick', 'free_kick']);
+const restartType = z.enum([
+  'kickoff',
+  'throw_in',
+  'corner',
+  'goal_kick',
+  'free_kick',
+  'indirect_free_kick',
+  'penalty',
+]);
 const restart = z.strictObject({
   type: restartType,
   team: teamSchema,
@@ -78,6 +86,10 @@ const event = z.strictObject({
     'block',
     'post',
     'tackle',
+    'foul',
+    'yellow_card',
+    'red_card',
+    'offside',
     'restart_awarded',
     'restart_ready',
     'restart_taken',
@@ -95,6 +107,8 @@ const player = z.strictObject({
   team: teamSchema,
   number: z.int().min(1).max(11),
   role: z.enum(['keeper', 'outfield']),
+  yellowCards: z.int().min(0).max(2),
+  dismissed: z.boolean(),
   position: point,
   velocity: point,
   facing: point,
@@ -127,6 +141,9 @@ const state = z.strictObject({
       .strictObject({ type: restartType, team: teamSchema, takerId: playerIdSchema })
       .nullable(),
   }),
+  offside: z
+    .strictObject({ team: teamSchema, touchTick: tick, playerIds: z.array(playerIdSchema).max(10) })
+    .nullable(),
   events: z.array(event).max(30000),
 });
 const frame = z.strictObject({
@@ -145,6 +162,8 @@ const frame = z.strictObject({
         lastTackleTick: actionTick,
         lastSaveTick: actionTick,
         guarding: z.boolean(),
+        yellowCards: z.int().min(0).max(2),
+        dismissed: z.boolean(),
         distanceTravelled: z.number().nonnegative(),
       }),
     )

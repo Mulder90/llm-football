@@ -1,5 +1,5 @@
 /** Football tuning. Distances are metres, speeds m/s, accelerations m/s². */
-export const ENGINE_VERSION = 'football-0.2';
+export const ENGINE_VERSION = 'football-0.3';
 export const TICK_RATE = 60;
 export const SECONDS_PER_TICK = 1 / TICK_RATE;
 export const PLAYERS_PER_TEAM = 11;
@@ -13,6 +13,7 @@ export const FIELD = {
   penaltyAreaDepth: 16.5,
   penaltyAreaWidth: 40.32,
   goalAreaDepth: 5.5,
+  penaltySpotDistance: 11,
 } as const;
 
 export const MOVEMENT = {
@@ -86,4 +87,12 @@ export const TACKLE = {
   ballReach: 1.25,
   maximumOpponentDistance: 1.8,
   recoveryTicks: 30,
+} as const;
+
+/** Our contact model, not a numerical definition of the official Laws. */
+export const REFEREE = {
+  minimumPlayers: 7,
+  recklessClosingSpeed: 5,
+  excessiveClosingSpeed: 10,
+  offsideTolerance: 0.01,
 } as const;

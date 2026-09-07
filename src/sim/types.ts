@@ -22,7 +22,8 @@ export type Order =
   | { type: 'tackle'; playerId: string; targetId: string }
   | { type: 'restart_taker'; playerId: string };
 
-export type RestartType = 'kickoff' | 'throw_in' | 'corner' | 'goal_kick' | 'free_kick';
+export type RestartType =
+  'kickoff' | 'throw_in' | 'corner' | 'goal_kick' | 'free_kick' | 'indirect_free_kick' | 'penalty';
 export type Restart = {
   type: RestartType;
   team: Team;
@@ -49,6 +50,8 @@ export type Player = {
   team: Team;
   number: number;
   role: 'keeper' | 'outfield';
+  yellowCards: number;
+  dismissed: boolean;
   position: Vec2;
   velocity: Vec2;
   facing: Vec2;
@@ -85,6 +88,10 @@ export type MatchEvent = {
     | 'block'
     | 'post'
     | 'tackle'
+    | 'foul'
+    | 'yellow_card'
+    | 'red_card'
+    | 'offside'
     | 'restart_awarded'
     | 'restart_ready'
     | 'restart_taken'
@@ -110,6 +117,8 @@ export type MatchState = {
   decisionId: number;
   players: Player[];
   ball: Ball;
+  /** Position snapshot at a teammate's touch, retained through rebounds and saves. */
+  offside: { team: Team; touchTick: number; playerIds: string[] } | null;
   events: MatchEvent[];
 };
 export type Batch = {

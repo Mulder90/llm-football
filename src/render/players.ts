@@ -102,6 +102,7 @@ function drawRobot(
   pixel(-1, -8 + headBob, 3, 2, kit.highlight);
 
   if (player.role === 'keeper') pixel(-5, -5 + headBob, 2, 2, TEAM_KITS[player.team].shirt);
+  if (frame.yellowCards > 0) pixel(9, -23, 3, 5, '#ffe493');
   if (showNumbers) {
     context.font = '8px monospace';
     context.textAlign = 'center';
@@ -138,6 +139,7 @@ export function drawPlayers(
   frame = celebration.frame;
   const drawingOrder = record.initial.players
     .map((player, index) => ({ player, frame: frame.players[index]! }))
+    .filter((entry) => !entry.frame.dismissed)
     .sort((first, second) => first.frame.position.y - second.frame.position.y);
 
   for (const entry of drawingOrder) {

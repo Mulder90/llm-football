@@ -196,7 +196,7 @@ describe('restart awards and delivery', () => {
     step(state);
     expect(state.phase).toMatchObject({
       type: 'restart_setup',
-      restart: { type: 'free_kick', team: 'cyan' },
+      restart: { type: 'indirect_free_kick', team: 'cyan' },
     });
   });
 });

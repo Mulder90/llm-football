@@ -41,7 +41,7 @@ pnpm publish-recording artifacts/private/trial-01/match.json
 
 Publishing here validates and replay-verifies the file, then places gzip data in the local viewer catalogue. It does not deploy a site. Refresh the viewer to load the new recording. Incomplete runs remain labelled incomplete. Model availability, measured usage, limits and execution assistance are documented in [decision 003](docs/decisions/003-MODEL-CONTROL-AND-INSPECTION.md).
 
-The original [first-task brief](FIRST_PROMPT.md) remains available. Implementation is now authorized by the user's subsequent goal: finish a beautiful, complete LLM-controlled match in tested, committed slices. See [current progress](docs/PROGRESS.md) and the [latest slice handoff](docs/slices/03-FIRST-MODEL-POSSESSION.md).
+The original [first-task brief](FIRST_PROMPT.md) remains available. Implementation is now authorized by the user's subsequent goal: finish a beautiful, complete LLM-controlled match in tested, committed slices. See [current progress](docs/PROGRESS.md) and the [latest slice handoff](docs/slices/04-REFEREE.md).
 
 Codex should follow [AGENTS.md](AGENTS.md). Documents communicate intent and should be challenged where incomplete. Do not silently turn illustrative examples into permanent contracts.
 

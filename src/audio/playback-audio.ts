@@ -131,6 +131,8 @@ export class PlaybackAudio {
         this.tone(740, 560, 0.25, 0.11);
         break;
       case 'restart_ready':
+      case 'foul':
+      case 'offside':
         this.tone(2450, 2650, 0.18, 0.055);
         break;
       case 'halftime':

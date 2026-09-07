@@ -336,7 +336,7 @@ export async function generateMatch(options: GenerationOptions): Promise<Recordi
   provenance.stopReason = completed
     ? null
     : state.phase.type === 'full_time'
-      ? 'restart_abandoned'
+      ? 'match_abandoned'
       : stopReason;
   await options.onCheckpoint?.(recording);
   return recording;

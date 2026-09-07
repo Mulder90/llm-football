@@ -12,18 +12,19 @@ The active objective is a complete, beautiful, watchable LLM-controlled football
 
 - Slice 3: real simultaneous GPT-5 nano / Gemini 3.1 Flash-Lite decisions, bounded runner, exact observations/prompts/provenance, validated compressed replay import, viewport-first viewer, side inspector, goal celebrations and optional synthetic sound. 41 tests pass. The latest real footage is a 4.3-second playing-time excerpt, not a complete match. See [handoff](slices/03-FIRST-MODEL-POSSESSION.md).
 
+- Slice 4: deterministic tackle fouls, cautions/dismissals, penalties, offside snapshots and indirect free kicks; 59 tests pass. Referee sprite, card signals and incident banners read recorded events. A 6.9-second real excerpt under football-0.3 is preserved. See [handoff](slices/04-REFEREE.md).
+
 ## Code quality agreement
 
 Use descriptive names, explicit units for physics constants, named replay fields, focused functions and components, and Prettier. The user explicitly permits necessary dependencies but wants simple, maintainable code without excessive defensive checks or premature architecture. External JSON remains untrusted and must be validated.
 
 ## Next slice
 
-Complete the remaining referee rules (fouls/cards/penalties/offside), update model observations/rulebook, then generate and verify a longer possession and the full LLM match.
+Generate a complete two-half LLM match under the tested football-0.3 rules, verify its canonical replay, publish it to the local viewer and complete browser acceptance.
 
 ## Still required before completion
 
 - A real complete match, generated and preserved with model provenance. No scripted controller silently substituted and no fabricated result.
-- Remaining referee mechanics: fouls, penalties, cards and offside with documented simplifications and focused tests.
 - Final visual/audio and football-quality acceptance for the complete model game.
 - Periodic commits and successful pushes to the configured repository. The user explicitly authorized the configured GitHub destination after automatic approval review requested clarification. The initial brief has been pushed successfully.
 

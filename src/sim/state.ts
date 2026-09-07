@@ -28,6 +28,8 @@ export function createMatch(matchId = 'fixture-001', seed = DEFAULT_SEED): Match
         team,
         number: index + 1,
         role: index === 0 ? 'keeper' : 'outfield',
+        yellowCards: 0,
+        dismissed: false,
         position:
           team === 'coral'
             ? { ...position }
@@ -72,6 +74,7 @@ export function createMatch(matchId = 'fixture-001', seed = DEFAULT_SEED): Match
       kickedAt: BEFORE_MATCH_TICK,
       restartTouch: null,
     },
+    offside: null,
     events: [],
   };
 }
@@ -90,6 +93,7 @@ export function cloneState(state: MatchState): MatchState {
     ...state,
     score: { ...state.score },
     phase: clonePhase(state.phase),
+    offside: state.offside ? { ...state.offside, playerIds: [...state.offside.playerIds] } : null,
     players: state.players.map((player) => ({
       ...player,
       position: { ...player.position },
@@ -116,6 +120,7 @@ export function clonePhase(phase: MatchPhase): MatchPhase {
 /** Initial formation is reused only for kickoffs, never as tactical assistance in play. */
 export function resetFormation(state: MatchState): void {
   for (const player of state.players) {
+    if (player.dismissed) continue;
     const initial = INITIAL_FORMATION[player.number - 1]!;
     const positiveAttack = attackDirection(state, player.team) === 1;
     player.position = positiveAttack
@@ -136,12 +141,15 @@ export function defendingTeam(state: MatchState, goalX: number): Team {
 }
 
 export function inOwnPenaltyArea(state: MatchState, player: Player): boolean {
+  return inPenaltyArea(state, player.team, player.position);
+}
+
+export function inPenaltyArea(state: MatchState, team: Team, position: Vec2): boolean {
   const distanceFromGoal =
-    attackDirection(state, player.team) === 1
-      ? player.position.x
-      : FIELD.length - player.position.x;
+    attackDirection(state, team) === 1 ? position.x : FIELD.length - position.x;
   return (
+    distanceFromGoal >= 0 &&
     distanceFromGoal <= FIELD.penaltyAreaDepth &&
-    Math.abs(player.position.y - FIELD.width / 2) <= FIELD.penaltyAreaWidth / 2
+    Math.abs(position.y - FIELD.width / 2) <= FIELD.penaltyAreaWidth / 2
   );
 }

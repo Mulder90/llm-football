@@ -30,7 +30,10 @@ export function celebrationFrame(
   const scorerPosition = beforeGoal.players[scorerIndex]?.position ?? beforeGoal.ball;
   const teammates = record.initial.players
     .map((player, index) => ({ player, index, pose: beforeGoal.players[index]! }))
-    .filter(({ player }) => player.team === goal.team && player.role !== 'keeper')
+    .filter(
+      ({ player, pose }) =>
+        player.team === goal.team && player.role !== 'keeper' && !pose.dismissed,
+    )
     .sort(
       (first, second) =>
         distanceBetween(first.pose.position, scorerPosition) -

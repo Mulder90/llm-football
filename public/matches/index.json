@@ -2,8 +2,8 @@
   "version": 1,
   "matches": [
     {
-      "id": "first-possession-002",
-      "file": "first-possession-002.json.gz",
+      "id": "referee-possession-001",
+      "file": "referee-possession-001.json.gz",
       "title": "The first meeting",
       "complete": false
     }

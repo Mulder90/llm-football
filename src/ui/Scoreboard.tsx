@@ -48,7 +48,7 @@ export function Scoreboard({
                 ? 'FULL TIME'
                 : 'INCOMPLETE'
               : hasEnded
-                ? 'END OF FIXTURE'
+                ? 'END OF RECORDING'
                 : frame.phase.type === 'halftime'
                   ? 'HALF TIME'
                   : 'restart' in frame.phase

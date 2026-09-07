@@ -134,11 +134,14 @@ export function validateBatch(raw: unknown, state: MatchState, team: Team): Batc
     orderedPlayers.add(playerId);
     const order = parseOrder(candidate, playerId);
     const player = state.players.find((player) => player.id === playerId)!;
+    if (player.dismissed) throw new Error(`Dismissed player cannot receive orders: ${playerId}`);
     if (order.type === 'guard' && player.role !== 'keeper')
       throw new Error('Only keepers may guard');
     if (
       order.type === 'tackle' &&
-      !state.players.some((target) => target.id === order.targetId && target.team !== team)
+      !state.players.some(
+        (target) => target.id === order.targetId && target.team !== team && !target.dismissed,
+      )
     )
       throw new Error('Tackle target must be an opponent');
     validatePhaseOrder(order, state, team);
