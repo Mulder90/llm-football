@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Frame, Recording } from '../recording/record.ts';
 import type { MatchEvent, Order, Team, Vec2 } from '../sim/types.ts';
 import { TICK_RATE } from '../sim/rules.ts';
 import { formatPlayerId, formatTime } from './format.ts';
 import { rulebook } from '../protocol/observation.ts';
 import { RESPONSE_JSON_SCHEMA } from '../protocol/schema.ts';
+import { userPrompt } from '../protocol/prompt.ts';
 import type { MatchListing } from './useRecordings.ts';
 
 export type InspectorTab = 'decisions' | 'observations' | 'prompt' | 'match';
@@ -77,6 +78,8 @@ export function DecisionInspector({
   matches,
   loading,
   onImport,
+  selectedPlayer,
+  onSelectPlayer,
 }: {
   recording: Recording;
   frame: Frame;
@@ -88,11 +91,17 @@ export function DecisionInspector({
   matches: MatchListing[];
   loading: boolean;
   onImport: (file: File) => void;
+  selectedPlayer: string | null;
+  onSelectPlayer: (id: string) => void;
 }) {
   const [team, setTeam] = useState<Team>('coral');
   const decision = recording.decisions.findLast((candidate) => candidate.tick <= frame.tick);
   const decisionId = decision?.batches[0].decisionId;
   const observation = decision?.observations?.[team];
+  const formattedObservation = useMemo(
+    () => (observation ? JSON.stringify(JSON.parse(observation), null, 2) : ''),
+    [observation],
+  );
   const requests =
     recording.generation?.requests.filter(
       (receipt) => receipt.decisionId === decisionId && receipt.team === team,
@@ -128,7 +137,7 @@ export function DecisionInspector({
           <>
             <p className="panel-explanation">
               One {recording.kind === 'llm' ? 'AI model' : 'scripted controller'} chooses orders for
-              each team. The engine decides what succeeds.
+              each team. Select an order to find its player and target on the pitch.
             </p>
             {(['coral', 'cyan'] as const).map((side) => {
               const batch = decision?.batches.find((candidate) => candidate.team === side);
@@ -136,7 +145,7 @@ export function DecisionInspector({
               return (
                 <section className={`team-decisions ${side}`} key={side}>
                   <header>
-                    <span className="team-chip">{side === 'coral' ? 'C' : 'Y'}</span>
+                    <span className="team-chip">{side === 'coral' ? 'CR' : 'CY'}</span>
                     <div>
                       <h3>{recording.teams[side].name}</h3>
                       <p>{recording.teams[side].controller}</p>
@@ -151,7 +160,12 @@ export function DecisionInspector({
                   )}
                   <div className="order-list">
                     {batch?.orders.map((order) => (
-                      <div className="order-row" key={order.playerId}>
+                      <button
+                        className="order-row"
+                        key={order.playerId}
+                        aria-pressed={selectedPlayer === order.playerId}
+                        onClick={() => onSelectPlayer(order.playerId)}
+                      >
                         <span className="player-number">
                           #
                           {
@@ -159,11 +173,11 @@ export function DecisionInspector({
                               ?.number
                           }
                         </span>
-                        <div>
+                        <span className="order-description">
                           <b>{order.playerId}</b>
                           <span>{describeOrder(order)}</span>
-                        </div>
-                      </div>
+                        </span>
+                      </button>
                     ))}
                   </div>
                   {!batch?.orders.length && (
@@ -194,7 +208,7 @@ export function DecisionInspector({
             </p>
             {observation ? (
               <pre className="json-view" aria-label={`${team} observation`}>
-                {JSON.stringify(JSON.parse(observation), null, 2)}
+                {formattedObservation}
               </pre>
             ) : (
               <p className="empty-note">
@@ -211,6 +225,12 @@ export function DecisionInspector({
                 <p>{request.failure ?? 'Accepted at the shared simulation boundary.'}</p>
                 {request.feedback && (
                   <pre className="json-view">Repair feedback: {request.feedback}</pre>
+                )}
+                {observation && (
+                  <details className="request-detail">
+                    <summary>Exact user message</summary>
+                    <pre className="json-view">{userPrompt(observation, request.feedback)}</pre>
+                  </details>
                 )}
                 <pre className="json-view">{request.responseText ?? 'No response body.'}</pre>
               </details>
@@ -254,6 +274,29 @@ export function DecisionInspector({
               <dt>Recording</dt>
               <dd>{recording.generation?.status ?? 'Development fixture'}</dd>
             </dl>
+            {recording.generation && (
+              <dl className="record-facts">
+                <dt>Decisions</dt>
+                <dd>{recording.decisions.length} shared boundaries</dd>
+                <dt>Model requests</dt>
+                <dd>{recording.generation.requests.length}</dd>
+                <dt>Fallbacks</dt>
+                <dd>
+                  {recording.decisions.reduce((count, entry) => count + entry.fallback.length, 0)}{' '}
+                  team decisions
+                </dd>
+                <dt>Generated in</dt>
+                <dd>{formatTime(recording.generation.wallSeconds)}</dd>
+                <dt>Estimated usage</dt>
+                <dd>${recording.generation.estimatedUsd.toFixed(3)}</dd>
+              </dl>
+            )}
+            {recording.generation && (
+              <p className="panel-explanation">
+                Generation time is separate from the match clock. Usage is estimated from the
+                recorded provider token counts and prices.
+              </p>
+            )}
             {recording.generation?.status === 'incomplete' && (
               <p className="fallback-note">
                 Incomplete run: {recording.generation.stopReason}. The rest of the match has not

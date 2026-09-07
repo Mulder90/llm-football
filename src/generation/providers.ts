@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { ControllerConfig, TokenUsage } from '../recording/provenance.ts';
 import type { responseSchemaFor } from '../protocol/schema.ts';
+import { userPrompt } from '../protocol/prompt.ts';
 
 export type ControllerRequest = {
   rules: string;
@@ -118,12 +119,6 @@ async function postJson(
   }
 }
 
-function prompt(request: ControllerRequest): string {
-  return request.feedback
-    ? `${request.observation}\nYour previous response was rejected: ${request.feedback}\nRepair it against this unchanged snapshot.`
-    : request.observation;
-}
-
 export function openaiController(apiKey: string, model = 'gpt-5-nano'): TeamController {
   if (model !== 'gpt-5-nano' && model !== 'gpt-5-nano-2025-08-07')
     throw new Error('OpenAI model has no reviewed adapter configuration and price');
@@ -144,7 +139,7 @@ export function openaiController(apiKey: string, model = 'gpt-5-nano'): TeamCont
           store: false,
           reasoning: { effort: 'low' },
           instructions: request.rules,
-          input: [{ role: 'user', content: prompt(request) }],
+          input: [{ role: 'user', content: userPrompt(request.observation, request.feedback) }],
           max_output_tokens: request.maximumOutputTokens,
           text: {
             verbosity: 'low',
@@ -206,7 +201,9 @@ export function geminiController(apiKey: string, model = 'gemini-3.1-flash-lite'
         { 'x-goog-api-key': apiKey },
         {
           systemInstruction: { parts: [{ text: request.rules }] },
-          contents: [{ role: 'user', parts: [{ text: prompt(request) }] }],
+          contents: [
+            { role: 'user', parts: [{ text: userPrompt(request.observation, request.feedback) }] },
+          ],
           generationConfig: {
             maxOutputTokens: request.maximumOutputTokens,
             temperature: 0.4,

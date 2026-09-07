@@ -32,9 +32,9 @@ async function fetchMatch(entry: MatchListing, signal?: AbortSignal): Promise<Re
   return recording;
 }
 export function useRecordings() {
-  const [recording, setRecording] = useState(createFullMatchFixture);
+  const [recording, setRecording] = useState(createPassingFixture);
   const [matches, setMatches] = useState<MatchListing[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   useEffect(() => {
     const abort = new AbortController();

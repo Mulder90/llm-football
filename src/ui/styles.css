@@ -651,6 +651,10 @@ input:focus-visible {
   align-items: center;
   gap: 11px;
   padding: 10px 12px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
   border-bottom: 1px solid #36504755;
 }
 .order-row:last-child {
@@ -670,7 +674,7 @@ input:focus-visible {
   font-weight: 400;
   margin-bottom: 4px;
 }
-.order-row div > span {
+.order-description > span {
   display: block;
   font-size: 10px;
   line-height: 1.5;
@@ -712,7 +716,7 @@ input:focus-visible {
   background: #0c1c23;
   border-radius: 4px;
   font:
-    10px/1.75 ui-monospace,
+    11px/1.75 ui-monospace,
     monospace;
   color: #b5ccad;
   overflow: auto;
@@ -722,7 +726,7 @@ input:focus-visible {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font:
-    11px/1.85 'DM Sans',
+    12px/1.85 'DM Sans',
     sans-serif;
   color: #c8d7c4;
 }
@@ -964,4 +968,19 @@ input:focus-visible {
 }
 .offside .referee-signal {
   background: linear-gradient(45deg, #ef9e55 50%, #ffe59a 50%);
+}
+
+.order-row:hover,
+.order-row[aria-pressed='true'] {
+  background: #c7e0b90e;
+}
+.order-row[aria-pressed='true'] {
+  box-shadow: inset 2px 0 var(--team-color);
+}
+.order-row[aria-pressed='true'] .player-number {
+  font-weight: 700;
+}
+.start-overlay:disabled {
+  cursor: progress;
+  opacity: 0.85;
 }

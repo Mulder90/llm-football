@@ -14,6 +14,8 @@ The active objective is a complete, beautiful, watchable LLM-controlled football
 
 - Slice 4: deterministic tackle fouls, cautions/dismissals, penalties, offside snapshots and indirect free kicks; 59 tests pass. Referee sprite, card signals and incident banners read recorded events. A 6.9-second real excerpt under football-0.3 is preserved. See [handoff](slices/04-REFEREE.md).
 
+- Slice 5: selectable player/order links on the pitch, exact repair-message inspection, generation metadata and lighter initial loading. The full `north-garden-001` run is in progress with explicit $4 / four-hour limits; it is not complete yet. See [handoff](slices/05-PLAYER-INSPECTION.md).
+
 ## Code quality agreement
 
 Use descriptive names, explicit units for physics constants, named replay fields, focused functions and components, and Prettier. The user explicitly permits necessary dependencies but wants simple, maintainable code without excessive defensive checks or premature architecture. External JSON remains untrusted and must be validated.

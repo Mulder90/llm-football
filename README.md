@@ -8,7 +8,7 @@ The destination is eleven players per team, one LLM controller per team, two thr
 
 The broadcast fills the viewport with a top-down pixel-art stadium. A real **incomplete LLM excerpt** is available: GPT-5 nano versus Gemini 3.1 Flash-Lite, alongside a complete scripted baseline. The goal is still a full, six-minute LLM match.
 
-Open **Behind the match** for team/player decisions, the exact observation stream, rules/prompt and recording import/export. The panel follows replay time. Goal celebrations and synthetic stadium sound are available; click the sound control to unmute. Playback never calls an LLM.
+Open **Behind the match** for team/player decisions, the exact observation stream, rules/prompt and recording import/export. The panel follows replay time; select an order to highlight its player and target on the pitch. Goal celebrations and synthetic stadium sound are available; click the sound control to unmute. Playback never calls an LLM.
 
 ## Run locally
 
@@ -41,7 +41,7 @@ pnpm publish-recording artifacts/private/trial-01/match.json
 
 Publishing here validates and replay-verifies the file, then places gzip data in the local viewer catalogue. It does not deploy a site. Refresh the viewer to load the new recording. Incomplete runs remain labelled incomplete. Model availability, measured usage, limits and execution assistance are documented in [decision 003](docs/decisions/003-MODEL-CONTROL-AND-INSPECTION.md).
 
-The original [first-task brief](FIRST_PROMPT.md) remains available. Implementation is now authorized by the user's subsequent goal: finish a beautiful, complete LLM-controlled match in tested, committed slices. See [current progress](docs/PROGRESS.md) and the [latest slice handoff](docs/slices/04-REFEREE.md).
+The original [first-task brief](FIRST_PROMPT.md) remains available. Implementation is now authorized by the user's subsequent goal: finish a beautiful, complete LLM-controlled match in tested, committed slices. See [current progress](docs/PROGRESS.md) and the [latest slice handoff](docs/slices/05-PLAYER-INSPECTION.md).
 
 Codex should follow [AGENTS.md](AGENTS.md). Documents communicate intent and should be challenged where incomplete. Do not silently turn illustrative examples into permanent contracts.
 

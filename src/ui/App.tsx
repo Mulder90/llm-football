@@ -23,6 +23,7 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
   const broadcastRef = useRef<HTMLElement>(null);
   const [showPlayerNumbers, setShowPlayerNumbers] = useState(false);
   const [panel, setPanel] = useState<InspectorTab | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [notice, setNotice] = useState('');
   const sound = useSound(setNotice);
@@ -80,16 +81,21 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
             isPlaying={playback.isPlaying}
             speed={playback.speed}
             showPlayerNumbers={showPlayerNumbers}
+            selectedPlayer={panel === 'decisions' ? selectedPlayer : null}
             seekRevision={playback.seekRevision}
             onAdvance={playback.onAdvance}
             audio={sound.audio}
           />
           <MatchMoment recording={recording} frame={frame} />
           {!playback.isPlaying && playback.seconds === 0 && (
-            <button className="start-overlay" onClick={playback.togglePlayback}>
+            <button
+              className="start-overlay"
+              onClick={playback.togglePlayback}
+              disabled={library.loading}
+            >
               <span className="play-disc">▶</span>
               <span>
-                Watch the match
+                {library.loading ? 'Getting the match ready…' : 'Watch the match'}
                 <small>
                   {formatTime(playback.durationSeconds)} ·{' '}
                   {recording.kind === 'llm'
@@ -140,6 +146,8 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
           tab={panel}
           onTab={setPanel}
           onClose={() => setPanel(null)}
+          selectedPlayer={selectedPlayer}
+          onSelectPlayer={(id) => setSelectedPlayer((selected) => (selected === id ? null : id))}
           matches={library.matches}
           loading={library.loading}
           onSelectFixture={(id) => void library.selectRecording(id)}
