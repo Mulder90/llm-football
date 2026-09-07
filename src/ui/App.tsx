@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPassingFixture } from '../fixtures/passing.ts';
+import { createFullMatchFixture } from '../fixtures/full-match.ts';
 import { sample } from '../recording/record.ts';
+import type { Recording } from '../recording/record.ts';
+import { formatTime } from './format.ts';
 import { DecisionInspector, EventStrip } from './DecisionInspector.tsx';
 import { Pitch } from './Pitch.tsx';
 import { PlaybackControls } from './PlaybackControls.tsx';
@@ -10,7 +13,25 @@ import { usePlayback } from './usePlayback.ts';
 const DOWNLOAD_URL_LIFETIME_MS = 1000;
 
 export function App() {
-  const [recording] = useState(createPassingFixture);
+  const [recording, setRecording] = useState(createFullMatchFixture);
+  return (
+    <BroadcastPage
+      key={recording.initial.matchId}
+      recording={recording}
+      onSelectFixture={(fixture) =>
+        setRecording(fixture === 'passing' ? createPassingFixture() : createFullMatchFixture())
+      }
+    />
+  );
+}
+
+function BroadcastPage({
+  recording,
+  onSelectFixture,
+}: {
+  recording: Recording;
+  onSelectFixture: (fixture: string) => void;
+}) {
   const playback = usePlayback(recording);
   const frame = sample(recording, playback.seconds);
   const broadcastRef = useRef<HTMLElement>(null);
@@ -39,7 +60,7 @@ export function App() {
     const downloadUrl = URL.createObjectURL(file);
     const link = document.createElement('a');
     link.href = downloadUrl;
-    link.download = 'passing-fixture.json';
+    link.download = `${recording.initial.matchId}.json`;
     link.click();
     // Give the browser time to acquire the Blob before revoking its temporary URL.
     setTimeout(() => URL.revokeObjectURL(downloadUrl), DOWNLOAD_URL_LIFETIME_MS);
@@ -75,7 +96,7 @@ export function App() {
           </div>
           <div className="edition">
             <span>FOOTBALL LAB</span>
-            <b>001</b>
+            <b>002</b>
           </div>
         </div>
         <section className="broadcast" aria-label="Match broadcast" ref={broadcastRef}>
@@ -103,14 +124,16 @@ export function App() {
               <button className="start-overlay" onClick={playback.togglePlayback}>
                 <span className="play-disc">▶</span>
                 <span>
-                  Watch the first exchange
-                  <small>{playback.durationSeconds} seconds · scripted development fixture</small>
+                  Watch the match
+                  <small>
+                    {formatTime(playback.durationSeconds)} · scripted development fixture
+                  </small>
                 </span>
               </button>
             ) : null}
             {playback.hasEnded ? (
               <div className="end-overlay">
-                <span>THE FIRST EXCHANGE</span>
+                <span>{frame.phase.type === 'full_time' ? 'FULL TIME' : 'END OF FIXTURE'}</span>
                 <strong>Every touch, accounted for.</strong>
                 <button onClick={playback.replay}>↻ Watch again</button>
               </div>
@@ -133,10 +156,7 @@ export function App() {
           <div>
             <p className="eyebrow">FROM THE TOUCHLINE</p>
             <h3>{recording.title}</h3>
-            <p>
-              Pass, move, find the space. A first look at the football engine, with all 22 players
-              on the pitch and every touch preserved in the replay.
-            </p>
+            <p>{recording.description}</p>
             <div className="note-tags">
               <span>11 VS 11</span>
               <span>TOP-DOWN PIXEL ART</span>
@@ -154,6 +174,16 @@ export function App() {
               <button className="download-link" onClick={downloadRecording}>
                 Download the match record <span>↗</span>
               </button>
+              <label className="fixture-picker">
+                Development recording
+                <select
+                  value={recording.frames.at(-1)?.phase.type === 'full_time' ? 'full' : 'passing'}
+                  onChange={(event) => onSelectFixture(event.target.value)}
+                >
+                  <option value="full">Full match · two three-minute halves</option>
+                  <option value="passing">The first exchange · 24 seconds</option>
+                </select>
+              </label>
             </div>
           </div>
         </section>

@@ -6,7 +6,7 @@ This is a new standalone project, starting from scratch. It is not an extension 
 
 The destination is eleven players per team, one LLM controller per team, two three-minute halves, a deterministic football simulation, and a beautiful top-down pixel-art broadcast website.
 
-The first implemented slice is a top-down stadium with 22 animated robot players and a deterministic 24-second passing fixture. It has play/pause, seeking, speed controls, player numbers, fullscreen, a decision inspector and record download. This is **scripted development footage**, not yet an LLM-played match.
+The viewer has a top-down stadium with 22 animated robot players and a complete scripted match across two three-minute playing halves. A 24-second passing fixture is also available. It has play/pause, seeking, speed controls, player numbers, fullscreen, a decision inspector and record download. This is **scripted development footage**, not yet an LLM-played match.
 
 ## Run locally
 
@@ -17,16 +17,17 @@ pnpm install
 pnpm dev
 ```
 
-Open the local URL printed by Vite. Click **Watch the first exchange**. Space toggles playback; left/right arrows seek five seconds when focus is outside a control. Replay position also supports the keyboard. No API keys or API calls are needed for this fixture.
+Open the local URL printed by Vite. Click **Watch the match**. Space toggles playback; left/right arrows seek five seconds when focus is outside a control. Replay position also supports the keyboard. No API keys or API calls are needed for this fixture.
 
 ```sh
 pnpm check     # strict TypeScript and deterministic engine tests
 pnpm format    # format source and docs with Prettier
 pnpm build     # typecheck and production viewer
-pnpm fixture   # headless generation, replay verification, local JSON export
+pnpm fixture   # passing fixture, replay verification, local JSON export
+pnpm fixture --full # both halves of the scripted baseline
 ```
 
-The original [first-task brief](FIRST_PROMPT.md) remains available. Implementation is now authorized by the user's subsequent goal: finish a beautiful, complete LLM-controlled match in tested, committed slices. See [current progress](docs/PROGRESS.md) and the [foundation handoff](docs/slices/01-FOUNDATION.md).
+The original [first-task brief](FIRST_PROMPT.md) remains available. Implementation is now authorized by the user's subsequent goal: finish a beautiful, complete LLM-controlled match in tested, committed slices. See [current progress](docs/PROGRESS.md) and the [latest slice handoff](docs/slices/02-FULL-MATCH-ENGINE.md).
 
 Codex should follow [AGENTS.md](AGENTS.md). Documents communicate intent and should be challenged where incomplete. Do not silently turn illustrative examples into permanent contracts.
 

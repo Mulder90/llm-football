@@ -1,9 +1,9 @@
 import type { CSSProperties } from 'react';
 import type { Playback } from './usePlayback.ts';
 import { formatTime } from './format.ts';
+import { TICK_RATE } from '../sim/rules.ts';
 
 const PLAYBACK_SPEEDS = [0.5, 1, 1.5, 2, 4];
-const SEEK_PRECISION_SECONDS = 0.05;
 
 type ControlsProps = {
   playback: Playback;
@@ -37,10 +37,11 @@ export function PlaybackControls({
           aria-label="Replay position"
           type="range"
           min={0}
-          max={playback.durationSeconds}
-          step={SEEK_PRECISION_SECONDS}
-          value={playback.seconds}
-          onChange={(event) => playback.seekTo(Number(event.target.value))}
+          max={Math.round(playback.durationSeconds * TICK_RATE)}
+          step={1}
+          value={Math.round(playback.seconds * TICK_RATE)}
+          aria-valuetext={`${formatTime(playback.seconds)} of ${formatTime(playback.durationSeconds)}`}
+          onChange={(event) => playback.seekTo(Number(event.target.value) / TICK_RATE)}
           style={progressStyle}
         />
       </div>

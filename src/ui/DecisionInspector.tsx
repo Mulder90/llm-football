@@ -1,16 +1,27 @@
 import type { Frame, Recording } from '../recording/record.ts';
-import type { MatchEvent, Order } from '../sim/types.ts';
+import type { MatchEvent, Order, Vec2 } from '../sim/types.ts';
 import { TICK_RATE } from '../sim/rules.ts';
 import { formatPlayerId } from './format.ts';
+
+function formatTarget(target: Vec2): string {
+  return `(${target.x.toFixed(1)}, ${target.y.toFixed(1)})`;
+}
 
 function describeOrder(order: Order): string {
   switch (order.type) {
     case 'hold':
       return 'Hold position';
+    case 'guard':
+      return `Guard ${formatTarget(order.target)}`;
+    case 'tackle':
+      return `Tackle ${formatPlayerId(order.targetId)}`;
+    case 'restart_taker':
+      return 'Take this restart';
     case 'move':
-      return `Move to (${order.target.x}, ${order.target.y})`;
+      return `Move to ${formatTarget(order.target)}`;
+    case 'shoot':
     case 'kick':
-      return `Kick toward (${order.target.x}, ${order.target.y}) · ${order.speed} m/s`;
+      return `${order.type === 'shoot' ? 'Shoot' : 'Kick'} toward ${formatTarget(order.target)} · ${order.speed.toFixed(1)} m/s`;
   }
 }
 
@@ -19,6 +30,14 @@ function describeEvent(event: MatchEvent): string {
   switch (event.type) {
     case 'kick':
       return `${player} · plays the ball`;
+    case 'shot':
+      return `${player} · shoots`;
+    case 'goal':
+      return `${event.team} · GOAL`;
+    case 'save':
+      return `${player} · makes the save`;
+    case 'tackle':
+      return `${player} · wins the ball`;
     case 'interception':
       return `${player} · intercepts the pass`;
     case 'receive':

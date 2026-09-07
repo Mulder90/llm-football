@@ -1,7 +1,7 @@
 import { clamp } from '../sim/math.ts';
 import { applyDecision } from '../sim/orders.ts';
 import { ENGINE_VERSION, TICK_RATE } from '../sim/rules.ts';
-import { cloneState } from '../sim/state.ts';
+import { cloneState, clonePhase } from '../sim/state.ts';
 import { step } from '../sim/step.ts';
 import type { Decision, MatchEvent, MatchState, Team, Vec2, Vec3 } from '../sim/types.ts';
 
@@ -13,6 +13,9 @@ export type PlayerFrame = {
   velocity: Vec2;
   facing: Vec2;
   lastKickTick: number;
+  lastTackleTick: number;
+  lastSaveTick: number;
+  guarding: boolean;
   distanceTravelled: number;
 };
 
@@ -29,7 +32,7 @@ export type Frame = {
 
 export type Recording = {
   format: 'ai-football-recording';
-  version: 1;
+  version: 2;
   engine: string;
   kind: 'fixture' | 'llm';
   title: string;
@@ -48,13 +51,16 @@ export function capture(state: MatchState): Frame {
     tick: state.tick,
     playingTicks: state.playingTicks,
     half: state.half,
-    phase: state.phase,
+    phase: clonePhase(state.phase),
     score: { ...state.score },
     players: state.players.map((player) => ({
       position: { ...player.position },
       velocity: { ...player.velocity },
       facing: { ...player.facing },
       lastKickTick: player.lastKick,
+      lastTackleTick: player.lastTackleTick,
+      lastSaveTick: player.lastSaveTick,
+      guarding: player.active?.order.type === 'guard',
       distanceTravelled: player.distance,
     })),
     ball: { ...state.ball.position },
@@ -127,7 +133,12 @@ export function sample(record: Recording, seconds: number): Frame {
   const nextIndex = Math.min(previousIndex + 1, record.frames.length - 1);
   const previousFrame = record.frames[previousIndex]!;
   const nextFrame = record.frames[nextIndex]!;
-  if (previousFrame === nextFrame || previousFrame.phase !== nextFrame.phase) return previousFrame;
+  if (
+    previousFrame === nextFrame ||
+    previousFrame.phase.type !== nextFrame.phase.type ||
+    previousFrame.phase.sinceTick !== nextFrame.phase.sinceTick
+  )
+    return previousFrame;
 
   const fraction = (tick - previousFrame.tick) / (nextFrame.tick - previousFrame.tick);
   const interpolatedBall = {
@@ -144,6 +155,9 @@ export function sample(record: Recording, seconds: number): Frame {
         velocity: interpolatePosition(player.velocity, nextPlayer.velocity, fraction),
         facing: player.facing,
         lastKickTick: player.lastKickTick,
+        lastTackleTick: player.lastTackleTick,
+        lastSaveTick: player.lastSaveTick,
+        guarding: player.guarding,
         distanceTravelled: interpolate(
           player.distanceTravelled,
           nextPlayer.distanceTravelled,

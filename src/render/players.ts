@@ -18,6 +18,8 @@ const ANIMATION = {
   framesPerMetre: 2.4,
   runFrameCount: 4,
   kickDurationTicks: 18,
+  tackleDurationTicks: 24,
+  saveDurationTicks: 36,
   horizontalFacingThreshold: 0.3,
   ballHeightPixelsPerMetre: 5,
 } as const;
@@ -42,6 +44,9 @@ function drawRobot(
   const stride = isMoving ? (runFrame === 0 ? 2 : runFrame === 2 ? -2 : 0) : 0;
   const ticksSinceKick = tick - frame.lastKickTick;
   const isKicking = ticksSinceKick >= 0 && ticksSinceKick < ANIMATION.kickDurationTicks;
+  const isTackling = tick - frame.lastTackleTick < ANIMATION.tackleDurationTicks;
+  const isSaving = tick - frame.lastSaveTick < ANIMATION.saveDurationTicks;
+  const armLift = isSaving ? 5 : frame.guarding ? 2 : 0;
   const headBob = isMoving && !reducedMotion && runFrame % 2 === 1 ? -1 : 0;
   const kit = player.role === 'keeper' ? KEEPER_KITS[player.team] : TEAM_KITS[player.team];
 
@@ -62,7 +67,7 @@ function drawRobot(
 
   // Legs and feet alternate around a stable ground anchor.
   pixel(-4, -3 + stride, 3, 4, OUTLINE);
-  pixel(2, -3 - stride, 3, isKicking ? 6 : 4, OUTLINE);
+  pixel(2, -3 - stride, isTackling ? 7 : 3, isKicking ? 6 : 4, OUTLINE);
   pixel(-5, stride, 4, 2, kit.boots);
   pixel(2, -stride + (isKicking ? 2 : 0), 4, 2, kit.boots);
 
@@ -70,10 +75,10 @@ function drawRobot(
   pixel(-5, -11 + headBob, 11, 9, OUTLINE);
   pixel(-4, -10 + headBob, 9, 6, kit.shirt);
   pixel(-3, -10 + headBob, 7, 2, kit.highlight);
-  pixel(-8, -10 - stride + headBob, 3, 5, kit.shade);
-  pixel(6, -10 + stride + headBob, 3, 5, kit.shirt);
-  pixel(-7, -7 - stride + headBob, 2, 2, kit.highlight);
-  pixel(7, -7 + stride + headBob, 2, 2, kit.highlight);
+  pixel(-8, -10 - stride + headBob - armLift, 3, 5, kit.shade);
+  pixel(6, -10 + stride + headBob - armLift, 3, 5, kit.shirt);
+  pixel(-7, -7 - stride + headBob - armLift, 2, 2, kit.highlight);
+  pixel(7, -7 + stride + headBob - armLift, 2, 2, kit.highlight);
 
   // Helmet, screen, direction-sensitive eyes and antenna.
   pixel(-7, -22 + headBob, 15, 12, OUTLINE);

@@ -20,5 +20,5 @@ it('keeps the simulation free of platform imports and external clocks', () => {
 
 it('protects the foundation fixture from unnoticed rule or numeric drift', () => {
   // Changes require reviewing the event sequence, engine version and slice record.
-  expect(createPassingFixture().finalHash).toBe('dc3e4d38');
+  expect(createPassingFixture().finalHash).toBe('55a34a81');
 });

@@ -42,7 +42,19 @@ export function Scoreboard({
           <b>{frame.score.cyan}</b>
         </div>
         <p>
-          <span>{hasEnded ? 'END OF FIXTURE' : `HALF ${frame.half}`}</span>
+          <span>
+            {frame.phase.type === 'full_time'
+              ? frame.phase.reason === 'completed'
+                ? 'FULL TIME'
+                : 'INCOMPLETE'
+              : hasEnded
+                ? 'END OF FIXTURE'
+                : frame.phase.type === 'halftime'
+                  ? 'HALF TIME'
+                  : 'restart' in frame.phase
+                    ? frame.phase.restart.type.replaceAll('_', ' ').toUpperCase()
+                    : `HALF ${frame.half}`}{' '}
+          </span>
           <i />
           {formatTime(frame.playingTicks / TICK_RATE)}
         </p>

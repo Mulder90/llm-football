@@ -89,7 +89,7 @@ export function Pitch({
       ref={canvasRef}
       width={STADIUM_SIZE.width}
       height={STADIUM_SIZE.height}
-      aria-label="Top-down football pitch with 22 robot players. Coral plays from left to right; Cyan from right to left."
+      aria-label="Top-down football pitch with 22 robot players. Teams swap ends at halftime."
       role="img"
     />
   );

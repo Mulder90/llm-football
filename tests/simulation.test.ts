@@ -96,12 +96,12 @@ describe('deterministic football boundaries', () => {
     state.ball.owner = null;
     state.ball.position = { x: 50, y: -0.1, z: 0.11 };
     step(state);
-    expect(state.phase).toBe('open_play');
+    expect(state.phase.type).toBe('open_play');
     state.ball.position.y = -0.12;
     step(state);
-    expect(state.phase).toBe('stoppage');
+    expect(state.phase.type).toBe('restart_setup');
     const tick = state.tick;
     step(state);
-    expect(state.tick).toBe(tick);
+    expect(state.tick).toBe(tick + 1);
   });
 });

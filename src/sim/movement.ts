@@ -4,7 +4,7 @@ import type { MatchState, Player, Vec2 } from './types.ts';
 
 function desiredVelocity(player: Player): Vec2 {
   const order = player.active?.order;
-  if (order?.type !== 'move') return { x: 0, y: 0 };
+  if (order?.type !== 'move' && order?.type !== 'guard') return { x: 0, y: 0 };
 
   const toTarget = {
     x: order.target.x - player.position.x,
@@ -14,11 +14,15 @@ function desiredVelocity(player: Player): Vec2 {
   const direction = unitVector(toTarget);
   const brakingSpeed = Math.sqrt(2 * MOVEMENT.acceleration * distanceRemaining);
   const arrivalSpeed = distanceRemaining / SECONDS_PER_TICK;
-  const speed = Math.min(MOVEMENT.maximumSpeed * order.pace, brakingSpeed, arrivalSpeed);
+  const speed = Math.min(
+    MOVEMENT.maximumSpeed * (order.type === 'move' ? order.pace : MOVEMENT.guardingPace),
+    brakingSpeed,
+    arrivalSpeed,
+  );
 
   const hasArrived = distanceRemaining < MOVEMENT.arrivalDistance;
   const hasSlowedDown = vectorLength(player.velocity) < MOVEMENT.arrivalSpeed;
-  if (hasArrived && hasSlowedDown) player.active = null;
+  if (hasArrived && hasSlowedDown && order.type === 'move') player.active = null;
 
   return { x: direction.x * speed, y: direction.y * speed };
 }

@@ -83,7 +83,7 @@ export function createPassingFixture(): Recording {
   const state = createMatch();
   const record: Recording = {
     format: 'ai-football-recording',
-    version: 1,
+    version: 2,
     engine: ENGINE_VERSION,
     kind: 'fixture',
     title: 'The first exchange',
@@ -101,7 +101,7 @@ export function createPassingFixture(): Recording {
     durationTicks: 0,
   };
   let index = 0;
-  while (state.tick < FIXTURE_DURATION_SECONDS * TICK_RATE && state.phase === 'open_play') {
+  while (state.tick < FIXTURE_DURATION_SECONDS * TICK_RATE && state.phase.type === 'open_play') {
     const next = sequence[index];
     if (next?.tick === state.tick) {
       const batch = (team: Team) => ({ ...emptyBatch(state, team), orders: next[team] });

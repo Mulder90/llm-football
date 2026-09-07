@@ -5,10 +5,37 @@ export type Team = 'coral' | 'cyan';
 export type Vec2 = { x: number; y: number };
 export type Vec3 = Vec2 & { z: number };
 
+export type KickOrder = {
+  type: 'kick' | 'shoot';
+  playerId: string;
+  target: Vec2;
+  speed: number;
+  /** Upward speed in m/s; omitted means a ground kick. */
+  loft?: number;
+};
+
 export type Order =
   | { type: 'hold'; playerId: string }
   | { type: 'move'; playerId: string; target: Vec2; pace: number }
-  | { type: 'kick'; playerId: string; target: Vec2; speed: number };
+  | KickOrder
+  | { type: 'guard'; playerId: string; target: Vec2 }
+  | { type: 'tackle'; playerId: string; targetId: string }
+  | { type: 'restart_taker'; playerId: string };
+
+export type RestartType = 'kickoff' | 'throw_in' | 'corner' | 'goal_kick' | 'free_kick';
+export type Restart = {
+  type: RestartType;
+  team: Team;
+  position: Vec2;
+  takerId: string;
+};
+
+export type MatchPhase =
+  | { type: 'open_play'; sinceTick: number }
+  | { type: 'restart_setup'; sinceTick: number; readyTick: number; restart: Restart }
+  | { type: 'restart_ready'; sinceTick: number; deadlineTick: number; restart: Restart }
+  | { type: 'halftime'; sinceTick: number; endsAtTick: number }
+  | { type: 'full_time'; sinceTick: number; reason: 'completed' | 'abandoned' };
 
 export type ActiveOrder = {
   order: Order;
@@ -28,6 +55,8 @@ export type Player = {
   active: ActiveOrder | null;
   /** Simulation tick of the last executed kick; used only for presentation. */
   lastKick: number;
+  lastTackleTick: number;
+  lastSaveTick: number;
   /** Total metres travelled; drives distance-based run animation. */
   distance: number;
 };
@@ -38,13 +67,34 @@ export type Ball = {
   lastTouch: string | null;
   /** Simulation tick of the last kick; controls the recapture cooldown. */
   kickedAt: number;
+  /** Cleared on another player's touch; enforces direct-restart and second-touch rules. */
+  restartTouch: { type: RestartType; team: Team; takerId: string } | null;
 };
 export type MatchEvent = {
   id: number;
   tick: number;
-  type: 'kick' | 'receive' | 'interception' | 'order_failed' | 'ball_out';
+  type:
+    | 'kick'
+    | 'shot'
+    | 'receive'
+    | 'interception'
+    | 'order_failed'
+    | 'ball_out'
+    | 'goal'
+    | 'save'
+    | 'block'
+    | 'post'
+    | 'tackle'
+    | 'restart_awarded'
+    | 'restart_ready'
+    | 'restart_taken'
+    | 'restart_violation'
+    | 'halftime'
+    | 'full_time'
+    | 'abandoned';
   playerId: string | null;
   detail: string;
+  team?: Team;
 };
 export type MatchState = {
   version: typeof ENGINE_VERSION;
@@ -52,7 +102,9 @@ export type MatchState = {
   tick: number;
   playingTicks: number;
   half: 1 | 2;
-  phase: 'open_play' | 'stoppage' | 'full_time';
+  phase: MatchPhase;
+  halfPlayingTicks: number;
+  firstKickoffTeam: Team;
   score: Record<Team, number>;
   seed: number;
   decisionId: number;

@@ -932,3 +932,19 @@ footer > span:first-child {
     transition: none !important;
   }
 }
+
+.fixture-picker {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.fixture-picker select {
+  max-width: 100%;
+  padding: 0.65rem;
+  border: 1px solid #34464b;
+  border-radius: 4px;
+  background: #172d35;
+  color: #e8f1d9;
+}

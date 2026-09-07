@@ -1,10 +1,11 @@
-import type { MatchEvent, MatchState } from './types.ts';
+import type { MatchEvent, MatchState, Team } from './types.ts';
 
 export function emitEvent(
   state: MatchState,
   type: MatchEvent['type'],
   playerId: string | null,
   detail: string,
+  team?: Team,
 ): void {
   state.events.push({
     id: state.events.length,
@@ -12,5 +13,6 @@ export function emitEvent(
     type,
     playerId,
     detail,
+    ...(team ? { team } : {}),
   });
 }
