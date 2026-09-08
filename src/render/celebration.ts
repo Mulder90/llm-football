@@ -6,8 +6,9 @@ import type { Vec2 } from '../sim/types.ts';
 
 export const GOAL_PRESENTATION = {
   durationTicks: 1.85 * TICK_RATE,
-  gatheringTicks: 0.7 * TICK_RATE,
-  returnStartsTicks: 1.15 * TICK_RATE,
+  watchDurationSeconds: 6,
+  gatheringTicks: 0.45 * TICK_RATE,
+  returnStartsTicks: 1.4 * TICK_RATE,
   bannerArrivalTicks: 0.16 * TICK_RATE,
   bannerDepartureTicks: 0.25 * TICK_RATE,
   teammates: 5,

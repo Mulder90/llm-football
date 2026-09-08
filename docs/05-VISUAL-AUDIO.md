@@ -21,7 +21,7 @@ The generated reference is not authoritative for player count, pitch dimensions,
 
 ## Current rendering
 
-Canvas 2D renders the world at a logical 960×660 resolution, with HTML/React controls. The broadcast occupies 100dvh; the canvas contains the full pitch at every size, using nearest-neighbour pixel rendering and letterboxing where needed. The desktop inspector sits beside the pitch and overlays on narrow screens. It is closed by default.
+Canvas 2D renders the world at a logical 960×660 resolution, with HTML/React controls. The stadium occupies the complete 100dvh watch area; the canvas contains the full pitch at every size, using nearest-neighbour pixel rendering and letterboxing where needed. A compact score overlay, Inside the match entry and floating playback controls replace the former header/footer bands. The desktop inspector sits beside the pitch and overlays on narrow screens. It is closed by default; raw instructions and observation data sit beneath readable explanations.
 
 World metres are independent of pixels. Round at drawing boundaries, not in physics. Stable foot anchors and layered drawing prevent sliding and overlap errors. An aerial ball separates from its ground shadow. Keep it visible near players. Tactical overlays are opt-in.
 
@@ -37,15 +37,17 @@ Robots now have directional footwork and body lean, rear helmet panels, determin
 
 The referee has its own cream-shell/lime-kit sprite, movement-driven run cycle, whistle-to-point gestures and raised cards. A cached route follows earlier recorded play with bounded speed and acceleration. Arbitrary seeking samples that same route; signals never anticipate their recorded incident. Reduced motion retains readable signals while removing decorative steps, bobbing, blinking and card-rise animation.
 
-Goal presentation uses the first frame containing the updated score. A compact banner leaves the huddle visible, with a local net ripple and team-coloured confetti outside the pitch. Five scoring-side players gather, celebrate and return during the existing stopped-clock setup. The canonical frames and outcome never change; reduced motion retains their original positions.
+Goal presentation uses the first frame containing the updated score. A compact banner leaves the huddle visible, with a local net ripple and team-coloured confetti outside the pitch. Five scoring-side players gather, celebrate and return during the existing stopped-clock setup. A presentation timeline extends that vignette to six watch seconds at 1×, with a longer settled huddle and an accurately extended slider duration. The canonical frames and outcome never change; reduced motion retains their original positions. See [decision 007](decisions/007-BROADCAST-TIME.md).
+
+The ball's drawn altitude uses 12 pixels per metre for legibility while its ground shadow remains at the physical x/y. The shadow broadens/fades with height and the ball rolls during a carry. This deliberate visual exaggeration never changes contact or flight physics.
 
 The earlier running GIF was a rough experiment with shape drift and is intentionally not included as a production reference. The selected overhead viewpoint needs its own aligned assets.
 
 ## Audio
 
-Low crowd ambience, ball kick, tackle/contact, keeper save, whistle, goal cheer, halftime/fulltime signal. Use synthetic or properly licensed assets. No inference is needed for playback audio.
+Use stadium percussion, ball/contact sounds, restrained crowd reactions and recognizable referee signals. The user rejected continuous filtered-noise ambience and harmonic synthetic crowd voices; neither belongs in the mix. They approved the revised whistle and asked for deeper, more epic drums. Use original synthesis or properly licensed assets. No inference is needed for playback audio.
 
-Trigger effects from stable events crossed by the forward playhead. Scrubbing must not replay all historical goals/whistles; reset event handling on seek. Pause ambience appropriately, define non-1x behaviour, limit overlapping effects and provide mute/volume. Start browser audio after user interaction; muted viewing remains complete. Crowd reactions cannot reveal future outcomes.
+Trigger effects from stable events crossed by the forward playhead. Scrubbing must not replay all historical goals/whistles; reset event handling on seek. Pause percussion during stoppages, define non-1x behaviour, limit overlapping effects and provide mute/volume. Sound defaults to enabled and starts with the user's play gesture; a prior mute choice is respected. Clock-transition whistles align with their recorded frame, including the full-time endpoint; physical incident cues follow the completed step. The final whistle may finish after automatic playback completion, while explicit pause/seek/hidden-tab actions silence audio. Crowd reactions cannot reveal future outcomes.
 
 ## Acceptance
 

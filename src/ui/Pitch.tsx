@@ -9,6 +9,8 @@ import { createRefereeTrack, drawReferee } from '../render/referee.ts';
 import { drawGoalEffects } from '../render/goal-effects.ts';
 import { drawDecisionFocus } from '../render/decision-focus.ts';
 import { TICK_RATE } from '../sim/rules.ts';
+import { recordingSecondsAt } from '../render/presentation-time.ts';
+import type { PresentationTimeline } from '../render/presentation-time.ts';
 import type { PlaybackAudio } from '../audio/playback-audio.ts';
 
 const PRESENTATION_TIMING = {
@@ -19,6 +21,7 @@ const PRESENTATION_TIMING = {
 
 type PitchProps = {
   recording: Recording;
+  timeline: PresentationTimeline;
   playhead: RefObject<number>;
   isPlaying: boolean;
   speed: number;
@@ -31,6 +34,7 @@ type PitchProps = {
 
 export function Pitch({
   recording,
+  timeline,
   playhead,
   isPlaying,
   speed,
@@ -50,7 +54,7 @@ export function Pitch({
     backgroundRef.current ??= createStadium();
     const background = backgroundRef.current;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const durationSeconds = recording.durationTicks / TICK_RATE;
+    const { durationSeconds } = timeline;
     context.imageSmoothingEnabled = false;
 
     let animationFrameId = 0;
@@ -66,9 +70,9 @@ export function Pitch({
       }
       previousTimestamp = timestamp;
 
-      const frame = sample(recording, playhead.current);
+      const frame = sample(recording, recordingSecondsAt(timeline, playhead.current));
       context.drawImage(background, 0, 0);
-      drawCrowd(context, frame, recording, reducedMotion);
+      drawCrowd(context, frame, recording, reducedMotion, playhead.current * TICK_RATE);
       drawReferee(context, frame, refereeTrack, reducedMotion);
       const presentedFrame = drawPlayers(
         context,
@@ -76,10 +80,18 @@ export function Pitch({
         recording,
         showPlayerNumbers,
         reducedMotion,
+        playhead.current * TICK_RATE,
       );
       drawGoalEffects(context, frame, recording, reducedMotion);
       drawDecisionFocus(context, presentedFrame, recording, selectedPlayer);
-      audio.current?.advance(recording.events, frame.tick, isPlaying, speed, seekRevision);
+      audio.current?.advance(
+        recording.events,
+        frame.tick,
+        isPlaying,
+        speed,
+        seekRevision,
+        frame.phase.type,
+      );
 
       const hasEnded = playhead.current === durationSeconds;
       const controlsNeedUpdate =
@@ -95,14 +107,17 @@ export function Pitch({
     const resetTiming = () => {
       previousTimestamp = null;
       // Hidden tabs may stop rAF entirely; silence audio here instead of waiting for a frame.
-      if (document.hidden)
+      if (document.hidden) {
+        const frame = sample(recording, recordingSecondsAt(timeline, playhead.current));
         audio.current?.advance(
           recording.events,
-          playhead.current * TICK_RATE,
+          frame.tick,
           false,
           speed,
           seekRevision,
+          frame.phase.type,
         );
+      }
     };
     document.addEventListener('visibilitychange', resetTiming);
     animationFrameId = requestAnimationFrame(draw);
@@ -112,6 +127,7 @@ export function Pitch({
     };
   }, [
     recording,
+    timeline,
     refereeTrack,
     playhead,
     isPlaying,

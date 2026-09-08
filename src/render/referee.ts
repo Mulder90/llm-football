@@ -67,7 +67,7 @@ function incidentSignal(
       return { type: event.type, tick: event.tick, target: { x: incident.x, y: incident.y } };
     case 'foul':
     case 'offside':
-    case 'restart_taken':
+    case 'restart_ready':
     case 'halftime':
     case 'full_time':
     case 'abandoned':
@@ -97,14 +97,27 @@ export function createRefereeTrack(recording: Recording): RefereeTrack {
   let frameIndex = 0;
   let eventIndex = 0;
   let signal: RefereeSignal | null = null;
+  const abandonmentTick = recording.frames.find(
+    (frame) => frame.phase.type === 'full_time' && frame.phase.reason === 'abandoned',
+  )?.tick;
   for (let tick = 1; tick <= recording.durationTicks; tick++) {
     // Only earlier samples/incidents contribute. Future ball resets or goals cannot
     // bend an earlier portion of the route, even though the whole track is prepared.
     while (recording.frames[frameIndex + 1] && recording.frames[frameIndex + 1]!.tick < tick)
       frameIndex++;
     const observed = recording.frames[frameIndex]!;
-    while (recording.events[eventIndex] && recording.events[eventIndex]!.tick < tick) {
-      const event = recording.events[eventIndex++]!;
+    while (recording.events[eventIndex]) {
+      const event = recording.events[eventIndex]!;
+      // Clock transitions are stamped after the tick increments; physical incidents are not.
+      const clockSignal =
+        event.type === 'restart_ready' || event.type === 'halftime' || event.type === 'full_time';
+      // Abandonment can happen inside a foul step or after a delivery timeout.
+      const visibleTick =
+        event.type === 'abandoned'
+          ? (abandonmentTick ?? event.tick + 1)
+          : event.tick + (clockSignal ? 0 : 1);
+      if (visibleTick > tick) break;
+      eventIndex++;
       const nextSignal = incidentSignal(event, observed, recording);
       if (nextSignal) signal = nextSignal;
     }

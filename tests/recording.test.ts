@@ -40,10 +40,11 @@ describe('recording import and presentation boundaries', () => {
   });
   it('only sounds events crossed forward, with no historical effects after seeking backwards', () => {
     const kick = passing.events.find((event) => event.type === 'kick')!;
-    expect(crossedAudioEvents(passing.events, kick.tick - 1, kick.tick, 1)).toContain(kick);
+    expect(crossedAudioEvents(passing.events, kick.tick - 1, kick.tick, 1)).not.toContain(kick);
+    expect(crossedAudioEvents(passing.events, kick.tick, kick.tick + 1, 1)).toContain(kick);
     expect(crossedAudioEvents(passing.events, kick.tick, kick.tick, 1)).toEqual([]);
     expect(crossedAudioEvents(passing.events, 1000, 0, 1)).toEqual([]);
-    expect(crossedAudioEvents(passing.events, kick.tick - 1, kick.tick, 4)).toEqual([]);
+    expect(crossedAudioEvents(passing.events, kick.tick, kick.tick + 1, 4)).toEqual([]);
   });
   it('validates exported bytes without rewriting the canonical property order', async () => {
     const decoded = await readRecordingStream(new Blob([JSON.stringify(passing)]).stream());

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Frame, Recording } from '../recording/record.ts';
-import type { MatchEvent, Order, Team, Vec2 } from '../sim/types.ts';
+import type { Order, Team } from '../sim/types.ts';
 import { TICK_RATE } from '../sim/rules.ts';
 import { formatPlayerId, formatTime } from './format.ts';
 import { rulebook } from '../protocol/rulebook.ts';
@@ -10,62 +10,29 @@ import type { MatchListing } from './useRecordings.ts';
 import { TacticalPlan } from './TacticalPlan.tsx';
 
 export type InspectorTab = 'decisions' | 'observations' | 'prompt' | 'match';
-function formatTarget(target: Vec2): string {
-  return `(${target.x.toFixed(1)}, ${target.y.toFixed(1)})`;
-}
+const TAB_LABELS: Record<InspectorTab, string> = {
+  decisions: 'Team plans',
+  observations: 'What they see',
+  prompt: 'Rules',
+  match: 'Matches',
+};
 function describeOrder(order: Order): string {
   switch (order.type) {
     case 'hold':
       return 'Hold position';
     case 'guard':
-      return `Guard ${formatTarget(order.target)}`;
+      return 'Guard the goal';
     case 'tackle':
-      return `Tackle ${formatPlayerId(order.targetId)}`;
+      return `Challenge ${formatPlayerId(order.targetId)}`;
     case 'restart_taker':
       return 'Take this restart';
     case 'move':
-      return `Move to ${formatTarget(order.target)} · ${Math.round(order.pace * 100)}% pace`;
+      return 'Move into position';
     case 'shoot':
+      return 'Take a shot';
     case 'kick':
-      return `${order.type === 'shoot' ? 'Shoot' : 'Kick'} → ${formatTarget(order.target)} · ${order.speed.toFixed(1)} m/s`;
+      return 'Play the ball';
   }
-}
-export function describeEvent(event: MatchEvent): string {
-  const player = event.playerId ? formatPlayerId(event.playerId) : 'Referee';
-  switch (event.type) {
-    case 'kick':
-      return `${player} plays the ball`;
-    case 'shot':
-      return `${player} shoots`;
-    case 'goal':
-      return `${event.team === 'coral' ? 'Coral' : 'Cyan'} score!`;
-    case 'save':
-      return `${player} makes the save`;
-    case 'tackle':
-      return `${player} wins the ball`;
-    case 'interception':
-      return `${player} intercepts the pass`;
-    case 'receive':
-      return `${player} takes a touch`;
-    default:
-      return `${player} · ${event.detail}`;
-  }
-}
-export function EventStrip({ recording, frame }: { recording: Recording; frame: Frame }) {
-  const event = recording.events.findLast((candidate) => candidate.tick <= frame.tick);
-  return (
-    <div className="event-strip">
-      <span className={`event-dot ${event?.team ?? ''}`} />
-      <span>{event ? describeEvent(event) : 'The teams are ready.'}</span>
-      <span className="recording-label">
-        {recording.kind === 'llm'
-          ? recording.generation?.status === 'complete'
-            ? 'MODEL-CONTROLLED'
-            : 'LLM EXCERPT · INCOMPLETE'
-          : 'SCRIPTED FIXTURE'}
-      </span>
-    </div>
-  );
 }
 
 export function DecisionInspector({
@@ -104,8 +71,9 @@ export function DecisionInspector({
   const decisionId = decision?.batches[0].decisionId;
   const observation = decision?.observations?.[team];
   const formattedObservation = useMemo(
-    () => (observation ? JSON.stringify(JSON.parse(observation), null, 2) : ''),
-    [observation],
+    () =>
+      tab === 'observations' && observation ? JSON.stringify(JSON.parse(observation), null, 2) : '',
+    [observation, tab],
   );
   const requests =
     recording.generation?.requests.filter(
@@ -114,7 +82,7 @@ export function DecisionInspector({
   return (
     <aside
       className="inspector-panel"
-      aria-label="Match inspector"
+      aria-label="Inside the match"
       id="decision-inspector"
       onKeyDown={(event) => {
         if (event.key === 'Escape') onClose();
@@ -122,27 +90,30 @@ export function DecisionInspector({
     >
       <header className="inspector-header">
         <div>
-          <p className="eyebrow">BEHIND THE MATCH</p>
-          <h2>Every decision, visible.</h2>
+          <p className="eyebrow">INSIDE THE MATCH</p>
+          <h2>See the plan behind the play.</h2>
         </div>
-        <button className="close-button" onClick={onClose} aria-label="Close inspector" autoFocus>
+        <button
+          className="close-button"
+          onClick={onClose}
+          aria-label="Close inside the match"
+          autoFocus
+        >
           ×
         </button>
       </header>
       <nav className="inspector-tabs" aria-label="Inspector sections">
         {(['decisions', 'observations', 'prompt', 'match'] as const).map((section) => (
           <button key={section} aria-pressed={tab === section} onClick={() => onTab(section)}>
-            {section === 'prompt' ? 'Rules / prompt' : section[0]!.toUpperCase() + section.slice(1)}
+            {TAB_LABELS[section]}
           </button>
         ))}
       </nav>
       <div className="inspector-body">
         {tab !== 'match' && (
           <p className="stream-boundary">
-            <span className="status-dot" /> FOLLOWING PLAYBACK{' '}
-            <span>
-              {formatTime(frame.playingTicks / TICK_RATE)} · #{decisionId ?? 0}
-            </span>
+            <span className="status-dot" /> At this moment{' '}
+            <span>{formatTime(frame.playingTicks / TICK_RATE)}</span>
             <button
               className="stream-pause"
               onClick={onTogglePlayback}
@@ -155,8 +126,8 @@ export function DecisionInspector({
         {tab === 'decisions' && (
           <>
             <p className="panel-explanation">
-              One {recording.kind === 'llm' ? 'AI model' : 'scripted controller'} chooses orders for
-              each team. Select an order to find its player and target on the pitch.
+              Each team chooses how its players move and work together. Tap a player below to see
+              where they were asked to go. A plan can succeed, fail or change.
             </p>
             {(['coral', 'cyan'] as const).map((side) => {
               const batch = decision?.batches.find((candidate) => candidate.team === side);
@@ -167,15 +138,16 @@ export function DecisionInspector({
                     <span className="team-chip">{side === 'coral' ? 'CR' : 'CY'}</span>
                     <div>
                       <h3>{recording.teams[side].name}</h3>
-                      <p>{recording.teams[side].controller}</p>
+                      <p>{side === 'coral' ? 'The coral shirts' : 'The cyan shirts'}</p>
                     </div>
-                    <span className="order-count">{batch?.orders.length ?? 0} orders</span>
+                    <span className="order-count">{batch?.orders.length ?? 0} players</span>
                   </header>
                   {note?.intent && <p className="tactical-note">{note.intent}</p>}
                   {note?.memory ? <TacticalPlan memory={note.memory} /> : null}
                   {decision?.fallback.includes(side) && (
                     <p className="fallback-note">
-                      No accepted reply. Existing orders continue until expiry.
+                      No new instructions arrived. Players continue their previous movements until
+                      those finish.
                     </p>
                   )}
                   <div className="order-list">
@@ -194,14 +166,20 @@ export function DecisionInspector({
                           }
                         </span>
                         <span className="order-description">
-                          <b>{order.playerId}</b>
+                          <b>{formatPlayerId(order.playerId)}</b>
                           <span>{describeOrder(order)}</span>
                         </span>
                       </button>
                     ))}
                   </div>
+                  {batch ? (
+                    <details className="request-detail exact-orders">
+                      <summary>Exact player instructions</summary>
+                      <pre className="json-view">{JSON.stringify(batch, null, 2)}</pre>
+                    </details>
+                  ) : null}
                   {!batch?.orders.length && (
-                    <p className="empty-note">No new orders at this boundary.</p>
+                    <p className="empty-note">No new player instructions at this moment.</p>
                   )}
                 </section>
               );
@@ -223,50 +201,73 @@ export function DecisionInspector({
               ))}
             </div>
             <p className="panel-explanation">
-              The exact input sent at this boundary, updated as the replay moves. Opponent pending
-              orders and private memory were never shared.
+              Both teams can see every player's position and movement, the ball, the score and
+              recent events. Each team keeps its own plan private. They choose their next moves from
+              the same moment in the match.
             </p>
             {observation ? (
-              <pre className="json-view" aria-label={`${team} observation`}>
-                {formattedObservation}
-              </pre>
+              <details className="request-detail">
+                <summary>Read everything this team could see</summary>
+                <p>This exact snapshot updates with the replay.</p>
+                <pre className="json-view" aria-label={`${team} observation`}>
+                  {formattedObservation}
+                </pre>
+              </details>
             ) : (
               <p className="empty-note">
-                This scripted fixture has no model requests. Choose a generated match to inspect the
-                observation stream.
+                This is a scripted practice match. Choose another recording to read the information
+                sent to its teams.
               </p>
             )}
-            {requests.map((request) => (
-              <details className="request-detail" key={request.attempt}>
-                <summary>
-                  Attempt {request.attempt + 1} · {request.status} ·{' '}
-                  {(request.latencyMs / 1000).toFixed(1)}s
-                </summary>
-                <p>{request.failure ?? 'Accepted at the shared simulation boundary.'}</p>
-                {request.feedback && (
-                  <pre className="json-view">Repair feedback: {request.feedback}</pre>
-                )}
-                {observation && (
-                  <details className="request-detail">
-                    <summary>Exact user message</summary>
-                    <pre className="json-view">{userPrompt(observation, request.feedback)}</pre>
+            {requests.length > 0 ? (
+              <details className="request-detail">
+                <summary>Replies and technical details</summary>
+                {requests.map((request) => (
+                  <details className="request-detail" key={request.attempt}>
+                    <summary>
+                      Attempt {request.attempt + 1} · {request.status} ·{' '}
+                      {(request.latencyMs / 1000).toFixed(1)}s
+                    </summary>
+                    <p>{request.failure ?? 'Accepted at the shared simulation boundary.'}</p>
+                    {request.feedback && (
+                      <pre className="json-view">Repair feedback: {request.feedback}</pre>
+                    )}
+                    {observation && (
+                      <details className="request-detail">
+                        <summary>Exact user message</summary>
+                        <pre className="json-view">{userPrompt(observation, request.feedback)}</pre>
+                      </details>
+                    )}
+                    <pre className="json-view">{request.responseText ?? 'No response body.'}</pre>
                   </details>
-                )}
-                <pre className="json-view">{request.responseText ?? 'No response body.'}</pre>
+                ))}
               </details>
-            ))}
+            ) : null}
           </>
         )}
         {tab === 'prompt' && (
           <>
             <p className="panel-explanation">
               {recording.generation
-                ? 'Both models received this same system prompt. Their team observation was the user message; a repair attempt also included the feedback shown under Observations.'
-                : 'Current engine rules for this scripted fixture. No AI was prompted for this recording.'}
+                ? 'Both teams play by the same rules. They choose passes, runs, shots and challenges; the game decides what actually happens.'
+                : 'This practice match uses the same football rules, with scripted player instructions.'}
             </p>
-            <pre className="rulebook-view">{recording.generation?.rulebook ?? rulebook()}</pre>
+            <ul className="rules-summary">
+              <li>Eleven players on each team, including a goalkeeper.</li>
+              <li>Two short halves; the teams change ends at half time.</li>
+              <li>Goals, saves, fouls and offside follow the action on the pitch.</li>
+              <li>A planned pass or shot can fail. Neither team chooses the outcome.</li>
+            </ul>
             <details className="request-detail">
-              <summary>Response JSON schema · identities fixed per request</summary>
+              <summary>
+                {recording.generation
+                  ? 'Read the exact instructions given to both teams'
+                  : 'Read the full football rules'}
+              </summary>
+              <pre className="rulebook-view">{recording.generation?.rulebook ?? rulebook()}</pre>
+            </details>
+            <details className="request-detail">
+              <summary>Technical response format</summary>
               <pre className="json-view">
                 {JSON.stringify(
                   recording.generation?.responseSchema
@@ -284,47 +285,55 @@ export function DecisionInspector({
             <p className="eyebrow">NORTH GARDEN STADIUM</p>
             <h3>{recording.title}</h3>
             <p className="panel-explanation">{recording.description}</p>
-            <dl className="record-facts">
-              <dt>Controller</dt>
-              <dd>{recording.kind === 'llm' ? 'Real model requests' : 'Scripted baseline'}</dd>
-              <dt>Ruleset</dt>
-              <dd>{recording.engine}</dd>
-              <dt>Replay checksum</dt>
-              <dd>{recording.finalHash}</dd>
-              <dt>Recording</dt>
-              <dd>{recording.generation?.status ?? 'Development fixture'}</dd>
-            </dl>
-            {recording.generation && (
+            <p className="panel-explanation">
+              {recording.kind === 'llm'
+                ? `Coral is controlled by ${recording.teams.coral.controller}; Cyan by ${recording.teams.cyan.controller}. Watching a recording makes no new AI requests.`
+                : 'A scripted practice match, used to check the football rules and presentation.'}
+            </p>
+            <details className="request-detail">
+              <summary>How this recording was made</summary>
               <dl className="record-facts">
-                <dt>Decisions</dt>
-                <dd>{recording.decisions.length} shared boundaries</dd>
-                <dt>Model requests</dt>
-                <dd>{recording.generation.requests.length}</dd>
-                <dt>Fallbacks</dt>
-                <dd>
-                  {recording.decisions.reduce((count, entry) => count + entry.fallback.length, 0)}{' '}
-                  team decisions
-                </dd>
-                <dt>Generated in</dt>
-                <dd>{formatTime(recording.generation.wallSeconds)}</dd>
-                <dt>Estimated usage</dt>
-                <dd>${recording.generation.estimatedUsd.toFixed(3)}</dd>
+                <dt>Controller</dt>
+                <dd>{recording.kind === 'llm' ? 'Real model requests' : 'Scripted baseline'}</dd>
+                <dt>Ruleset</dt>
+                <dd>{recording.engine}</dd>
+                <dt>Replay checksum</dt>
+                <dd>{recording.finalHash}</dd>
+                <dt>Recording</dt>
+                <dd>{recording.generation?.status ?? 'Development fixture'}</dd>
               </dl>
-            )}
-            {recording.generation && (
-              <p className="panel-explanation">
-                Generation time is separate from the match clock. Usage is estimated from the
-                recorded provider token counts and prices.
-              </p>
-            )}
-            {recording.generation?.status === 'incomplete' && (
-              <p className="fallback-note">
-                Incomplete run: {recording.generation.stopReason}. The rest of the match has not
-                been invented.
-              </p>
-            )}
+              {recording.generation && (
+                <dl className="record-facts">
+                  <dt>Decisions</dt>
+                  <dd>{recording.decisions.length} shared boundaries</dd>
+                  <dt>Model requests</dt>
+                  <dd>{recording.generation.requests.length}</dd>
+                  <dt>Fallbacks</dt>
+                  <dd>
+                    {recording.decisions.reduce((count, entry) => count + entry.fallback.length, 0)}{' '}
+                    team decisions
+                  </dd>
+                  <dt>Generated in</dt>
+                  <dd>{formatTime(recording.generation.wallSeconds)}</dd>
+                  <dt>Estimated usage</dt>
+                  <dd>${recording.generation.estimatedUsd.toFixed(3)}</dd>
+                </dl>
+              )}
+              {recording.generation && (
+                <p className="panel-explanation">
+                  Generation time is separate from the match clock. Usage is estimated from the
+                  recorded provider token counts and prices.
+                </p>
+              )}
+              {recording.generation?.status === 'incomplete' && (
+                <p className="fallback-note">
+                  Incomplete run: {recording.generation.stopReason}. The rest of the match has not
+                  been invented.
+                </p>
+              )}
+            </details>
             <button className="panel-action" onClick={onDownload}>
-              Download match record ↗
+              Save this match ↗
             </button>
             <label className="fixture-picker">
               Recordings
@@ -350,8 +359,9 @@ export function DecisionInspector({
                     {entry.complete ? '' : ' · incomplete'}
                   </option>
                 ))}
-                <option value="full">Full scripted match</option>
-                <option value="passing">First exchange · 24 seconds</option>
+                <option value="full">Full practice match · scripted</option>
+                <option value="passing">Passing practice · scripted</option>
+                <option value="carry-and-chip">Running & chips · scripted</option>
               </select>
             </label>
             <label className="fixture-picker">

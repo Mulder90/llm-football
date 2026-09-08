@@ -4,6 +4,7 @@ import {
   decorationNoise,
   drawStadiumAtmosphere,
   drawSupporterStands,
+  drawTreeBases,
 } from './stadium-atmosphere.ts';
 export { drawCrowd } from './stadium-atmosphere.ts';
 
@@ -18,14 +19,6 @@ const FIELD_MARKINGS = {
 } as const;
 const MOWING_STRIPE_COUNT = 14;
 
-function drawTree(context: CanvasRenderingContext2D, x: number, y: number) {
-  drawPixelRect(context, x + 1, y + 10, 5, 14, '#352f24');
-  drawPixelRect(context, x - 13, y - 6, 29, 20, '#123e32');
-  drawPixelRect(context, x - 17, y - 2, 30, 12, '#15563c');
-  drawPixelRect(context, x - 11, y - 14, 23, 23, '#29734b');
-  drawPixelRect(context, x - 9, y - 12, 13, 10, '#4b8e57');
-  drawPixelRect(context, x - 2, y - 5, 16, 10, '#36804c');
-}
 function drawConcourseAndStands(context: CanvasRenderingContext2D): void {
   drawPixelRect(context, 0, 0, STADIUM_SIZE.width, STADIUM_SIZE.height, '#10202a');
   // Paved concourse, block seams, planted corners and four stands.
@@ -41,15 +34,7 @@ function drawConcourseAndStands(context: CanvasRenderingContext2D): void {
       );
     }
   drawSupporterStands(context);
-  for (const [x, y] of [
-    [40, 42],
-    [910, 42],
-    [40, 605],
-    [910, 605],
-    [76, 75],
-    [874, 575],
-  ])
-    drawTree(context, x!, y!);
+  drawTreeBases(context);
   // Stadium bowl and ad boards.
   drawPixelRect(context, 74, 68, 812, 519, '#081720');
   drawPixelRect(context, 82, 74, 796, 506, '#39724c');

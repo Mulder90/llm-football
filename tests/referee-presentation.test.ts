@@ -1,8 +1,53 @@
 import { describe, expect, it } from 'vitest';
 import { createPassingFixture } from '../src/fixtures/passing.ts';
+import { createFullMatchFixture } from '../src/fixtures/full-match.ts';
 import { createRefereeTrack, sampleReferee } from '../src/render/referee.ts';
+import { capture, stateHash, verifyRecording } from '../src/recording/record.ts';
+import { cloneState, createMatch } from '../src/sim/state.ts';
+import { awardRestart } from '../src/sim/restarts.ts';
+import { step } from '../src/sim/step.ts';
 
 describe('referee presentation', () => {
+  it('signals a restart timeout on the exact terminal frame, without waiting for a nonexistent tick', () => {
+    const state = createMatch('referee-timeout');
+    awardRestart(state, 'kickoff', 'coral', { x: 52.5, y: 34 });
+    const recording = {
+      ...createPassingFixture(),
+      initial: cloneState(state),
+      decisions: [],
+      frames: [capture(state)],
+    };
+    while (state.phase.type !== 'full_time') {
+      step(state);
+      recording.frames.push(capture(state));
+    }
+    recording.events = state.events;
+    recording.durationTicks = state.tick;
+    recording.finalHash = stateHash(state);
+    expect(verifyRecording(recording).phase).toMatchObject({
+      type: 'full_time',
+      reason: 'abandoned',
+    });
+    const track = createRefereeTrack(recording);
+    expect(sampleReferee(track, state.tick - 0.25).signal).toBeNull();
+    expect(sampleReferee(track, state.tick).signal).toMatchObject({
+      type: 'whistle',
+      tick: state.tick,
+    });
+  });
+  it('signals clock boundaries on their recorded frame, including the exact final frame', () => {
+    const recording = createFullMatchFixture();
+    const track = createRefereeTrack(recording);
+    for (const event of recording.events.filter((event) =>
+      ['restart_ready', 'halftime', 'full_time'].includes(event.type),
+    )) {
+      expect(sampleReferee(track, event.tick).signal).toMatchObject({
+        type: 'whistle',
+        tick: event.tick,
+      });
+    }
+    expect(sampleReferee(track, recording.durationTicks).signal?.type).toBe('whistle');
+  });
   it('does not anticipate future ball positions or a card, including fractional playheads', () => {
     const recording = createPassingFixture();
     const changed = structuredClone(recording);

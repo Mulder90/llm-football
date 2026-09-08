@@ -8,7 +8,7 @@ An independent football experiment: one language model controls each team, a det
 
 The broadcast fills the viewport by default. A complete one-minute model match is available alongside the scripted fixtures. It took 27 minutes and an estimated $0.64 to generate; viewing makes no AI calls. At the user's request, the previous four-minute generation was stopped and its public recordings removed. Development supports only football-0.5, with no backward compatibility layer. The engine implements a documented simplified football ruleset, not every IFAB rule.
 
-Open **Behind the match** for team/player decisions, the exact observation stream, rules/prompt and recording import/export. The panel follows replay time; select an order to highlight its player and target on the pitch. Supporter sections, waving flags, expressive robots, an animated referee and a goal huddle bring the recorded play to life. Synthetic stadium sound is available; click the sound control to unmute. Playback never calls an LLM.
+The stadium fills the screen with a small TV-style score overlay. Open **Inside the match** for team plans, what each team sees, rules and recordings. Exact prompts and instructions remain available under disclosures. Select an order to highlight its player and target on the pitch. Goals have six-second celebrations at normal speed. Sound defaults on when you press Play, with a mute control always available. Playback never calls an LLM.
 
 ## Run locally
 
@@ -19,7 +19,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the local URL printed by Vite. Click **Watch the match**. Space toggles playback; left/right arrows seek five seconds when focus is outside a control. Replay position also supports the keyboard. No API keys or API calls are needed to watch recordings.
+Open the local URL printed by Vite. Click **Watch the match**. Space toggles playback; left/right arrows seek five seconds when focus is outside a control. Replay position also supports the keyboard. **Viewing options** contains speed, volume, player numbers and fullscreen. **Inside the match → Matches → Running & chips** demonstrates ball carrying and aerial passing with explicitly scripted practice. No API keys or API calls are needed to watch recordings.
 
 ```sh
 pnpm check     # strict TypeScript and simulation/protocol/replay tests
@@ -72,4 +72,4 @@ One package: strict TypeScript, pnpm, Vite, React for controls, Canvas 2D for th
 
 ## Next slice
 
-Improve keeper distribution and adaptation after repeated interceptions. The first minute shows stronger spacing and passing from Cyan while Coral still repeats poor passes. Further highlights and decision storytelling follow measured football improvements. Public deployment remains separate work.
+Compare controllers on identical carrying, passing, chipping and keeper-distribution situations. The mechanics work, but the current models almost always release the ball immediately and choose zero loft. The clearer prompt needs a fresh evaluation before claiming better model football. See the [matchday handoff](docs/slices/10-MATCHDAY-FEEL.md). Public deployment remains separate work.

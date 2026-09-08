@@ -31,12 +31,68 @@ const FLAGS = [
   { x: 887, y: 466, direction: 1, team: 'cyan' },
 ] as const;
 const REACTION_TICKS = { goal: 3 * TICK_RATE, save: 1.4 * TICK_RATE, shot: 0.9 * TICK_RATE };
+const TREES = [
+  { x: 40, y: 42 },
+  { x: 910, y: 42 },
+  { x: 40, y: 605 },
+  { x: 910, y: 605 },
+  { x: 76, y: 75 },
+  { x: 874, y: 575 },
+] as const;
+const TREE_WIND = {
+  gustPeriodTicks: 8 * TICK_RATE,
+  swayPeriodTicks: 3 * TICK_RATE,
+  flutterPeriodTicks: 1.7 * TICK_RATE,
+  maximumSwayPixels: 3,
+} as const;
 
 // Coordinate-only decoration: this never consumes the match's seeded randomness.
 export function decorationNoise(x: number, y: number, seed = 0): number {
   let hash = Math.imul(x + seed, 374761393) + Math.imul(y, 668265263);
   hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
   return ((hash ^ (hash >>> 16)) >>> 0) / 4294967296;
+}
+
+/** Grounded parts remain in the cache; no old canopy pose can show through a new one. */
+export function drawTreeBases(context: CanvasRenderingContext2D): void {
+  for (const { x, y } of TREES) {
+    drawPixelRect(context, x - 12, y + 15, 31, 7, '#172d31');
+    drawPixelRect(context, x - 8, y + 13, 26, 10, '#193533');
+    drawPixelRect(context, x + 1, y + 7, 5, 17, '#352f24');
+    drawPixelRect(context, x + 2, y + 10, 2, 12, '#66513a');
+  }
+}
+
+function drawTreeCanopies(
+  context: CanvasRenderingContext2D,
+  tick: number,
+  reducedMotion: boolean,
+): void {
+  const fullTurn = Math.PI * 2;
+  for (const { x, y } of TREES) {
+    const phase = decorationNoise(x, y, 31) * fullTurn;
+    const gust = (1 + Math.sin((tick / TREE_WIND.gustPeriodTicks) * fullTurn + phase)) / 2;
+    const strength = 0.35 + 0.65 * gust * gust;
+    const sway = reducedMotion
+      ? 0
+      : Math.sin((tick / TREE_WIND.swayPeriodTicks) * fullTurn + phase) *
+        strength *
+        TREE_WIND.maximumSwayPixels;
+    const upperShift = Math.round(sway);
+    const lowerShift = Math.round(sway * 0.45);
+    const dip = Math.round(Math.abs(sway) * 0.25);
+    const flutter = reducedMotion
+      ? 0
+      : Math.round(Math.sin((tick / TREE_WIND.flutterPeriodTicks) * fullTurn - phase) * gust);
+    // Leaf layers bend around the fixed trunk rather than moving the whole tree rigidly.
+    drawPixelRect(context, x - 13 + lowerShift, y - 6, 29, 20, '#123e32');
+    drawPixelRect(context, x - 17 + lowerShift, y - 2, 30, 12, '#15563c');
+    drawPixelRect(context, x - 11 + upperShift, y - 14 + dip, 23, 23, '#29734b');
+    drawPixelRect(context, x - 9 + upperShift, y - 12 + dip, 13, 10, '#4b8e57');
+    drawPixelRect(context, x - 2 + lowerShift, y - 5 + flutter, 16, 10, '#36804c');
+    drawPixelRect(context, x - 7 + upperShift, y - 10 + dip, 5, 2, '#659e61');
+    drawPixelRect(context, x + 8 + lowerShift, y - 3 + flutter, 3, 2, '#559457');
+  }
 }
 
 type Spectator = { x: number; y: number; team: Team; shirt: string; skin: string; variety: number };
@@ -220,14 +276,17 @@ export function drawCrowd(
   frame: Frame,
   recording: Recording,
   reducedMotion: boolean,
+  animationTick = frame.tick,
 ): void {
+  // Pitch restores the canopy-free stadium painting before each call, including paused redraws.
+  drawTreeCanopies(context, animationTick, reducedMotion);
   if (reducedMotion) {
     drawFlags(context, 0, null);
     return;
   }
   const reaction = recentReaction(frame, recording);
   for (const spectator of animatedSpectators) {
-    const rhythm = Math.floor(frame.tick / (12 + spectator.variety * 18) + spectator.x) % 12;
+    const rhythm = Math.floor(animationTick / (12 + spectator.variety * 18) + spectator.x) % 12;
     const delay = Math.floor(decorationNoise(spectator.y, spectator.x) * 18);
     const nearby = !reaction
       ? 0
@@ -242,12 +301,12 @@ export function drawCrowd(
       reaction.ageTicks < REACTION_TICKS[reaction.type] - delay &&
       (reaction.type === 'goal' || decorationNoise(spectator.x, spectator.y, 5) < nearby * 0.8);
     const raisedArms = reacting || rhythm < 2;
-    const bob = raisedArms && Math.floor(frame.tick / 9 + spectator.y) % 3 === 0 ? 1 : 0;
+    const bob = raisedArms && Math.floor(animationTick / 9 + spectator.y) % 3 === 0 ? 1 : 0;
     // Restore only this seat's cached footprint before drawing a different pose.
     drawPixelRect(context, spectator.x - 1, spectator.y - 8, 8, 9, STAND_COLOR);
     drawPixelRect(context, spectator.x - 1, spectator.y, 8, 1, '#294252');
     drawSpectator(context, spectator, raisedArms, bob, raisedArms && spectator.variety > 0.88);
   }
   // The flags' cloth is drawn over the same static poles. Ambient wind follows replay time.
-  drawFlags(context, frame.tick, reaction?.type === 'goal' ? reaction.team : null);
+  drawFlags(context, animationTick, reaction?.type === 'goal' ? reaction.team : null);
 }

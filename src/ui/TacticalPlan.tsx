@@ -15,9 +15,12 @@ export function TacticalPlan({ memory }: { memory: TacticalMemory }) {
       <details>
         <summary>Team plan</summary>
         <p>{memory.plan || 'No plan stated.'}</p>
-        <p>Recorded memory for this team only. The opposing model never receives it.</p>
+        <p>
+          This plan stays within the team. Their opponents can see the movement, but not read the
+          plan.
+        </p>
         <dl className="record-facts">
-          <dt>Ball player</dt>
+          <dt>On the ball</dt>
           <dd>{memory.ballPlayerId ? formatPlayerId(memory.ballPlayerId) : 'None assigned'}</dd>
           <dt>Pass receiver</dt>
           <dd>{memory.pass ? formatPlayerId(memory.pass.receiverId) : 'No pass planned'}</dd>
@@ -31,7 +34,7 @@ export function TacticalPlan({ memory }: { memory: TacticalMemory }) {
           ) : null}
         </dl>
         <p>
-          <strong>Assignments</strong>
+          <strong>Off-ball jobs</strong>
         </p>
         {memory.assignments.length > 0 ? (
           <ul>
@@ -46,7 +49,7 @@ export function TacticalPlan({ memory }: { memory: TacticalMemory }) {
           <p>No assignments recorded.</p>
         )}
         <p>
-          <strong>Opponent threats</strong>
+          <strong>Opponents to watch</strong>
         </p>
         {memory.threats.length > 0 ? (
           <ul>
@@ -60,9 +63,9 @@ export function TacticalPlan({ memory }: { memory: TacticalMemory }) {
           <p>No threats noted.</p>
         )}
         <p>
-          <strong>Previous attempt · model assessment</strong>
+          <strong>Looking back · the team’s assessment</strong>
           <br />
-          {memory.review || 'No review recorded.'}
+          {memory.review || 'No assessment yet.'}
         </p>
       </details>
     </div>

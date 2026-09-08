@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { sample } from '../recording/record.ts';
-import { DecisionInspector, EventStrip } from './DecisionInspector.tsx';
+import { DecisionInspector } from './DecisionInspector.tsx';
 import type { InspectorTab } from './DecisionInspector.tsx';
 import { Pitch } from './Pitch.tsx';
 import { PlaybackControls } from './PlaybackControls.tsx';
@@ -18,16 +18,16 @@ export function App() {
 }
 function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> }) {
   const { recording } = library;
-  const playback = usePlayback(recording);
-  const frame = sample(recording, playback.seconds);
+  const [notice, setNotice] = useState('');
+  const sound = useSound(setNotice);
+  const playback = usePlayback(recording, () => void sound.unlockFromGesture());
+  const frame = sample(recording, playback.recordingSeconds);
   const broadcastRef = useRef<HTMLElement>(null);
   const inspectorTrigger = useRef<HTMLButtonElement>(null);
   const [showPlayerNumbers, setShowPlayerNumbers] = useState(false);
   const [panel, setPanel] = useState<InspectorTab | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [notice, setNotice] = useState('');
-  const sound = useSound(setNotice);
   function closeInspector() {
     setPanel(null);
     inspectorTrigger.current?.focus();
@@ -58,31 +58,10 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
   return (
     <main className={`broadcast-app ${panel ? 'with-inspector' : ''}`} ref={broadcastRef}>
       <section className="watch-area" aria-label="Match broadcast">
-        <div className="broadcast-topline">
-          <span>
-            <i className="status-dot" /> NORTH GARDEN
-          </span>
-          <span>
-            {recording.kind === 'llm'
-              ? recording.generation?.status === 'complete'
-                ? 'AI FOOTBALL'
-                : 'LLM EXCERPT · INCOMPLETE'
-              : 'DEVELOPMENT FIXTURE'}{' '}
-            · RECORDED
-          </span>
-          <button
-            ref={inspectorTrigger}
-            onClick={() => setPanel(panel ? null : 'decisions')}
-            aria-expanded={panel !== null}
-            aria-controls="decision-inspector"
-          >
-            Behind the match <span aria-hidden="true">☷</span>
-          </button>
-        </div>
-        <Scoreboard recording={recording} frame={frame} hasEnded={playback.hasEnded} />
         <div className="stadium-wrap">
           <Pitch
             recording={recording}
+            timeline={playback.timeline}
             playhead={playback.playhead}
             isPlaying={playback.isPlaying}
             speed={playback.speed}
@@ -92,6 +71,16 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
             onAdvance={playback.onAdvance}
             audio={sound.audio}
           />
+          <Scoreboard recording={recording} frame={frame} hasEnded={playback.hasEnded} />
+          <button
+            className="inside-match-button"
+            ref={inspectorTrigger}
+            onClick={() => setPanel(panel ? null : 'decisions')}
+            aria-expanded={panel !== null}
+            aria-controls="decision-inspector"
+          >
+            <span aria-hidden="true">☷</span> Inside the match
+          </button>
           <MatchMoment recording={recording} frame={frame} />
           {!playback.isPlaying && playback.seconds === 0 && (
             <button
@@ -104,9 +93,7 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
                 {library.loading ? 'Getting the match ready…' : 'Watch the match'}
                 <small>
                   {formatTime(playback.durationSeconds)} ·{' '}
-                  {recording.kind === 'llm'
-                    ? 'LLM-controlled football'
-                    : 'scripted development fixture'}
+                  {recording.kind === 'llm' ? 'Recorded match' : 'Scripted practice match'}
                 </small>
               </span>
             </button>
@@ -127,23 +114,20 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
               <button onClick={playback.replay}>↻ Watch again</button>
             </div>
           )}
+          {(notice || library.loadError || library.loading) && (
+            <p className="notice" role="status">
+              {notice || library.loadError || 'Loading match…'}
+            </p>
+          )}
+          <PlaybackControls
+            playback={playback}
+            showPlayerNumbers={showPlayerNumbers}
+            isFullscreen={isFullscreen}
+            onToggleNumbers={() => setShowPlayerNumbers((visible) => !visible)}
+            onToggleFullscreen={() => void toggleFullscreen()}
+            sound={sound}
+          />
         </div>
-        {(notice || library.loadError || library.loading) && (
-          <p className="notice" role="status">
-            {notice || library.loadError || 'Loading match…'}
-          </p>
-        )}
-        <PlaybackControls
-          playback={playback}
-          showPlayerNumbers={showPlayerNumbers}
-          showInspector={panel !== null}
-          isFullscreen={isFullscreen}
-          onToggleNumbers={() => setShowPlayerNumbers((visible) => !visible)}
-          onToggleInspector={() => setPanel(panel ? null : 'decisions')}
-          onToggleFullscreen={() => void toggleFullscreen()}
-          sound={sound}
-        />
-        <EventStrip recording={recording} frame={frame} />
       </section>
       {panel && (
         <DecisionInspector

@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { TICK_RATE } from '../sim/rules.ts';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clamp } from '../sim/math.ts';
 import type { Recording } from '../recording/record.ts';
+import { createPresentationTimeline, recordingSecondsAt } from '../render/presentation-time.ts';
 
 export const KEYBOARD_SEEK_SECONDS = 5;
 
-export function usePlayback(recording: Recording) {
-  const durationSeconds = recording.durationTicks / TICK_RATE;
+export function usePlayback(recording: Recording, onPlay?: () => void) {
+  const timeline = useMemo(() => createPresentationTimeline(recording), [recording]);
+  const { durationSeconds } = timeline;
   const playhead = useRef(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -25,13 +26,15 @@ export function usePlayback(recording: Recording) {
 
   const togglePlayback = useCallback(() => {
     if (playhead.current >= durationSeconds) seekTo(0);
+    if (!isPlaying) onPlay?.();
     setIsPlaying((playing) => !playing);
-  }, [durationSeconds, seekTo]);
+  }, [durationSeconds, seekTo, isPlaying, onPlay]);
 
   const replay = useCallback(() => {
     seekTo(0);
+    onPlay?.();
     setIsPlaying(true);
-  }, [seekTo]);
+  }, [seekTo, onPlay]);
 
   const onAdvance = useCallback((playbackSeconds: number, ended: boolean) => {
     setSeconds(playbackSeconds);
@@ -48,7 +51,7 @@ export function usePlayback(recording: Recording) {
       if (
         target instanceof HTMLElement &&
         (target.isContentEditable ||
-          ['INPUT', 'SELECT', 'BUTTON', 'TEXTAREA', 'A'].includes(target.tagName))
+          ['INPUT', 'SELECT', 'BUTTON', 'TEXTAREA', 'A', 'SUMMARY'].includes(target.tagName))
       )
         return;
 
@@ -73,6 +76,8 @@ export function usePlayback(recording: Recording) {
 
   return {
     durationSeconds,
+    timeline,
+    recordingSeconds: recordingSecondsAt(timeline, seconds),
     playhead,
     isPlaying,
     seconds,

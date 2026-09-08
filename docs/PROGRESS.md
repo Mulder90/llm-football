@@ -26,19 +26,21 @@ At the user's request, `coordination-match-001` was stopped after 129.3667 playi
 
 - Slice 9: supporter sections, varied crowd/flag animation, expressive robot poses, a causal animated referee and synchronized net/goal/huddle effects. These read the recording without changing it. All 80 tests pass; production build, full 1× browser playback and export checks pass. See [handoff](slices/09-LIVELIER-BROADCAST.md).
 
+- Slice 10: full-screen stadium with compact TV overlays and simpler optional explanations, six-second goal celebrations on a separate watch timeline, animated trees, clearer ball height, and scripted carrying/chipping practice. Live user feedback shaped deeper 130 BPM drums, the approved whistle, a licensed recorded goal cheer, and removal of synthetic crowd voices/claps. All 98 tests pass, as do the build, full 1× browser playback, exact slider endpoints and export checks. See [handoff](slices/10-MATCHDAY-FEEL.md).
+
 ## Code quality agreement
 
 Use descriptive names, explicit units for physics constants, named replay fields, focused functions and components, and Prettier. The user explicitly permits necessary dependencies but wants simple, maintainable code without excessive defensive checks or premature architecture. External JSON remains untrusted and must be validated.
 
 ## Next slice
 
-Address keeper distribution and adaptation after repeated interceptions. Use the recorded pass outcomes and spacing measures to evaluate the next small change. Broadcast openings, highlights and decision storytelling remain later work. Keep outcomes determined by the engine.
+Compare controllers on fixed carry/pass/chip and keeper-distribution snapshots, using actual outcomes and spacing to evaluate them. The current record has just one outfield carrying order in 60 possession decisions, and 57 of 58 kicks/shots use zero loft. Carrying and gravity work; models need to choose those options well. The clarified prompt has not yet had a paid evaluation. Keep outcomes determined by the engine.
 
 ## Limitations
 
 - Model football is still rough. Structured assignments and fewer immediate failures do not prove good pass timing or defensive shape. A model's review may be inaccurate, and the engine never corrects tactical intent or spreads players into better positions.
 - The football-0.5 rules intentionally simplify contact, offside involvement and several referee decisions; [the rules document](04-FOOTBALL-RULES.md) states the omissions.
-- Playback is a recording. Observations follow its playhead, not a live provider token stream. Sound is synthetic and muted until enabled; event timing is checked, but there is no human listening assessment.
+- Playback is a recording. Observations follow its mapped recording time, not a live provider token stream. Sound starts on the user's play gesture and can be muted before starting. The user approved the revised whistle and rejected the synthetic crowd voice; no agent listening assessment is claimed.
 - The viewer runs locally and can be built as a static site; public deployment is a separate slice. Generation cannot resume a private checkpoint yet.
 
 ## Operational notes

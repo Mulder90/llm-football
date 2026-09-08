@@ -9,10 +9,8 @@ const PLAYBACK_SPEEDS = [0.5, 1, 1.5, 2, 4];
 type ControlsProps = {
   playback: Playback;
   showPlayerNumbers: boolean;
-  showInspector: boolean;
   isFullscreen: boolean;
   onToggleNumbers: () => void;
-  onToggleInspector: () => void;
   onToggleFullscreen: () => void;
   sound: ReturnType<typeof useSound>;
 };
@@ -20,10 +18,8 @@ type ControlsProps = {
 export function PlaybackControls({
   playback,
   showPlayerNumbers,
-  showInspector,
   isFullscreen,
   onToggleNumbers,
-  onToggleInspector,
   onToggleFullscreen,
   sound,
 }: ControlsProps) {
@@ -32,6 +28,7 @@ export function PlaybackControls({
   const progressStyle = {
     '--progress': `${(playback.seconds / playback.durationSeconds) * 100}%`,
   } as CSSProperties;
+  const sliderMaximum = Math.round(playback.durationSeconds * TICK_RATE);
 
   return (
     <div className="transport">
@@ -40,11 +37,16 @@ export function PlaybackControls({
           aria-label="Replay position"
           type="range"
           min={0}
-          max={Math.round(playback.durationSeconds * TICK_RATE)}
+          max={sliderMaximum}
           step={1}
           value={Math.round(playback.seconds * TICK_RATE)}
           aria-valuetext={`${formatTime(playback.seconds)} of ${formatTime(playback.durationSeconds)}`}
-          onChange={(event) => playback.seekTo(Number(event.target.value) / TICK_RATE)}
+          onChange={(event) => {
+            const position = Number(event.target.value);
+            playback.seekTo(
+              position === sliderMaximum ? playback.durationSeconds : position / TICK_RATE,
+            );
+          }}
           style={progressStyle}
         />
       </div>
@@ -63,20 +65,6 @@ export function PlaybackControls({
           <span className="playback-time">
             {formatTime(playback.seconds)} <span>/ {formatTime(playback.durationSeconds)}</span>
           </span>
-          <span className="control-divider" />
-          <label className="speed-label">
-            <span className="sr-only">Playback speed</span>
-            <select
-              value={playback.speed}
-              onChange={(event) => playback.setSpeed(Number(event.target.value))}
-            >
-              {PLAYBACK_SPEEDS.map((speed) => (
-                <option key={speed} value={speed}>
-                  {speed}×
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
         <div className="control-group">
           <button
@@ -86,40 +74,48 @@ export function PlaybackControls({
           >
             {sound.muted ? '♩' : '♫'}
           </button>
-          {!sound.muted && (
-            <input
-              className="volume-control"
-              aria-label="Stadium volume"
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={sound.volume}
-              onChange={(event) => sound.changeVolume(Number(event.target.value))}
-            />
-          )}
-          <button
-            className={`text-button numbers ${showPlayerNumbers ? 'selected' : ''}`}
-            onClick={onToggleNumbers}
-            aria-pressed={showPlayerNumbers}
-          >
-            # <span>Players</span>
-          </button>
-          <button
-            className={`text-button ${showInspector ? 'selected' : ''}`}
-            aria-expanded={showInspector}
-            aria-controls="decision-inspector"
-            onClick={onToggleInspector}
-          >
-            ⌘ <span>Decisions</span>
-          </button>
-          <button
-            className="icon-button fullscreen"
-            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-            onClick={onToggleFullscreen}
-          >
-            ⛶
-          </button>
+          <details className="viewing-options">
+            <summary aria-label="Viewing options">•••</summary>
+            <div className="viewing-options-panel">
+              <label className="speed-label">
+                Playback speed
+                <select
+                  value={playback.speed}
+                  onChange={(event) => playback.setSpeed(Number(event.target.value))}
+                >
+                  {PLAYBACK_SPEEDS.map((speed) => (
+                    <option key={speed} value={speed}>
+                      {speed}×
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="volume-label">
+                Stadium volume
+                <input
+                  className="volume-control"
+                  aria-label="Stadium volume"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={sound.volume}
+                  onChange={(event) => sound.changeVolume(Number(event.target.value))}
+                />
+              </label>
+              <button
+                className={`text-button ${showPlayerNumbers ? 'selected' : ''}`}
+                onClick={onToggleNumbers}
+                aria-pressed={showPlayerNumbers}
+              >
+                Player numbers <span>{showPlayerNumbers ? 'On' : 'Off'}</span>
+              </button>
+              <button className="text-button" onClick={onToggleFullscreen}>
+                {isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}{' '}
+                <span aria-hidden="true">⛶</span>
+              </button>
+            </div>
+          </details>
         </div>
       </div>
     </div>

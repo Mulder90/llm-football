@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';
 import { createFullMatchFixture } from '../fixtures/full-match.ts';
 import { createPassingFixture } from '../fixtures/passing.ts';
+import { createCarryAndChipFixture } from '../fixtures/carry-and-chip.ts';
 import { readRecordingStream } from '../recording/validate.ts';
 import type { Recording } from '../recording/record.ts';
 
@@ -64,8 +65,14 @@ export function useRecordings() {
   const selectRecording = useCallback(
     async (id: string) => {
       setLoadError('');
-      if (id === 'full' || id === 'passing') {
-        setRecording(id === 'full' ? createFullMatchFixture() : createPassingFixture());
+      if (id === 'full' || id === 'passing' || id === 'carry-and-chip') {
+        const fixture =
+          id === 'full'
+            ? createFullMatchFixture
+            : id === 'carry-and-chip'
+              ? createCarryAndChipFixture
+              : createPassingFixture;
+        setRecording(fixture());
         return;
       }
       const entry = matches.find((candidate) => candidate.id === id);
