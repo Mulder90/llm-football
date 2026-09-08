@@ -1,8 +1,10 @@
 # Tactical memory and clearer football
 
-The latest approved work replaces synthesized drums with quiet real stadium ambience and starts `positional-match-001`, a fresh one-minute GPT-5 mini versus Gemini 3.8 Flash match using positional briefs. A small readiness check exposed and helped clarify an own-player memory instruction before launch. The generation is running with separate provider ceilings; see the [quiet stadium and football handoff](slices/15-QUIET-STADIUM-AND-FOOTBALL.md) for its checks, costs and limits.
+The latest complete match is **Finding their shape** (`positional-match-001`): GPT-5 mini versus Gemini 3.8 Flash, two 30-second playing halves, finishing 0–0. It took 43m 43.3466s and 293 requests across 133 paired rounds. Independent replay verified hash `cd60f48a`; the recording is published locally with two explicit Coral fallbacks. Match estimates were $0.68721075 OpenAI / $1.399413 Gemini, $2.08662375 combined. Including readiness checks, the slice used an estimated $2.12030425; cached-input discounts are not applied. See the [quiet stadium and football handoff](slices/15-QUIET-STADIUM-AND-FOOTBALL.md) for full accounting, definitions and findings.
 
-The current ruleset is football-0.5 with two 30-second development halves. Each controller now carries structured tactical memory, sees nearest-teammate spacing alongside the complete public rosters, and receives explicit guidance to distribute off-ball jobs and targets. The user's priority is entertaining football before more broadcast or rendering work. A complete one-minute model match is now published locally: generation took 27m 05.8s and an estimated $0.6361. Its first half shows much less Cyan crowding; Coral remains prone to repeated intercepted keeper passes. The user also approved stadium, player, goal and referee presentation improvements during generation.
+Coral sent more kicks successfully to teammates, and Cyan stopped assigning identical move targets within individual batches. Actual close crowding did not improve, neither team produced a continuous carry of at least two metres, and the models never chose a new carrier move at a controlled-ball open-play decision. All ten shots belonged to Cyan in the first half. This single match changes both controllers and prompts relative to the older baseline, so it cannot isolate the effect of positional briefs. Quiet real stadium ambience has replaced synthesized percussion; approved whistles and the goal roar remain.
+
+The current ruleset is football-0.5 with two 30-second development halves. Each controller carries structured tactical memory, receives positional briefs and the complete public rosters, and must choose its own movements and coordination. A readiness check clarified that the memory’s ball player must always be an own teammate, even when defending. The user’s priority remains entertaining football. An earlier one-minute baseline, `tactical-memory-match-001`, took 27m 05.8s and an estimated $0.6361; its historical results and handoffs remain useful for comparison.
 
 At the user's request, `coordination-match-001` was stopped after 129.3667 playing seconds, with saved estimated usage of $1.008124. Its private incomplete checkpoint remains diagnostic evidence. Previous public recordings are removed, and no compatibility layer is maintained. The entries below describe historical slices and their evidence at the time; older artifacts are not current viewer content.
 
@@ -38,7 +40,7 @@ At the user's request, `coordination-match-001` was stopped after 129.3667 playi
 
 - Slice 14: comic score tiles and goal/kickoff/interval/referee announcements, nine-second corner celebrations, visible disappointed opponents and correct airborne-scorer layering. Larger supporter waves and an edited licensed stadium-goal recording replace the studio applause. Shared presentation sampling, paused-render cleanup, consolidated CSS and separate provider budget caps are implemented. No model calls or simulation changes. See [handoff](slices/14-COMIC-MATCHDAY.md).
 
-- Slice 15: quiet recorded stadium ambience replaces all percussion, while approved whistles and the goal roar remain. Positional readiness checks led to clearer own-player memory guidance and actionable repair feedback. All 172 tests pass; a fresh bounded model match is generating. See [handoff](slices/15-QUIET-STADIUM-AND-FOOTBALL.md).
+- Slice 15: quiet recorded stadium ambience replaces all percussion, while approved whistles and the goal roar remain. Positional readiness checks led to clearer own-player memory guidance and actionable repair feedback. All 172 tests pass. The complete mini/Flash match, Finding their shape, finishes 0–0 and replay-verifies as `cd60f48a`; passing receipts improve for Coral, but carrying and actual spacing still need work. Match plus readiness estimates total $2.12030425. See [handoff](slices/15-QUIET-STADIUM-AND-FOOTBALL.md).
 
 ## Code quality agreement
 
@@ -46,7 +48,7 @@ Use descriptive names, explicit units for physics constants, named replay fields
 
 ## Next slice
 
-Finish and verify the already-running `positional-match-001`, publish its recording locally, and review actual carrying, passing, spacing and defensive cover. The readiness checks are complete; sustained match quality remains to be assessed. The current run must stop at its provider, cost or time limits without automatically starting another paid generation.
+Proposed: avoid early replanning solely on controlled-to-loose ball releases, use stable provider schemas where possible to support caching, and shorten/clarify tactical memory. In the completed match, release-only ownership changes explain 19 of 133 rounds (14.3%); removing them would change football as well as request volume, so this is not a savings forecast. Validate carrier choices, receiver timing and defensive recovery in short situations before another paid match. These changes are not implemented, and no further paid generation starts automatically.
 
 ## Limitations
 

@@ -2,6 +2,12 @@
   "version": 1,
   "matches": [
     {
+      "id": "positional-match-001",
+      "file": "positional-match-001.json.gz",
+      "title": "Finding their shape",
+      "complete": true
+    },
+    {
       "id": "character-match-001",
       "file": "character-match-001.json.gz",
       "title": "Finding their feet",
