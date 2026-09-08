@@ -1,5 +1,7 @@
 # Slice 9 — A livelier stadium and expressive football
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 The user approved presentation work while the one-minute tactical-memory match generated, then explicitly added the referee. This slice keeps the top-down pitch and builds on its original pixel art. No new dependency, image background, simulation rule or model instruction is involved.
 
 ## What changed

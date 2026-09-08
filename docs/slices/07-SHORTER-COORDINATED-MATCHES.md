@@ -1,5 +1,7 @@
 # Slice 7 — Two-minute halves and coordinated team decisions
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 The current ruleset is football-0.4: two 120-second halves, one model per team and a single timing constant used by the engine, observation, prompt and complete-record validator. The user explicitly approved removing old matches instead of maintaining compatibility. The old viewer recordings, compatibility mapping, legacy replay test and legacy-dependent diagnostic script are removed. The unused Gemini 2.5 adapter branch is removed too; current Gemini 3.1 request settings are unchanged. There is no new dependency or migration framework.
 
 ## What the models now receive

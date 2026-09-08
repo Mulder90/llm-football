@@ -1,5 +1,7 @@
 # Slice 14 — Comic matchday, corner celebrations and cleanup
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 The user approved one focused cleanup and broadcast-polish pass before another model match. Live feedback extended the comic treatment to the scoreboard, kept opponents visible and disappointed, put the airborne scorer above nearby robots, lengthened “BACK TO IT!”, and identified stepped goal lettering/transitions as the animation problem. No model generation is part of this slice.
 
 ## The goal sequence

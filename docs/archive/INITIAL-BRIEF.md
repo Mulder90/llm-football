@@ -1,3 +1,9 @@
+# Original project brief — historical
+
+This is the initial planning request, preserved as project history. Its proposal-only instructions, three-minute halves and concept image are superseded. Use the [current documentation](../README.md) and [working agreement](../../AGENTS.md) for development. The obsolete concept image mentioned below was removed at the user’s request.
+
+---
+
 We are starting a new standalone project from scratch: a beautiful website where people watch and re-watch short football matches entirely played by LLM-controlled teams.
 
 Read README.md, AGENTS.md, all documents under docs/, and visually inspect docs/references/top-down-football.png before proposing work. These files capture the product intent, agreed constraints and proposed implementation choices. Treat them critically: identify contradictions, missing semantics and premature abstractions. This message supersedes any older Agentathlon or Olympics handoff.

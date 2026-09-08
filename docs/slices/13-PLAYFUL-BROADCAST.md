@@ -1,5 +1,7 @@
 # Slice 13 — A more playful broadcast
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 The user approved continuing the rendering and personality work before another paid generation, then requested disappearing playback controls and a clearer starting formation. This slice uses existing recordings and scripted checks only.
 
 ## Character and sideline life

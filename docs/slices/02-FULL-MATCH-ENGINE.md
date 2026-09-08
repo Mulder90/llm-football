@@ -1,5 +1,7 @@
 # Slice 2 — Full-match engine and replay
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 Implemented on `main`, per the user's request to stop using feature branches.
 
 ## Result

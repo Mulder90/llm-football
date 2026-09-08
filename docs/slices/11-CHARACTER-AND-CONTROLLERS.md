@@ -1,5 +1,7 @@
 # Slice 11 — Character and better football decisions
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 The user approved controller labels, robot personality, anticipation, a camera experiment and a CR7-inspired celebration. They then chose Whole pitch on by default, requested moving flags, and lowered the available generation budget.
 
 ## Broadcast

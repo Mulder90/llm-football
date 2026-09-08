@@ -1,5 +1,7 @@
 # Slice 10 — Matchday feel and a football capability check
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 The user asked for a less serious, more immersive broadcast, longer celebrations, less surrounding UI, clearer explanations and better stadium sound. They also reported that dribbling and aerial play seemed absent. During the work they identified the synthetic crowd/goal voice as unpleasant, approved the revised whistle, and asked for more epic drums. Thought bubbles remain an optional future experiment; no invented player thoughts are displayed.
 
 ## Broadcast changes

@@ -1,5 +1,7 @@
 # Slice 4 — The deterministic referee
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 ## Result
 
 `football-0.3` implements tackle fouls, penalties, cautions, second-yellow/straight-red dismissal, minimum-roster abandonment, touch-snapshot offside and indirect free kicks. Models see discipline and offside state and receive the complete rulebook. The viewer adds a referee sprite, raised cards, caution markers and incident banners/whistles. Decisions and outcomes remain separate.

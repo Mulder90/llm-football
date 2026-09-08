@@ -1,59 +1,19 @@
-# Phased build plan
+# Next steps
 
-The destination is a complete LLM-controlled football game. Small slices are implementation steps, not a change of product scope. Each must establish a rules invariant and a visible result.
+The deterministic 11-a-side engine, referee, bounded model runner, replay inspector and comic stadium are implemented. This is no longer an initial scaffolding plan. [Current progress](PROGRESS.md) records the latest results; [historical handoffs](slices/README.md) preserve the path here.
 
-The list below is the original roadmap. Completed implementation slices and actual verification are tracked in [PROGRESS.md](PROGRESS.md) and `docs/slices/`; their numbering differs because related foundation mechanics were delivered together. The active objective is clearer, more entertaining model football through structured tactical memory and 30-second development halves. A public deployment and later roadmap features are separate work.
+## Current slice
 
-## 0 — review
+Improve the carrier's choice between dribbling, passing and shooting. Remove redundant release-triggered model rounds, keep response schemas stable, and ask for compact tactical memory. Test short authored situations and exact possessions from the recorded game before another full match. Keep both teams' opportunities simultaneous and every tactical action explicit.
 
-Inspect all documents and the image. Propose boundaries, types, tests, file tree and first commits. No code until the user approves.
+Exit: verified decision timing and validation boundaries, honest model-evaluation results for carrying under space, passing under pressure and shooting, and measured request/latency/usage changes. A failed behavioral test is evidence to address, not a reason to manufacture an entertaining recording.
 
-Exit: agreement on a first slice and consequential decisions.
+## Following football work
 
-## 1 — visible deterministic foundation
+Use the evaluation to choose one focused issue: sustained buildup, receiver arrival, defensive recovery or shot selection. Validate it in short situations, then assess a complete two-half match within an explicit budget. Change one coherent part at a time so results remain interpretable.
 
-One strict TypeScript package. Top-down pitch/stadium, 22 identifiable players, team palettes, ball, fixed steps and stable IDs. A small fixture-driven pass-and-move sequence, one useful movement animation and local recording/playback. Fixtures are clearly labelled.
+## After the football is fun
 
-Suggested small commits: scaffolding/coordinate core; movement/pass mechanics and tests; Canvas pitch/simple animated sprites; recording/playback. Refine the sequence in the proposal.
+Build a shareable public site around completed matches: fast arrival on the pitch, match pages, highlights, rivalries and readable explanations of pivotal decisions. Expand camera, character and sound only where they improve the experience. Hosting is separate from pushing source or publishing the local catalogue.
 
-Exit: identical headless and visible outcomes under different render-frame schedules, with intentional visual design.
-
-## 2 — football actions
-
-Receiving/interception, dribbling, shooting, goal detection, keeper execution and tackle primitives. Use defended attacking fixtures; document execution assistance.
-
-Exit: a pass can be received or intercepted; a shot can score, miss or be saved according to mechanics, never hardcoded outcomes.
-
-## 3 — first two-model possessions
-
-Local generation runner, OpenAI/Gemini adapters, common protocol, simultaneous decision barriers, bounded memory, validation/retries and budget controls. See 07-PROVIDERS.md. Begin with a handful of decisions.
-
-Exit: both models issue meaningful legal orders, actions/fallbacks are recorded and replay ignores API timing. Inspect validity rate, idle players, passes, possession changes and missed opportunities. Compare scripted baselines before blaming poor play on models.
-
-## 4 — complete match and basic restarts
-
-Two 180-second halves, swapped directions, kickoffs, boundaries, throw-ins, corners, goal kicks, score and full time. Bounded setup for both teams. Implement height before promising aerial corner deliveries.
-
-Exit: complete short games terminate and replay consistently through stoppages. Display remaining ruleset omissions.
-
-## 5 — officiating
-
-Foul/contact model, free kicks, penalties, cards/dismissals and separately tested offside logic. Referee signals follow events. Advantage can wait.
-
-Exit: representative incidents resolve predictably, orders cannot leak across phases, simplifications approved.
-
-## 6 — broadcast polish
-
-Expand animation and stadium detail; sound, seeking, speed controls, event markers and decision inspection. Evaluate closer top-down tracking. Resolve presentation versus playing time throughout UI.
-
-Exit: a visitor can follow a match and inspect a goal's preceding actions; scrubbing/replaying cannot duplicate state changes or sounds.
-
-## 7 — public website
-
-Small completed-match catalogue and dedicated player pages. Export artifacts/provenance; label fixtures and incomplete runs. Viewer traffic creates no inference calls. Select hosting when the deliverable is ready.
-
-Exit: a shareable match opens without an account/provider key and plays promptly; full matches accompany highlights.
-
-## Later
-
-22 independent controllers, live generation streaming, user-submitted code, accounts/chat, multiple sports, substitutions/injuries, weather, generated commentary, many stadiums and tournament infrastructure.
+Live generation, accounts, user-submitted teams, tournaments, multiple stadium themes and 22 independent controllers remain later possibilities, not current requirements.

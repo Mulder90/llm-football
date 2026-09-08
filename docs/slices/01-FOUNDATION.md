@@ -1,5 +1,7 @@
 # Slice 1 — Visible deterministic foundation
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 ## What changed and the invariant
 
 The project now runs locally as a Vite/React/Canvas app. A 24-second fixture places all 22 players in an original top-down stadium. Nine explicit kicks produce eight same-team receptions and one interception through the physics/contact rules. No result is assigned by the fixture.

@@ -1,5 +1,7 @@
 # Slice 12 — Anticipation, personality and positional briefs
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 The user approved three parallel changes: build tension around attacks and distinct crowd reactions, give robots event-driven personality, and give each position a short football brief. The latest paid generation remains stopped. All work and verification in this slice use existing recordings and scripted situations.
 
 ## Watching the match

@@ -1,5 +1,7 @@
 # Slice 5 — Connect decisions to the pitch
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 The optional decision panel now lets a spectator select an order. Its player receives a team-coloured ring and shirt-number label, with a dotted line to the requested target. The selection follows that player during playback; switching away from Decisions or closing the inspector hides it. The panel uses semantic toggle buttons and supports keyboard focus. Its own Play/Pause control freezes the match for reading on narrow screens; Escape closes it and restores focus to the opener. The ring uses the presented pose during goal celebrations, so it stays attached to the visible sprite.
 
 The invariant is presentation-only inspection. The renderer locates a player by stable roster ID, reads the sampled position and the most recent paired decision at or before the playhead, then draws a marker. It never writes to the recording or simulation. A player omitted from the latest batch keeps a selection ring but has no new-order target line. This distinction avoids presenting an old instantaneous kick as a pending action. A dismissed player has no pitch marker.

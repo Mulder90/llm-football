@@ -1,5 +1,7 @@
 # Slice 8 — Tactical memory and one-minute development matches
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 The current ruleset is football-0.5: two 30-second playing halves. The user explicitly stopped the longer generation and prioritized entertaining football before further broadcast or rendering work. This slice gives both teams a structured plan that survives between decisions and makes spacing responsibilities explicit. It adds no new physical assistance or dependencies.
 
 ## What changed

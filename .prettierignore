@@ -5,4 +5,3 @@ node_modules/
 artifacts/
 .env
 .env.*
-docs/references/

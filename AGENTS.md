@@ -2,9 +2,9 @@
 
 ## Intent and authority
 
-Build a standalone AI football broadcast project. Read README.md, FIRST_PROMPT.md, and docs/ before starting. Inspect docs/references/top-down-football.png visually. If a linked resource cannot be read, say so; never imply it was inspected.
+Build a standalone AI football broadcast project. Start with README.md, docs/README.md and docs/PROGRESS.md, then read the current guides relevant to the approved slice. Inspect the running viewer for visual work. docs/slices/ and docs/archive/ are historical evidence, not current instructions; architectural decisions may be partially superseded as listed in docs/decisions/README.md. If a linked resource cannot be read, say so; never imply it was inspected.
 
-The user wants deep understanding and ownership while using AI to implement the project. Work in small, reviewable slices. For the initial task, produce a proposal only and wait for approval as explicitly requested in FIRST_PROMPT.md. Once a slice is approved, complete its implementation and relevant verification without asking about routine details. Seek direction before changing approved scope or architecture.
+The user wants deep understanding and ownership while using AI to implement the project. Work in small, reviewable slices. Once a slice is approved, complete its implementation and relevant verification without asking about routine details. Seek direction before changing approved scope or architecture.
 
 Do not implement the whole roadmap in one pass. End each approved slice with a reviewable result and a proposed next slice. Preserve existing user work.
 
@@ -43,7 +43,7 @@ Human/scripted fixtures are permitted for development and baselines. Never label
 
 Top-down is the chosen camera. Do not drift back to isometric or oblique 2.5D. Stylised upright sprite faces are allowed as a readability choice. Keep pitch geometry flat and orthographic. Crisp pixels, clear ball visibility, expressive movement and restrained UI matter from the first visual milestone.
 
-Do not use the reference screenshot as a full-screen background pretending to be a running game. It is concept art, not the implementation.
+Render actual recorded match state. Do not present a static screenshot as a running game.
 
 ## Required handoff per slice
 

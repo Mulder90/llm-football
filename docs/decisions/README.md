@@ -1,9 +1,18 @@
-# Architectural decision records
+# Architectural decisions
 
-Write an ADR when an approved choice constrains future work, alongside the code it affects. The first Codex response proposes ADRs, not accepted records.
+These records explain approved choices and their evidence. For current behavior, use the [current guides](../README.md); some records include later amendments or describe a superseded implementation.
 
-Candidate topics: top-down Canvas; simulation/presentation separation; numeric determinism scope; simultaneous team decisions; execution assistance; recording/version support; restart clocks; local generation/static playback.
+| Decision                                                                          | Current standing                                                                                                       |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [001 — Deterministic foundation](001-DETERMINISTIC-FOUNDATION.md)                 | Simulation and presentation separation remains active; later records extend the original slice.                        |
+| [002 — Match rules](002-MATCH-RULES.md)                                           | Physical/restart foundation remains; 006 sets the current duration.                                                    |
+| [003 — Model control and inspection](003-MODEL-CONTROL-AND-INSPECTION.md)         | Paired decisions, validation and provenance remain. Memory, audio, duration and request schemas have later amendments. |
+| [004 — Contact referee](004-CONTACT-REFEREE.md)                                   | Active, with documented rule simplifications.                                                                          |
+| [005 — Shorter matches and coordination](005-SHORTER-MATCHES-AND-COORDINATION.md) | Coordination remains; 006 supersedes its two-minute halves.                                                            |
+| [006 — Tactical memory](006-TACTICAL-MEMORY.md)                                   | Current 30-second halves and memory shape; 010 revises memory guidance and decision timing.                            |
+| [007 — Broadcast time](007-BROADCAST-TIME.md)                                     | Active timeline with later nine-second celebration and quiet-audio amendments.                                         |
+| [008 — Positional briefs](008-POSITIONAL-BRIEFS.md)                               | Active role guidance; 010 uses a stable request schema in size checks.                                                 |
+| [009 — Provider budgets](009-PROVIDER-BUDGETS.md)                                 | Active combined and per-provider estimated ceilings.                                                                   |
+| [010 — Carrier choices and requests](010-CARRIER-CHOICES-AND-REQUESTS.md)         | Current carry/pass/shoot guidance, compact memory and request cadence.                                                 |
 
-Format: title; status (proposed/accepted/superseded); context; decision; principal alternative; consequences; relevant evidence/tests; revisit condition.
-
-Do not create records for ordinary filenames or speculative systems. Record approval accurately; proposals in this pack are not approved implementation decisions.
+Add an ADR only when an approved choice constrains future work. Describe the context, decision, principal alternative, consequences, relevant verification and revisit condition. Ordinary filenames and hypothetical systems do not need records.

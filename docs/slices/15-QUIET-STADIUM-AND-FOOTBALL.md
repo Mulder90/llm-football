@@ -1,5 +1,7 @@
 # Slice 15 — Quiet stadium ambience and a fresh football run
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 The user asked to replace the disliked drums with very low stadium ambience and start a new model match alongside that work.
 
 ## Sound

@@ -1,5 +1,7 @@
 # Slice 3 — Real model control and a viewport-first broadcast
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 ## Result
 
 The latest visible recording is a real, clearly labelled **incomplete LLM excerpt**. GPT-5 nano controls Coral and Gemini 3.1 Flash-Lite controls Cyan. They take the kickoff and play 4.3 seconds of football across ten simultaneous decision boundaries. All 20 replies in this run were accepted, with no repairs or fallbacks. The diagnostic checksum is `07109847`; the compressed viewer artifact is about 70 KiB. The complete-match objective remains active.

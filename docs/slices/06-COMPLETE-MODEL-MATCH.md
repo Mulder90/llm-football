@@ -1,5 +1,7 @@
 # Slice 6 — A complete model-controlled match
 
+> Historical handoff: implementation, costs and checks as of this slice. Later slices may supersede it. See [current progress](../PROGRESS.md) and the [current guides](../README.md).
+
 `north-garden-001` is the first complete game: Coral FC (GPT-5 nano) against Cyan FC (Gemini 3.1 Flash-Lite), ending **1–2**. Both 180-second playing halves finish normally. The committed recording is the default choice in the viewport-first viewer; no credentials or model requests are required to watch it.
 
 The optional inspector identifies each team, model and player. Decisions can highlight the relevant player and target on the pitch. Observations follow the recording's playhead; spectators can read the exact rulebook, response schema and request messages, including repair feedback. This is replay inspection, not live inference or hidden model reasoning. Goal banners, team-coloured celebrations and optional synthetic stadium sound are presentation effects.
