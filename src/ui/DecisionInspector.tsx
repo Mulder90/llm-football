@@ -238,7 +238,7 @@ export function DecisionInspector({
                     {request.feedback && (
                       <pre className="json-view">Repair feedback: {request.feedback}</pre>
                     )}
-                    {observation && (
+                    {observation && recording.kind === 'llm' && (
                       <details className="request-detail">
                         <summary>Exact user message</summary>
                         <pre className="json-view">{userPrompt(observation, request.feedback)}</pre>
@@ -325,13 +325,19 @@ export function DecisionInspector({
                 <dt>Replay checksum</dt>
                 <dd>{recording.finalHash}</dd>
                 <dt>Recording</dt>
-                <dd>{recording.generation?.status ?? 'Development fixture'}</dd>
+                <dd>
+                  {recording.generation?.stopReason === 'playing_time_limit'
+                    ? 'Evaluation excerpt'
+                    : (recording.generation?.status ?? 'Development fixture')}
+                </dd>
               </dl>
               {recording.generation && (
                 <dl className="record-facts">
                   <dt>Decisions</dt>
                   <dd>{recording.decisions.length} shared boundaries</dd>
-                  <dt>Model requests</dt>
+                  <dt>
+                    {recording.kind === 'fixture' ? 'Scripted controller calls' : 'Model requests'}
+                  </dt>
                   <dd>{recording.generation.requests.length}</dd>
                   <dt>Fallbacks</dt>
                   <dd>
@@ -346,14 +352,16 @@ export function DecisionInspector({
               )}
               {recording.generation && (
                 <p className="panel-explanation">
-                  Generation time is separate from the match clock. Usage is estimated from the
-                  recorded provider token counts and prices.
+                  {recording.kind === 'fixture'
+                    ? 'Both controllers are scripted. These local calls use no model tokens or paid APIs.'
+                    : 'Generation time is separate from the match clock. Usage is estimated from the recorded provider token counts and prices.'}
                 </p>
               )}
               {recording.generation?.status === 'incomplete' && (
                 <p className="fallback-note">
-                  Incomplete run: {recording.generation.stopReason}. The rest of the match has not
-                  been invented.
+                  {recording.generation.stopReason === 'playing_time_limit'
+                    ? 'Stopped at the planned evaluation horizon. This recording is a short match excerpt.'
+                    : `Incomplete run: ${recording.generation.stopReason}. The rest of the match has not been invented.`}
                 </p>
               )}
             </details>
@@ -369,13 +377,13 @@ export function DecisionInspector({
                     ? 'keeper'
                     : recording.initial.matchId === 'carry-and-chip-fixture-001'
                       ? 'carry-and-chip'
-                      : recording.kind === 'llm'
-                        ? matches.some((entry) => entry.id === recording.initial.matchId)
-                          ? recording.initial.matchId
-                          : ''
-                        : recording.frames.at(-1)?.phase.type === 'full_time'
-                          ? 'full'
-                          : 'passing'
+                      : recording.initial.matchId === 'full-match-fixture-001'
+                        ? 'full'
+                        : recording.initial.matchId === 'fixture-001'
+                          ? 'passing'
+                          : matches.some((entry) => entry.id === recording.initial.matchId)
+                            ? recording.initial.matchId
+                            : ''
                 }
                 onChange={(event) => onSelectFixture(event.target.value)}
               >

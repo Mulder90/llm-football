@@ -203,13 +203,20 @@ const frame = z.strictObject({
   handControl,
 });
 const tokens = z.int().nonnegative();
-const controller = z.strictObject({
-  provider: z.enum(['openai', 'gemini']),
-  model: text,
-  settings: z.record(z.string().max(100), z.union([z.string().max(100), z.number()])),
-  inputUsdPerMillion: z.number().nonnegative(),
-  outputUsdPerMillion: z.number().nonnegative(),
-});
+const controller = z
+  .strictObject({
+    provider: z.enum(['openai', 'gemini', 'scripted']),
+    model: text,
+    settings: z.record(z.string().max(100), z.union([z.string().max(100), z.number()])),
+    inputUsdPerMillion: z.number().nonnegative(),
+    outputUsdPerMillion: z.number().nonnegative(),
+  })
+  .refine(
+    (entry) =>
+      entry.provider !== 'scripted' ||
+      (entry.inputUsdPerMillion === 0 && entry.outputUsdPerMillion === 0),
+    { message: 'Scripted controllers must have zero prices' },
+  );
 const provenance = z.strictObject({
   protocolVersion: z.literal(1),
   rulebook: z.string().max(16000),
@@ -230,6 +237,11 @@ const provenance = z.strictObject({
       .optional(),
     maximumWallSeconds: tokens,
     decisionIntervalTicks: tokens,
+    maximumPlayingTicks: z
+      .int()
+      .positive()
+      .max(2 * MATCH_TIMING.halfPlayingTicks)
+      .optional(),
   }),
   status: z.enum(['running', 'complete', 'incomplete']),
   stopReason: text.nullable(),
@@ -448,7 +460,29 @@ export function parseRecording(raw: unknown): Recording {
   }
   if (recording.kind === 'llm' && !recording.generation)
     throw new Error('Model recording is missing provenance');
+  if (recording.generation) {
+    const providers = Object.values(recording.generation.controllers).map(
+      (entry) => entry.provider,
+    );
+    if (providers.some((provider) => (provider === 'scripted') !== (recording.kind === 'fixture')))
+      throw new Error('Controller provenance does not match fixture/model labeling');
+    if (
+      recording.kind === 'fixture' &&
+      (recording.generation.estimatedUsd !== 0 ||
+        recording.generation.requests.some(
+          (receipt) => receipt.estimatedUsd !== 0 || receipt.usage !== null,
+        ))
+    )
+      throw new Error('Scripted execution cannot claim paid model usage');
+  }
   const last = recording.frames.at(-1)!;
+  const playingLimit = recording.generation?.limits.maximumPlayingTicks;
+  if (
+    (playingLimit !== undefined && last.playingTicks > playingLimit) ||
+    (recording.generation?.stopReason === 'playing_time_limit' &&
+      (playingLimit === undefined || last.playingTicks !== playingLimit))
+  )
+    throw new Error('Recording does not match its bounded playing-time stop');
   if (
     recording.generation?.status === 'complete' &&
     (last.phase.type !== 'full_time' ||

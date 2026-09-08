@@ -4,9 +4,15 @@ LLM Football is a replay-first spectator game with 22 robot players, a determini
 
 ## Website
 
-The viewer is public at [llm-football.lore-cinque.workers.dev](https://llm-football.lore-cinque.workers.dev). Cloudflare serves the built app, audio and three bundled recordings, including their prompts and decisions. Watching makes no model calls. The first deployment uses the verified viewer before the in-progress keeper changes. Updates require `pnpm deploy`; pushing Git alone does not deploy. [Deployment instructions and verification](DEVELOPMENT.md#deploy-the-website-to-cloudflare).
+Development and readiness checks use the **local build**. The public website is an older release; the user asked to leave it alone and publish the new final version when ready. Pushing Git does not deploy. [Deployment instructions](DEVELOPMENT.md#deploy-the-website-to-cloudflare) remain available for that later step.
 
 ## Latest work
+
+The offline sustained-play harness runs three eight-second scenarios through the real paired scheduler: carrying before pressure, a moving receiver acting after control, and keeper collection/distribution. Two repetitions of each produced **54 paired rounds and 108 scripted calls**, with zero repairs, fallbacks, order failures or paid requests. All six runs reached their horizon and passed the fixed criteria; repeated hashes matched. TypeScript, 242 tests, production build and local import/playback/inspection checks passed. These are scripted infrastructure checks, not measured LLM teamwork. [Slice 19](slices/19-SUSTAINED-PLAY-HARNESS.md) records the results and boundaries.
+
+Use `pnpm evaluate-sequences --dry-run` to inspect the offline plan, then `pnpm evaluate-sequences --name <fresh-name>` to write replayable recordings and a report under ignored `artifacts/private/`. The local viewer can import those excerpts.
+
+## Previous keeper work
 
 **Safe hands, open play** is the new default: a 16-second scripted goalkeeper drill under `football-0.6`. It shows pickup, movement in hands, a roll to Coral #3, a scripted opponent return, a catch, and a throw to Coral #6. Both receptions are engine-resolved. The fixture has nine events, no failed orders or handling violations, and verifies independently to hash `5a64393a`. It is not LLM-played and made no provider requests.
 
@@ -45,7 +51,7 @@ That match predates the latest carrier and scheduling changes. Coral completed m
 
 ## Next step and limitations
 
-The next slice is an offline harness for sustained 6–10-second possessions across several paired decisions, reusing the real match scheduler, memory and budgets. Review those scripted checks before bounded model evaluation and another complete two-half match. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled.
+The next slice is bounded paired-model evaluation on the validated eight-second scenarios. Review the exact configurations, round/request allowance and fresh combined/per-provider budgets before dispatch. Then assess every outcome before a new complete two-half match. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled.
 
 The engine never chooses tactics or repairs a model's chosen target. The two-second evaluations cannot establish longer buildup, defensive coordination or full-match cost savings. A model's written review may be wrong.
 

@@ -20,3 +20,4 @@ These documents describe implementation and evidence **at the end of each slice*
 16. [Carrier choices and leaner requests](16-CARRIER-CHOICES.md)
 17. [Touchline and stadium rendering](17-TOUCHLINE-AND-STADIUM.md)
 18. [Persistent goalkeeper possession](18-GOALKEEPER-POSSESSION.md)
+19. [Offline sustained-play harness](19-SUSTAINED-PLAY-HARNESS.md)

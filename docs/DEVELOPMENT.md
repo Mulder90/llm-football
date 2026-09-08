@@ -29,6 +29,19 @@ pnpm fixture --keeper # Export and replay-verify the current keeper demo
 
 Fixtures write to `artifacts/`. Tests and fixtures make no paid requests. See the [architecture](02-ARCHITECTURE.md) for simulation, controller and presentation boundaries, and [AGENTS.md](../AGENTS.md) for the working agreement.
 
+## Evaluate sustained play offline
+
+```sh
+pnpm evaluate-sequences --dry-run
+pnpm evaluate-sequences --name sustained-check-01 --repetitions 2
+```
+
+This CLI runs **scripted controllers only**, without reading `.env` or constructing provider adapters. Select any of `carry-pressure,receive-follow-up,keeper-outlet` with `--scenarios`. Each case uses eight playing seconds, a fixed seed and at most 32 paired rounds / 128 controller calls including repairs. The dry run reports those explicit ceilings and initial request sizes; duration alone does not predict the round count.
+
+Use a fresh name. Reports and one replayable recording per repetition go to `artifacts/private/<name>/`. Both sides replan using the real match scheduler, with private memory and bounded repair/fallback handling. Every result is retained, including failed criteria. A nonzero exit code signals incomplete runs or failed criteria. The common generation lock prevents overlap with another generation/evaluation job, and checkpoints use atomic rename.
+
+Open a generated JSON file with **Inside the match → Matches → Open a local recording**. The viewer labels it scripted and identifies the planned evaluation excerpt. No catalogue change or deployment is needed. [The handoff](slices/19-SUSTAINED-PLAY-HARNESS.md) defines the metrics and scripted baseline; paid paired evaluation is the next slice.
+
 ## Generate a match
 
 Generation calls paid APIs. Create an ignored `.env` using [.env.example](../.env.example), and set `OPENAI_API_KEY` and `GEMINI_API_KEY` locally. Keep credentials out of frontend variables and recordings.
@@ -67,6 +80,8 @@ pnpm publish-recording artifacts/private/trial-01/match.json
 This validates the recording, verifies its replay, and writes compressed match data plus an entry in `public/matches/`. Refresh the viewer to load it. Incomplete matches remain labelled incomplete. The command updates the local catalogue; it does not deploy a website.
 
 ## Deploy the website to Cloudflare
+
+The user’s current direction is to work locally and publish the new final version when ready. The older live release is not the readiness reference; do not deploy intermediate slices.
 
 The public viewer is [LLM Football](https://llm-football.lore-cinque.workers.dev). It deploys as Cloudflare Workers Static Assets. `wrangler.jsonc` uploads only the production `dist/` directory to the `llm-football` application. No server code, database or model provider keys are needed; the match generator stays local. The public website includes the bundled recordings and their inspection data.
 

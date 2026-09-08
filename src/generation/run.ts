@@ -3,7 +3,7 @@ import type { Recording } from '../recording/record.ts';
 import type { GenerationProvenance, ProviderUsd, RequestReceipt } from '../recording/provenance.ts';
 import { applyDecision, emptyBatch } from '../sim/orders.ts';
 import { awardRestart } from '../sim/restarts.ts';
-import { ENGINE_VERSION, FIELD, TICK_RATE } from '../sim/rules.ts';
+import { ENGINE_VERSION, FIELD, MATCH_TIMING, TICK_RATE } from '../sim/rules.ts';
 import { cloneState, createMatch } from '../sim/state.ts';
 import { step } from '../sim/step.ts';
 import type { MatchState, Team } from '../sim/types.ts';
@@ -75,6 +75,7 @@ export async function decideTogether(
         memories[team],
         provenance.limits.decisionIntervalTicks,
         previousDecisionTick,
+        provenance.limits.maximumPlayingTicks,
       ),
     ),
   );
@@ -193,16 +194,52 @@ export async function decideTogether(
 }
 
 export async function generateMatch(options: GenerationOptions): Promise<Recording> {
-  const { controllers, limits } = options;
-  const started = performance.now();
-  const signals = [AbortSignal.timeout(limits.maximumWallSeconds * 1000)];
-  if (options.signal) signals.push(options.signal);
-  const signal = AbortSignal.any(signals);
+  if (TEAMS.some((team) => options.controllers[team].config.provider === 'scripted'))
+    throw new Error('Use runMatchFromState for explicitly labelled scripted runs');
   const state = createMatch(options.matchId);
   awardRestart(state, 'kickoff', state.firstKickoffTeam, {
     x: FIELD.length / 2,
     y: FIELD.width / 2,
   });
+  return runMatchFromState({
+    ...options,
+    initialState: state,
+    title: 'The first meeting',
+    description:
+      'Two model-controlled teams. Every accepted action preserved. Outcomes resolved by the football engine.',
+  });
+}
+
+/** The same paired scheduler serves full matches and bounded, fresh scenario states. */
+export async function runMatchFromState(
+  options: Omit<GenerationOptions, 'matchId'> & {
+    initialState: MatchState;
+    title: string;
+    description: string;
+  },
+): Promise<Recording> {
+  const { controllers, limits } = options;
+  if (
+    options.initialState.tick !== 0 ||
+    options.initialState.playingTicks !== 0 ||
+    options.initialState.decisionId !== 0
+  )
+    throw new Error('Scenario runs require a fresh tick-zero state, not a resumed recording');
+  if (
+    limits.maximumPlayingTicks !== undefined &&
+    (!Number.isInteger(limits.maximumPlayingTicks) ||
+      limits.maximumPlayingTicks <= 0 ||
+      limits.maximumPlayingTicks > 2 * MATCH_TIMING.halfPlayingTicks)
+  )
+    throw new Error('Playing-time limit must be a positive integer within the match duration');
+  const scripted = TEAMS.map((team) => controllers[team].config.provider === 'scripted');
+  if (scripted[0] !== scripted[1])
+    throw new Error('Use two scripted controllers or two model controllers');
+  const started = performance.now();
+  const signals = [AbortSignal.timeout(limits.maximumWallSeconds * 1000)];
+  if (options.signal) signals.push(options.signal);
+  const signal = AbortSignal.any(signals);
+  const state = cloneState(options.initialState);
   const provenance: GenerationProvenance = {
     protocolVersion: 1,
     rulebook: rulebook(),
@@ -219,10 +256,9 @@ export async function generateMatch(options: GenerationOptions): Promise<Recordi
     format: 'ai-football-recording',
     version: 2,
     engine: ENGINE_VERSION,
-    kind: 'llm',
-    title: 'The first meeting',
-    description:
-      'Two model-controlled teams. Every accepted action preserved. Outcomes resolved by the football engine.',
+    kind: scripted[0] ? 'fixture' : 'llm',
+    title: options.title,
+    description: options.description,
     teams: {
       coral: { name: 'Coral FC', controller: controllers.coral.config.model },
       cyan: { name: 'Cyan FC', controller: controllers.cyan.config.model },
@@ -256,6 +292,13 @@ export async function generateMatch(options: GenerationOptions): Promise<Recordi
   }
 
   while (state.phase.type !== 'full_time' && state.tick < MAXIMUM_MATCH_TICKS) {
+    if (
+      limits.maximumPlayingTicks !== undefined &&
+      state.playingTicks >= limits.maximumPlayingTicks
+    ) {
+      stopReason = 'playing_time_limit';
+      break;
+    }
     if (signal.aborted) {
       stopReason = 'cancelled_or_wall_time_limit';
       break;

@@ -7,13 +7,13 @@ export type TokenUsage = {
   cachedInputTokens: number;
 };
 export type ControllerConfig = {
-  provider: 'openai' | 'gemini';
   model: string;
   settings: Record<string, string | number>;
-  inputUsdPerMillion: number;
-  outputUsdPerMillion: number;
-};
-export type ProviderUsd = Record<ControllerConfig['provider'], number>;
+} & (
+  | { provider: 'openai' | 'gemini'; inputUsdPerMillion: number; outputUsdPerMillion: number }
+  | { provider: 'scripted'; inputUsdPerMillion: 0; outputUsdPerMillion: 0 }
+);
+export type ProviderUsd = Record<'openai' | 'gemini', number>;
 export type RequestReceipt = {
   decisionId: number;
   tick: number;
@@ -44,6 +44,7 @@ export type GenerationProvenance = {
     maximumEstimatedUsdByProvider?: Partial<ProviderUsd>;
     maximumWallSeconds: number;
     decisionIntervalTicks: number;
+    maximumPlayingTicks?: number;
   };
   status: 'running' | 'complete' | 'incomplete';
   stopReason: string | null;

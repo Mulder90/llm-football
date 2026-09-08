@@ -33,8 +33,9 @@ export function reserveProviderUsd(
 ): ProviderUsd {
   const reserved = { openai: 0, gemini: 0 };
   for (const controller of controllers)
-    reserved[controller.provider] +=
-      maximumAttempts * estimateRequestUsd(controller, maximumInputBytes, maximumOutputTokens);
+    if (controller.provider !== 'scripted')
+      reserved[controller.provider] +=
+        maximumAttempts * estimateRequestUsd(controller, maximumInputBytes, maximumOutputTokens);
   return reserved;
 }
 
@@ -57,7 +58,9 @@ export function budgetStopReason(
 /** Derive costs from receipts so failed and cancelled requests remain in the totals. */
 export function generationProviderUsd(provenance: GenerationProvenance): ProviderUsd {
   const spent = { openai: 0, gemini: 0 };
-  for (const receipt of provenance.requests)
-    spent[provenance.controllers[receipt.team].provider] += receipt.estimatedUsd;
+  for (const receipt of provenance.requests) {
+    const provider = provenance.controllers[receipt.team].provider;
+    if (provider !== 'scripted') spent[provider] += receipt.estimatedUsd;
+  }
   return spent;
 }

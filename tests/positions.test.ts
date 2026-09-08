@@ -203,7 +203,7 @@ describe('starting positional briefs', () => {
       memory.pass!.target = { x: 75.12345678901235, y: 33.123456789012344 };
       tacticalMemorySchema.parse(memory);
       validateTacticalMemory(memory, state.players, 'coral');
-      const snapshot = observe(state, 'coral', memory, TICK_RATE, 4310);
+      const snapshot = observe(state, 'coral', memory, TICK_RATE, 4310, 3600);
       const serialized = JSON.stringify(snapshot);
       expect(JSON.parse(serialized).privateMemory).toEqual(memory);
       expect(snapshot.orderFeedback).toHaveLength(PROTOCOL_LIMITS.recentEvents);

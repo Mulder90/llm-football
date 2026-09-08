@@ -211,7 +211,8 @@ export async function evaluateControllers(options: {
           0,
         );
         report.estimatedUsd += estimatedUsd;
-        report.estimatedUsdByProvider[result.controller.provider] += estimatedUsd;
+        if (result.controller.provider !== 'scripted')
+          report.estimatedUsdByProvider[result.controller.provider] += estimatedUsd;
         if (unavailable) report.unavailableModels.push(result.controller.model);
       }
       await options.onCheckpoint?.(report);

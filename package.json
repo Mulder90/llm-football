@@ -18,6 +18,7 @@
     "format:check": "prettier --check .",
     "generate": "node --experimental-strip-types scripts/generate.ts",
     "evaluate-controllers": "node --experimental-strip-types scripts/evaluate-controllers.ts",
+    "evaluate-sequences": "node --experimental-strip-types scripts/evaluate-sequences.ts",
     "publish-recording": "node --experimental-strip-types scripts/publish-recording.ts",
     "deploy": "pnpm build && wrangler deploy"
   },

@@ -56,6 +56,10 @@ The simulation uses explicit seeded randomness and stable ordering, with no plat
 
 ## Generation and publication
 
+`runMatchFromState` shares the existing scheduler with the full-match wrapper. It clones a fresh tick-zero state, optionally stops at a positive playing-tick horizon, and records that bound in execution provenance. The limit is checked before another decision; stopped phases do not consume playing time. Both observations include the evaluation’s planned/remaining playing ticks without changing the ordinary match clocks.
+
+Scripted sequence controllers use explicit `provider: scripted` configuration and zero prices. Their recordings are fixtures even though the common `generation` field contains controller receipts and wall time. Model recordings require model provenance; mixed pairs and contradictory imports are rejected. A completed evaluation horizon remains an incomplete match excerpt, not fabricated full time. Metrics independently replay accepted actions at 60 Hz. [Decision 012](decisions/012-BOUNDED-PAIRED-SEQUENCES.md) explains the boundary.
+
 `scripts/generate.ts` loads ignored local `.env`, validates known provider models/prices, reserves a paired boundary and its allowed retries against explicit request/token/cost limits, and keeps a single-job filesystem lock. Checkpoints use a temporary file followed by atomic rename. Cancellation, budget exhaustion, timeout or abandonment retain an incomplete record; they never fabricate full time. Current jobs start fresh; automatic resume is not implemented.
 
 Publishing validates and re-simulates the record, gzip-compresses it, then writes the local static catalogue. The viewer validates downloaded/imported JSON and bounds decompressed imports at 80 MiB. It accounts for browsers already decoding HTTP Content-Encoding so a gzip file is not decompressed twice. API credentials are absent from export schemas and browser imports.

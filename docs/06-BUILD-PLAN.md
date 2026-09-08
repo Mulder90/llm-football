@@ -1,6 +1,6 @@
 # Next steps
 
-Goalkeeper possession is complete. The remaining sequence starts with sustained short decisions; later paid evaluations and a complete match still need their own bounded review. [Current progress](PROGRESS.md) records measured results; [historical handoffs](slices/README.md) preserve earlier work.
+Goalkeeper possession and the offline sustained-play harness are complete. The remaining sequence starts with bounded paired-model evaluation, then a complete local match and the final publication pass. The local build is the readiness reference; leave the older live website alone until the new version is ready. [Current progress](PROGRESS.md) records measured results; [historical handoffs](slices/README.md) preserve earlier work.
 
 The carrier-choice slice is complete: clearer carry/pass/shoot guidance, compact memory, stable schemas and fewer release-triggered rounds. Twenty short-case requests cost approximately $0.11 and all passed validation first try. Sustained teamwork remains unproven.
 
@@ -12,19 +12,21 @@ The offline keeper slice is implemented in `football-0.6`: persistent hands, eli
 
 The response schema remains stable across requests. Shared action shapes and compact rule wording keep bounded full-roster/memory requests within the existing 32 KiB limit; delivery-specific limits are also enforced by runtime and recording validation. No paid requests were needed.
 
-## 2. Sustained football decisions
+## 2. Sustained football decisions — offline harness complete
 
-Extend evaluation from one batch over two seconds to several paired decisions over roughly 6–10 playing seconds. Reuse the real scheduler, frozen observations, memory, budgets and receipts. First validate the evaluation path offline with scripted controllers.
+The shared runner and scripted baseline are implemented. Three eight-second scenarios, each repeated twice, completed 54 paired rounds and 108 local controller calls with zero repairs/fallbacks/failures. All fixed criteria passed and repeated replay hashes matched. [Slice 19](slices/19-SUSTAINED-PLAY-HARNESS.md) records the evidence; this does not establish LLM performance.
 
-Use three focused situations: a carrier advancing into space before pressure arrives; a pass whose moving receiver must control it and choose a next action; and a keeper collecting then distributing while teammates offer outlets and opponents press. Both model teams can replan; keep starting states fixed for comparisons. Retain all outcomes, including failed buildups.
+The next evaluation uses model controllers in the same shared scheduler, frozen observations, memory, budgets and receipts already exercised offline. Keep the eight-second horizon and fixed states for comparison.
+
+Retain the three focused situations: a carrier advancing into space before pressure arrives; a pass whose moving receiver must control it and choose a next action; and a keeper collecting then distributing while teammates offer outlets and opponents press. Both model teams can replan; keep starting states fixed for comparisons. Retain all outcomes, including failed buildups.
 
 Measure controlled carrying across boundaries, pass reception and follow-up control, turnovers, supporting spacing, keeper distribution and illegal attempts. Record rounds, requests, repairs, latency and cost beside football results. Adjust one coherent prompt or execution issue at a time; do not hide failed decisions behind automatic tactics.
 
 Exit: reproducible short sequences demonstrate whether carrying, receiving and keeper buildup survive repeated decisions. Dry-run the exact request allowance and set combined/per-provider spending caps against the remaining balances before dispatch. Do not assume old balances or promise a price from the previous two-second cases.
 
-Implementation dependency: `evaluateControllerScenario` currently applies one accepted batch against fixed opposition and advances two simulation seconds. Increasing its duration alone would not test repeated decisions. First make the existing match runner usable from an explicit scenario state with a bounded playing-time stop, reusing its paired scheduler, memory, repairs and receipts. Keep this football-specific; do not introduce a second scheduler or a generic runner framework. Scripted runs must retain fixture provenance rather than inheriting the runner's current `kind: 'llm'` label.
+Implemented boundary: `runMatchFromState` now shares the match scheduler, memory, repairs and receipts with full generation. It takes a fresh tick-zero state and a playing-time horizon. The offline CLI exports explicit scripted provenance and preserves the outcomes. The old two-second evaluator remains available for isolated diagnostics.
 
-Review the offline evaluation harness before paid execution. A paired round requires two initial requests and permits up to four total with one repair per team. Reception and phase changes can add rounds, so derive request ceilings from explicit maximum rounds, not just the nominal one-second interval. Preserve every run's recording, metrics and stop reason. Choose fixed seeds, repetitions and football success criteria before dispatch; decide whether the observed sequences justify a complete match after reviewing all outcomes.
+Next: review the offline evaluation results and prepare a paired-model entry point with explicit budgets before paid execution. A paired round requires two initial requests and permits up to four total with one repair per team. Reception and phase changes can add rounds, so derive request ceilings from explicit maximum rounds, not just the nominal one-second interval. Preserve every run's recording, metrics and stop reason. Choose fixed seeds, repetitions and football success criteria before dispatch; decide whether the observed sequences justify a complete match after reviewing all outcomes.
 
 ## 3. A fresh complete match
 
@@ -38,7 +40,7 @@ Exit: a verified, honestly labelled LLM match plus a short assessment that ident
 
 Use the new match to select a small presentation pass: anticipation during real attacks, different reactions to catches/parries/misses, readable keeper distribution, and clearer robot responses to successful or failed combinations. Preserve the whole-pitch default, comic style, quiet ambience and hidden-until-needed controls. Camera and sound support actual events; they never affect outcomes.
 
-Then plan the shareable public site: fast arrival on the pitch, match pages and useful highlights. Hosting is separate from pushing source or publishing the local catalogue. Accounts, live generation, tournaments and new stadium themes remain later possibilities.
+For the X/LinkedIn announcement, capture a short clip from the actual current model match, add social preview metadata/image, and prepare the posts. Verify the complete local version, then publish it as the final release. Match pages and further highlights can follow. Hosting is separate from pushing source or publishing the local catalogue. Accounts, live generation, tournaments and new stadium themes remain later possibilities.
 
 ## Working rhythm
 

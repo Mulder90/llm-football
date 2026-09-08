@@ -106,6 +106,7 @@ export function observe(
   memory: TacticalMemory | null,
   decisionIntervalTicks: number,
   previousDecisionTick = 0,
+  evaluationPlayingTicks?: number,
 ) {
   const direction = attackDirection(state, team);
   const carrier = state.players.find((player) => player.id === state.ball.owner);
@@ -122,6 +123,12 @@ export function observe(
   return {
     protocolVersion: 1,
     engine: state.version,
+    ...(evaluationPlayingTicks !== undefined && {
+      evaluation: {
+        plannedPlayingTicks: evaluationPlayingTicks,
+        remainingPlayingTicks: Math.max(0, evaluationPlayingTicks - state.playingTicks),
+      },
+    }),
     phaseInstruction,
     responseIdentity: {
       version: 1,

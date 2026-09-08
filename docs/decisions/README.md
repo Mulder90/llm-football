@@ -15,5 +15,6 @@ These records explain approved choices and their evidence. For current behavior,
 | [009 — Provider budgets](009-PROVIDER-BUDGETS.md)                                 | Active combined and per-provider estimated ceilings.                                                                   |
 | [010 — Carrier choices and requests](010-CARRIER-CHOICES-AND-REQUESTS.md)         | Current carry/pass/shoot guidance, compact memory and request cadence.                                                 |
 | [011 — Goalkeeper hand possession](011-GOALKEEPER-HAND-POSSESSION.md)             | Current persistent hand state, distribution, handling histories, timing and replay boundaries.                         |
+| [012 — Bounded paired sequences](012-BOUNDED-PAIRED-SEQUENCES.md)                 | One match scheduler for full games and fresh-state excerpts; explicit scripted provenance and playing-time stops.      |
 
 Add an ADR only when an approved choice constrains future work. Describe the context, decision, principal alternative, consequences, relevant verification and revisit condition. Ordinary filenames and hypothetical systems do not need records.

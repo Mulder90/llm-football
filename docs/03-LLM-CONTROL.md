@@ -82,6 +82,8 @@ One stable JSON schema is used across requests and recorded in provenance. Ident
 
 ## Evaluation and replay
 
+The sustained-play harness reuses the actual paired match loop from fresh scenario states. Both controllers can replan through a bounded playing-time horizon. An optional `evaluation` observation contains `plannedPlayingTicks` and `remainingPlayingTicks`; `secondsUntilNextScheduledDecision` still describes the one-second cadence, and regular match clocks stay intact. Scripted traces use the same schema, memory, repairs and receipts with explicit scripted provenance. The offline CLI has no paid mode. [Slice 19](slices/19-SUSTAINED-PLAY-HARNESS.md) records the baseline.
+
 Bounded real-model runs record exact prompts, observations, attempts, failures and accepted orders. Assess both immediate execution failures and continuous team behaviour. Single-snapshot improvements do not prove sustained teamwork. Old viewer recordings are removed when their ruleset changes; development does not maintain historical engine support.
 
 Scripted fixtures are development controls, never labelled model-played. Replays use recorded decisions/frames and call no model. Public observation inspection follows the replay playhead; it is not a live provider token stream. See [decision 006](decisions/006-TACTICAL-MEMORY.md) for the approved memory, spacing and development-duration change.

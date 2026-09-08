@@ -43,6 +43,8 @@ The latest [carrier-choice evaluation](slices/16-CARRIER-CHOICES.md) accepted 20
 
 ## Bounded progression
 
+The separate `pnpm evaluate-sequences` CLI now exercises repeated paired decisions offline with explicit scripted provenance and zero provider calls. Its callable runner retains the same model budget reservations, but the CLI intentionally exposes no paid configuration. Review the scripted results and a concrete spending allowance before adding and running the paired-model evaluation.
+
 Both CLIs now accept optional `--openai-usd` and `--gemini-usd` ceilings alongside the combined `--usd` limit. Generation also reads `GENERATION_MAX_OPENAI_USD` and `GENERATION_MAX_GEMINI_USD`. These values are all USD estimates; convert a GBP balance before setting the Gemini cap. Omitting a provider cap leaves the combined limit in force; zero prevents a request to that provider. At each boundary, reserve every concurrent request and its full repair allowance against both limits before dispatch. Stop both teams and checkpoint when either provider cannot fund the next boundary. Reports expose `estimatedUsdByProvider`; cancelled or failed requests without usage retain their full reservation. [Decision 009](decisions/009-PROVIDER-BUDGETS.md) records this boundary.
 
 1. Offline fixtures and mocks by default in tests.
