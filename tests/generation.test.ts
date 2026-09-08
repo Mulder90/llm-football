@@ -4,7 +4,8 @@ import { ProviderError, openaiController, geminiController } from '../src/genera
 import type { TeamController, ControllerRequest } from '../src/generation/providers.ts';
 import type { GenerationProvenance } from '../src/recording/provenance.ts';
 import { verifyRecording, stateHash } from '../src/recording/record.ts';
-import { observe, rulebook } from '../src/protocol/observation.ts';
+import { observe } from '../src/protocol/observation.ts';
+import { rulebook } from '../src/protocol/rulebook.ts';
 import { parseModelDecision } from '../src/protocol/schema.ts';
 import { createMatch } from '../src/sim/state.ts';
 import { emptyBatch } from '../src/sim/orders.ts';

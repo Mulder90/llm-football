@@ -1,6 +1,6 @@
-# The first complete LLM match
+# Shorter matches and team coordination
 
-The first complete model-controlled game is recorded and replay-verified: `north-garden-001`, GPT-5 nano versus Gemini 3.1 Flash-Lite. Both 180-second playing halves completed, with a final score of Coral 1–2 Cyan and canonical replay hash `f0421b48`. The default viewer loads the full recording.
+The current ruleset is football-0.4 with two 120-second halves. Team observations and the shared prompt now support coordinated full-roster decisions. A verified 10.75-second real excerpt is in the viewer; the complete four-minute model run is in progress. Per the user's explicit direction, old viewer recordings and compatibility code have been removed.
 
 ## Implemented
 
@@ -18,18 +18,20 @@ The first complete model-controlled game is recorded and replay-verified: `north
 
 - Slice 6: preserved and published the full `north-garden-001` recording with exact prompts, observations, accepted decisions, rejected attempts and one explicit fallback. Generation used 637 paired boundaries and 1,283 requests, taking 63 minutes 40 seconds and an estimated $1.3533. See [complete-match handoff](slices/06-COMPLETE-MODEL-MATCH.md).
 
+- Slice 7: one current two-minute-half ruleset, explicit goal/possession/action context, team failure feedback, whole-roster coordination instructions, and 65 passing tests. The new short model run has 45 full-roster batches out of 48 and no failed execution events. See [handoff](slices/07-SHORTER-COORDINATED-MATCHES.md).
+
 ## Code quality agreement
 
 Use descriptive names, explicit units for physics constants, named replay fields, focused functions and components, and Prettier. The user explicitly permits necessary dependencies but wants simple, maintainable code without excessive defensive checks or premature architecture. External JSON remains untrusted and must be validated.
 
 ## Next slice
 
-Improve controller comprehension, particularly direction after the halftime end swap and actions that require ball ownership. Keep this first recording as the baseline; do not replace its mistakes with scripted play or choose a result for drama.
+Complete the new four-minute model match and inspect sustained coordination. Then address pass timing and defensive spacing using recorded evidence. Keep outcomes determined by the engine.
 
 ## Limitations
 
-- Model football is still rough. Coral's two conceded goals follow its own wrong-end shots after halftime; failed orders remain visible in the record. The engine never corrects tactical intent.
-- The football-0.3 rules intentionally simplify contact, offside involvement and several referee decisions; [the rules document](04-FOOTBALL-RULES.md) states the omissions.
+- Model football is still rough. More orders and fewer immediate failures do not prove good pass timing or defensive shape. The engine never corrects tactical intent.
+- The football-0.4 rules intentionally simplify contact, offside involvement and several referee decisions; [the rules document](04-FOOTBALL-RULES.md) states the omissions.
 - Playback is a recording. Observations follow its playhead, not a live provider token stream. Sound is synthetic and muted until enabled; event timing is checked, but there is no human listening assessment.
 - The viewer runs locally and can be built as a static site; public deployment is a separate slice. Generation cannot resume a private checkpoint yet.
 

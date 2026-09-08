@@ -182,18 +182,15 @@ export function openaiController(apiKey: string, model = 'gpt-5-nano'): TeamCont
 }
 
 export function geminiController(apiKey: string, model = 'gemini-3.1-flash-lite'): TeamController {
-  if (model !== 'gemini-3.1-flash-lite' && model !== 'gemini-2.5-flash-lite')
+  if (model !== 'gemini-3.1-flash-lite')
     throw new Error('Gemini model has no reviewed adapter configuration and price');
-  const legacy = model === 'gemini-2.5-flash-lite';
   return {
     config: {
       provider: 'gemini',
       model,
-      settings: legacy
-        ? { thinkingBudget: 0, temperature: 0.4 }
-        : { thinkingLevel: 'MINIMAL', temperature: 0.4 },
-      inputUsdPerMillion: legacy ? 0.1 : 0.25,
-      outputUsdPerMillion: legacy ? 0.4 : 1.5,
+      settings: { thinkingLevel: 'MINIMAL', temperature: 0.4 },
+      inputUsdPerMillion: 0.25,
+      outputUsdPerMillion: 1.5,
     },
     async request(request, signal) {
       const raw = await postJson(
@@ -207,7 +204,7 @@ export function geminiController(apiKey: string, model = 'gemini-3.1-flash-lite'
           generationConfig: {
             maxOutputTokens: request.maximumOutputTokens,
             temperature: 0.4,
-            thinkingConfig: legacy ? { thinkingBudget: 0 } : { thinkingLevel: 'MINIMAL' },
+            thinkingConfig: { thinkingLevel: 'MINIMAL' },
             responseMimeType: 'application/json',
             responseJsonSchema: request.responseSchema,
           },

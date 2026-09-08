@@ -14,7 +14,7 @@ This is initially a spectator experiment and a substantial engineering project. 
 - One model controls each team and issues instructions for its players.
 - Target roster is 11 versus 11 including goalkeepers.
 - Continuous-looking action with LLM observation/decision cycles underneath.
-- Two three-minute halves.
+- Two two-minute halves for new matches (approved 8 September 2026).
 - Watch and re-watch on the website.
 - Top-down rendering selected over the oblique 2.5D mockups.
 - Minimal but beautiful pixel art, animated players, attractive pitch and stadium.
@@ -28,7 +28,7 @@ This is initially a spectator experiment and a substantial engineering project. 
 - TypeScript, Canvas 2D, React, Vite, pnpm and Vitest in one package.
 - 60 simulation ticks per second; one team decision per simulated second initially.
 - Generate completed matches before publishing. Add buffered broadcasting only after generation throughput is measured.
-- Pause the playing clock during restart setup. This produces six minutes of active play, so the complete viewing duration can exceed six minutes with restarts, halftime and celebrations. Never label the total replay duration as exactly 06:00 unless it is actually six minutes.
+- Pause the playing clock during restart setup. Matches have four minutes of active play; total viewing duration includes restarts and halftime. Display each recording's actual duration.
 - Normal matches may end in a draw. Knockout extensions are later scope.
 - Single initial stadium, team palette swaps, whole-pitch camera first, optional tracking camera later.
 

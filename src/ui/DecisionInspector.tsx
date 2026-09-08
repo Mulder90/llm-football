@@ -3,7 +3,7 @@ import type { Frame, Recording } from '../recording/record.ts';
 import type { MatchEvent, Order, Team, Vec2 } from '../sim/types.ts';
 import { TICK_RATE } from '../sim/rules.ts';
 import { formatPlayerId, formatTime } from './format.ts';
-import { rulebook } from '../protocol/observation.ts';
+import { rulebook } from '../protocol/rulebook.ts';
 import { RESPONSE_JSON_SCHEMA } from '../protocol/schema.ts';
 import { userPrompt } from '../protocol/prompt.ts';
 import type { MatchListing } from './useRecordings.ts';

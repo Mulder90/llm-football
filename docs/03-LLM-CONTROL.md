@@ -1,86 +1,53 @@
 # LLM control contract
 
+One model controls each team's whole active roster. Both models receive the same rules and action capabilities at the same frozen simulation boundary. The engine decides physics, possession, referee incidents and results. A model's tactical intent is a public plan, not evidence of hidden reasoning or a successful action.
+
 ## Inputs
 
-Each team receives the same versioned rules and action descriptions. These must explain our exact simulation, not assume pretrained football knowledge: coordinate conventions, attack direction, legal actions by phase, movement limits, action durations, timing, restart restrictions, and failure handling.
+The shared rulebook describes our actual simulation: coordinates, current ruleset duration, movement/ball mechanics, phase legality, order lifetimes, restarts and referee simplifications. `src/protocol/rulebook.ts` owns this text. The runner records its exact bytes; replay inspection uses that recorded text. Only the current ruleset is supported.
 
-Keep rules in logical context on every request, even if a provider requires physically resending them. Prompt caching or conversation persistence is an adapter optimisation, not an engine assumption.
+`src/protocol/observation.ts` produces these fields for each side:
 
-Every observation contains a decision ID, simulation tick, match phase, half, playing time, score, ball state, all visible players, current own orders, recent public events and feedback about the team's prior orders. Initially expose the full public pitch state to both controllers. Never expose opponent pending orders, private memory, RNG state or future random outcomes.
+- `responseIdentity`: match, team, decision ID and integer tick to copy into the batch.
+- `phase`, `phaseInstruction`, `half`, playing time, half duration/time remaining and score.
+- `teamContext`: own/opponent goal centres for this half, possession, carrier ID and active teammate/opponent IDs.
+- `players`: all 22 public players with position, velocity, facing, role and discipline. Own players additionally expose their current order/lifetime and action context.
+- `actionContext`: `canKickNow`, reachable opposing carrier ID or null, tackle cooldown, distance to ball and nearest opponent ID/distance. Exact geometry is checked before display rounding; these facts do not guarantee success or rule out a foul.
+- `ball`: position, velocity, owner and last touch; `offside`: the public current snapshot.
+- `recentEvents`: latest 12 public events; `orderFeedback`: latest 12 own failed orders/restart violations since the previous shared decision.
+- `privateMemory`: the team's prior notebook, bounded to 500 characters and never supplied to the opponent.
 
-Use structured rulebook data where useful and concise prose for meaning. Runtime validation and the documented schema must agree.
+Players' public coordinates are rounded to centimetres for observation only. Opponent orders, opponent memory, seed and pending responses are never exposed. The added nearest-opponent fact does not replace the full opposing roster.
 
-## Illustrative observation
+## Coordinated action batches
 
-This is a structural example, not a complete schema; the actual roster array contains all active players.
+Return `{ batch, intent, memory }`. A batch copies the exact identity and adds `orders`. Action shapes are generated from the strict schema in `src/protocol/schema.ts`; targets are metre coordinates on the pitch.
 
-```json
-{
-  "protocolVersion": "0.1",
-  "rulesetVersion": "football-draft-0.1",
-  "matchId": "demo-001",
-  "decisionId": 7,
-  "tick": 420,
-  "phase": "open_play",
-  "half": 1,
-  "playingSecondsRemaining": 173,
-  "you": "coral",
-  "attackDirection": "positive_x",
-  "score": { "coral": 0, "cyan": 0 },
-  "ball": {
-    "position": [52, 31, 0.11],
-    "velocity": [0, 0, 0],
-    "possessorId": "coral-8"
-  },
-  "players": [],
-  "recentEvents": [{ "type": "interception", "playerId": "coral-8" }],
-  "orderFeedback": [],
-  "privateMemory": "Their right winger stays high."
-}
-```
+| Order            | Parameters beyond `type` and `playerId` | Meaning                                             |
+| ---------------- | --------------------------------------- | --------------------------------------------------- |
+| `hold`           | none                                    | Brake and stay                                      |
+| `move`           | `target`, `pace`                        | Move toward a fixed point                           |
+| `guard`          | `target`                                | Keeper positioning with declared catching reach     |
+| `kick` / `shoot` | `target`, `speed`, `loft`               | Release the owned ball now toward a direction point |
+| `tackle`         | `targetId`                              | Attempt contact with the named carrier now          |
+| `restart_taker`  | none                                    | Select an owned taker during awarded setup          |
 
-## Illustrative action batch
+The prompt asks for one purposeful order per active teammate, including the keeper. The validator still permits omitted players: their existing orders continue until normal expiry, with no invented tactical fallback. A tactical note saying “others support” cannot execute those movements.
 
-```json
-{
-  "protocolVersion": "0.1",
-  "matchId": "demo-001",
-  "decisionId": 7,
-  "orders": [
-    { "playerId": "coral-8", "type": "pass", "target": [65, 18], "power": 0.6 },
-    { "playerId": "coral-7", "type": "move", "target": [65, 18], "effort": 0.9 }
-  ],
-  "memory": "Use the right channel when their midfield presses."
-}
-```
+The model must coordinate a carrier's pass with its receiver's movement and consider arrival time, opposing players and supporting angles. It must also choose defensive cover, divide pressing/marking work and keep a goalkeeper protecting the current own goal. The model chooses every target. There is no automatic receiver selection, pass correction, supporting run, man-marking or ball-chasing in the engine.
 
-A target coordinate is a desired destination or kick target, never a declaration that the player/ball arrives there. A pass can miss, be intercepted or leave the field. Define how target, power and later loft/spin map to physical velocity; avoid redundant unconstrained parameters.
+Kick/shot/tackle orders execute once and are never queued for later possession. Movement and guard persist for three seconds unless replaced, cancelled or completed. At most one order per player means the passer cannot also receive a move in the same batch; its next supporting run needs a later decision. Both sides may change the world after this snapshot, so an action that was reachable can still fail when committed.
 
-## Proposed order semantics to approve
+## Validation and feedback
 
-- At most one new order per owned active player in a batch; reject duplicates.
-- Omitted players continue existing orders until completion or expiry. Expiry triggers a declared neutral behaviour such as deceleration to rest, not an invented tactic.
-- Instantaneous actions such as a kick execute once; persistent orders such as moving have bounded lifetime.
-- Possession-dependent orders cancel or fail explicitly when their preconditions disappear. Never retain a shot that unexpectedly fires after possession returns much later.
-- Define whether wind-up actions are cancellable and at which phase they commit.
-- Phase changes can cancel orders. Ball-out-of-play must not leave an old tackle active at a corner.
-- Moving to a point uses bounded mechanical steering. Tracking a moving opponent, automatic chasing and auto-interception are additional capabilities only if explicitly introduced and made equally available.
-- Goalkeepers need model orders and documented execution mechanics. They are not secretly controlled by an unrelated football AI.
+Every provider JSON response passes strict shape, finite/range, identity, team ownership, duplicate-player and phase validation. Invalid batches receive at most one repair against the same serialized snapshot; the other team's accepted reply stays locked. Exhaustion records an explicit empty batch. A permanent provider failure stops generation as incomplete.
 
-Likely eventual vocabulary: move, hold, kick/pass, shoot, dribble, tackle, goalkeeper catch/dive, and phase-specific restarts. Start with the minimum needed for one passing sequence; do not freeze all actions before testing.
+An accepted action can still fail physically. A kick without possession or tackle out of reach is an engine event, not a successful action and not silently repaired into another tactic. These failures are shown to that team in its next observation. The inspector exposes recorded attempts, feedback and accepted decisions.
 
-## Validation and failures
+The runner reserves both teams' requests and possible repairs before advancing a decision boundary. Request count, input/output size, estimated usage and wall time are bounded. Slow replies do not give opponents extra simulation time. The current schedule is one second, interrupted by phase changes and eligible possession changes after a minimum 15 ticks.
 
-Check JSON shape, finite values, ranges, version, match/decision identity, player ownership, duplicate IDs, phase legality and current preconditions. Distinguish a malformed/illegal instruction from a valid attempted action that fails physically or causes a foul.
+## Evaluation and replay
 
-Proposed first policy: validate a whole batch atomically. On rejection, provide concise validation feedback and allow a bounded retry with the same world snapshot; the opponent's accepted response remains locked and private. Once limits are exhausted, use a documented continuation/expiry fallback. Record rejection and fallback. Do not grant indefinite retries or extra world information.
+Bounded real-model runs record exact prompts, observations, attempts, failures and accepted orders. Assess both immediate execution failures and continuous team behaviour. Single-snapshot improvements do not prove sustained teamwork. Old viewer recordings are removed when their ruleset changes; development does not maintain historical engine support.
 
-Set hard generation limits for requests, retries, output size, memory size and overall job duration. A failed run can be marked incomplete; never fabricate the remaining match.
-
-## Memory and fairness
-
-Supply bounded recent public events and a bounded team-owned tactical notebook. Apply the same retention rules and limits to both teams. The notebook is the model's stated plan, not evidence of its hidden reasoning. Do not publish it to the opponent during generation.
-
-Same rulebook, state boundary, controls, observations, execution assistance and declared budget policy for both teams. Record exact model IDs/configuration; API nondeterminism means regenerating a match may yield different decisions even with the same game seed. Replaying recorded decisions should not.
-
-Test against scripted fixtures to distinguish engine defects from weak model play. Scripted baselines are clearly labelled and live outside the simulation core.
+Scripted fixtures are development controls, never labelled model-played. Replays use recorded decisions/frames and call no model. Public observation inspection follows the replay playhead; it is not a live provider token stream. See [decision 005](decisions/005-SHORTER-MATCHES-AND-COORDINATION.md) for the approved timing/coordination change and its numeric boundaries.

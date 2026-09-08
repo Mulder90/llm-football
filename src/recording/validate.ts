@@ -5,7 +5,7 @@ import {
   playerIdSchema,
   teamSchema,
 } from '../protocol/schema.ts';
-import { BALL_CONTROL, ENGINE_VERSION } from '../sim/rules.ts';
+import { BALL_CONTROL, ENGINE_VERSION, MATCH_TIMING } from '../sim/rules.ts';
 import type { Recording } from './record.ts';
 
 export const MAXIMUM_RECORDING_BYTES = 80 * 1024 * 1024;
@@ -350,7 +350,7 @@ export function parseRecording(raw: unknown): Recording {
     (last.phase.type !== 'full_time' ||
       last.phase.reason !== 'completed' ||
       last.half !== 2 ||
-      last.playingTicks !== 21600)
+      last.playingTicks !== 2 * MATCH_TIMING.halfPlayingTicks)
   )
     throw new Error('Complete generation is missing both completed halves');
   if (recording.generation?.responseSchema) {

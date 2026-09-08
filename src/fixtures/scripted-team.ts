@@ -1,4 +1,5 @@
 import { clamp, distanceBetween, unitVector } from '../sim/math.ts';
+import { tackleFoul } from '../sim/fouls.ts';
 import { BALL_CONTROL, FIELD, MOVEMENT, TACKLE } from '../sim/rules.ts';
 import { attackDirection } from '../sim/state.ts';
 import type { KickOrder, MatchState, Order, Player, Team, Vec2 } from '../sim/types.ts';
@@ -62,7 +63,7 @@ function clearPass(state: MatchState, from: Vec2, to: Vec2, team: Team): boolean
   const segment = { x: to.x - from.x, y: to.y - from.y };
   const lengthSquared = segment.x ** 2 + segment.y ** 2;
   return state.players
-    .filter((player) => player.team !== team)
+    .filter((player) => player.team !== team && !player.dismissed)
     .every((player) => {
       const fraction = clamp(
         ((player.position.x - from.x) * segment.x + (player.position.y - from.y) * segment.y) /
@@ -99,7 +100,10 @@ function chooseDelivery(state: MatchState, player: Player): KickOrder | null {
   }
 
   const teammates = state.players
-    .filter((candidate) => candidate.team === player.team && candidate.id !== player.id)
+    .filter(
+      (candidate) =>
+        candidate.team === player.team && candidate.id !== player.id && !candidate.dismissed,
+    )
     .filter((candidate) => {
       const distance = distanceBetween(candidate.position, player.position);
       return (
@@ -191,8 +195,12 @@ export function scriptedOrders(state: MatchState, team: Team): Order[] {
     if (state.phase.type === 'open_play' && owner?.team !== team && pressing.includes(player.id)) {
       if (
         owner &&
+        state.tick - player.lastTackleTick >= TACKLE.recoveryTicks &&
+        state.ball.position.z <= BALL_CONTROL.maximumFootControlHeight &&
         distanceBetween(player.position, state.ball.position) < TACKLE.ballReach &&
-        distanceBetween(player.position, owner.position) < TACKLE.maximumOpponentDistance
+        distanceBetween(player.position, owner.position) < TACKLE.maximumOpponentDistance &&
+        // Declared fixture tactic: decline contact that our referee would penalize.
+        tackleFoul(state, player, owner) === null
       )
         return { type: 'tackle', playerId: player.id, targetId: owner.id };
       return { type: 'move', playerId: player.id, target: predictedBall, pace: 1 };

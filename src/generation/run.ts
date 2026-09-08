@@ -7,7 +7,8 @@ import { ENGINE_VERSION, FIELD, TICK_RATE } from '../sim/rules.ts';
 import { cloneState, createMatch } from '../sim/state.ts';
 import { step } from '../sim/step.ts';
 import type { MatchState, Team } from '../sim/types.ts';
-import { observe, rulebook } from '../protocol/observation.ts';
+import { observe } from '../protocol/observation.ts';
+import { rulebook } from '../protocol/rulebook.ts';
 import { parseModelDecision, RESPONSE_JSON_SCHEMA, responseSchemaFor } from '../protocol/schema.ts';
 import type { ModelDecision } from '../protocol/schema.ts';
 import { ProviderError } from './providers.ts';
@@ -64,6 +65,7 @@ export async function decideTogether(
   memories: Record<Team, string>,
   provenance: GenerationProvenance,
   signal: AbortSignal,
+  previousDecisionTick = 0,
 ): Promise<{
   decisions: [ModelDecision, ModelDecision];
   observations: Record<Team, string>;
@@ -72,7 +74,15 @@ export async function decideTogether(
 }> {
   // Materialize both observations before dispatch. Retries reuse these exact strings.
   const observations = TEAMS.map((team) =>
-    JSON.stringify(observe(state, team, memories[team], provenance.limits.decisionIntervalTicks)),
+    JSON.stringify(
+      observe(
+        state,
+        team,
+        memories[team],
+        provenance.limits.decisionIntervalTicks,
+        previousDecisionTick,
+      ),
+    ),
   );
   for (const observation of observations) {
     const inputBytes =
@@ -280,7 +290,14 @@ export async function generateMatch(options: GenerationOptions): Promise<Recordi
       }
       let resolution: Awaited<ReturnType<typeof decideTogether>>;
       try {
-        resolution = await decideTogether(state, controllers, memories, provenance, signal);
+        resolution = await decideTogether(
+          state,
+          controllers,
+          memories,
+          provenance,
+          signal,
+          lastDecisionTick,
+        );
       } catch (error) {
         stopReason = error instanceof Error ? error.message : 'generation_error';
         break;

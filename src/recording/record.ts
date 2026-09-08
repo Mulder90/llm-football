@@ -36,7 +36,7 @@ export type Frame = {
 export type Recording = {
   format: 'ai-football-recording';
   version: 2;
-  engine: string;
+  engine: MatchState['version'];
   kind: 'fixture' | 'llm';
   title: string;
   description: string;
@@ -88,7 +88,7 @@ export function stateHash(state: MatchState): string {
 }
 
 export function verifyRecording(record: Recording): MatchState {
-  if (record.engine !== ENGINE_VERSION)
+  if (record.engine !== ENGINE_VERSION || record.initial.version !== record.engine)
     throw new Error('Re-simulation requires the matching engine');
 
   const state = cloneState(record.initial);

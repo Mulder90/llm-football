@@ -47,6 +47,7 @@ describe('recording import and presentation boundaries', () => {
         record.decisions[0]!.batches[1].team = 'coral';
       },
       (record: typeof passing) => {
+        // @ts-expect-error Deliberately corrupt the external recording boundary.
         record.engine = 'future-engine';
       },
       (record: typeof passing) => {

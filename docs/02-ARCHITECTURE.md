@@ -28,7 +28,7 @@ The observation stream shown to spectators follows these recorded boundaries. It
 ## Four clocks
 
 1. **Simulation:** integer ticks at 60 Hz, including setup and halftime.
-2. **Playing time:** 10,800 eligible ticks per half, paused during restart setup/ready and halftime. Ends swap after the interval.
+2. **Playing time:** 7,200 eligible ticks per half, defined once in the current ruleset. Restart setup/ready and halftime pause this clock. Ends swap after the interval.
 3. **Generation wall time:** provider latency, validation, retries and checkpoint writes. It cannot alter physics through response arrival order.
 4. **Presentation:** the recorded simulation timeline, sampled/interpolated at the browser's frame rate. The spectator can pause, seek and change speed; a hidden tab pauses instead of catching up.
 
@@ -44,7 +44,7 @@ A movement order steers toward one fixed target with bounded acceleration and br
 
 One versioned JSON recording contains initial state, accepted paired batches and their ticks, explicit fallbacks, ordered events, diagnostic final hash, named viewer frame fields, exact observations and generation provenance. Samples are captured every three ticks and at incidents, phase changes and decision checkpoints. The browser interpolates adjacent samples within a phase; contacts and phase changes remain discrete.
 
-`verifyRecording` clones the initial state and executes recorded batches through the matching engine. It must consume every decision and reproduce the final hash. It makes no model requests. The FNV-1a hash is a diagnostic over canonical JSON property order, not a cryptographic proof or archival promise across arbitrary runtimes. Import validation checks the original JSON without returning a reordered object. The current viewer accepts the current engine version only.
+`verifyRecording` clones the initial state and executes recorded batches through the matching ruleset. It must consume every decision and reproduce the final hash. It makes no model requests. The FNV-1a hash is a diagnostic over canonical JSON property order, not a cryptographic proof or archival promise across arbitrary runtimes. Import validation checks the original JSON without returning a reordered object. The viewer and verifier accept only the current engine version. Old recordings can be removed during development; there is no compatibility layer, legacy clock or migration system.
 
 The simulation uses explicit seeded randomness and stable ordering, with no platform clock or hidden mutable state. Tests cover replay, numerical boundaries and the import boundary. Drawing rounds to pixels; physics retains its numerical precision. Presentation variation never consumes the simulation seed.
 
