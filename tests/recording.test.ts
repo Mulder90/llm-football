@@ -99,14 +99,16 @@ describe('recording import and presentation boundaries', () => {
         coral: { intent: '', memory },
         cyan: { intent: '', memory: null },
       };
-      expect(() => parseRecording(record)).toThrow(/Memory|pass plan/);
+      expect(() => parseRecording(record)).toThrow(/memory|pass plan/i);
     }
     const record = structuredClone(passing);
     record.decisions[0]!.notes = {
       coral: { intent: '', memory: null },
       cyan: { intent: '', memory: plan },
     };
-    expect(() => parseRecording(record)).toThrow('allowed roster');
+    expect(() => parseRecording(record)).toThrow(
+      'memory.ballPlayerId must name an active cyan teammate',
+    );
   });
   it('roundtrips historical and fallback plans after a referenced player is dismissed', async () => {
     const state = createMatch('historical-memory');

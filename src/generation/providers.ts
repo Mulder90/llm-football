@@ -194,9 +194,10 @@ export function geminiController(apiKey: string, model = 'gemini-3.1-flash-lite'
       provider: 'gemini',
       model,
       settings: { thinkingLevel, temperature },
-      // Use standard rates, conservatively ignoring Flash's temporary 2026 discount.
-      inputUsdPerMillion: lite ? 0.25 : 1.5,
-      outputUsdPerMillion: lite ? 1.5 : 7.5,
+      // Flash introductory standard rates verified 2026-09-08; recheck after 2026-12-31.
+      // See docs/07-PROVIDERS.md. Input caching discounts are not applied.
+      inputUsdPerMillion: lite ? 0.25 : 0.75,
+      outputUsdPerMillion: lite ? 1.5 : 3.75,
     },
     async request(request, signal) {
       const raw = await postJson(

@@ -33,6 +33,8 @@ Public coordinates and copied current-order targets are rounded to centimetres f
 | `threats`      | Up to two opposing active players, each with `opponentId` and a `concern` of at most 80 characters                                              |
 | `review`       | The model's assessment of its previous attempt, up to 120 characters                                                                            |
 
+`ballPlayerId` always names an active player on the controlled team, including while defending: choose the teammate responsible for pressing or collecting, not the opposing carrier. Actual possession is already in `ball.owner`; an opponent can be tracked in `threats`. A wrong-side or dismissed `ballPlayerId` produces a field-specific repair error. Validation never picks a replacement player or rewrites the model’s plan.
+
 A new match starts with null memory. Each accepted response replaces that team's memory, which is cloned into its next observation. Invalid replies cannot replace it, and operational fallback preserves the previous memory. The model must revise stale references or plans after dismissal, a turnover, restart or end swap. No automatic tactical reset chooses a replacement plan.
 
 Memory is not an action queue or engine-certified result. The model must translate retained assignments and pass plans into actual orders. It should review events and current ownership, use event ticks to avoid treating old incidents as new, and say unresolved when evidence is inconclusive. A confident `review` does not prove that a pass succeeded. The spectator inspector labels this field as a model assessment and can reveal both plans from the recording; the opposing controller never receives them.

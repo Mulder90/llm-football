@@ -114,8 +114,11 @@ export function validateTacticalMemory(
 ): void {
   const owns = (id: string) => roster.some((player) => player.id === id && player.team === team);
   const opposes = (id: string) => roster.some((player) => player.id === id && player.team !== team);
+  if (memory.ballPlayerId !== null && !owns(memory.ballPlayerId))
+    throw new Error(
+      `memory.ballPlayerId must name an active ${team} teammate (your carrier, presser or collector), or null. Do not use the opposing carrier from ball.owner; list opponents in memory.threats.`,
+    );
   const ownIds = [
-    memory.ballPlayerId,
     memory.pass?.receiverId,
     ...memory.assignments.map((entry) => entry.playerId),
   ].filter((id): id is string => id != null);

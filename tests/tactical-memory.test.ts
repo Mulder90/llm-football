@@ -47,7 +47,6 @@ describe('structured tactical memory boundary', () => {
   it('rejects wrong-side or dismissed players in every tactical reference', () => {
     const plan = passingPlan();
     for (const memory of [
-      { ...plan, ballPlayerId: 'cyan-7' },
       { ...plan, pass: { ...plan.pass!, receiverId: 'cyan-9' } },
       { ...plan, assignments: [{ playerId: 'cyan-4', role: 'cover', opponentId: null }] },
       { ...plan, assignments: [{ playerId: 'coral-4', role: 'mark', opponentId: 'coral-10' }] },
@@ -55,12 +54,41 @@ describe('structured tactical memory boundary', () => {
     ])
       expect(() => accept(memory)).toThrow('teammates and opponents');
 
-    for (const id of ['coral-7', 'coral-9', 'coral-11', 'cyan-10', 'cyan-8']) {
+    for (const id of ['coral-9', 'coral-11', 'cyan-10', 'cyan-8']) {
       const state = createMatch();
       state.players.find((player) => player.id === id)!.dismissed = true;
       expect(() => accept(plan, state)).toThrow('teammates and opponents');
     }
   });
+
+  it.each(['coral', 'cyan'] as const)(
+    'explains a wrong-side %s ballPlayerId during defence without rewriting the decision',
+    (team) => {
+      const state = createMatch();
+      const opponent = team === 'coral' ? 'cyan' : 'coral';
+      state.ball.owner = `${opponent}-10`;
+      const memory: TacticalMemory = {
+        plan: 'Press the opposing carrier.',
+        ballPlayerId: state.ball.owner,
+        pass: null,
+        assignments: [],
+        threats: [{ opponentId: state.ball.owner, concern: 'Carrying towards our goal.' }],
+        review: '',
+      };
+      const response = { batch: emptyBatch(state, team), intent: '', memory };
+      const before = JSON.stringify({ state, response });
+      const message = `memory.ballPlayerId must name an active ${team} teammate`;
+      expect(() => parseModelDecision(response, state, team)).toThrow(message);
+      expect(JSON.stringify({ state, response })).toBe(before);
+
+      memory.ballPlayerId = `${team}-7`;
+      expect(parseModelDecision(response, state, team).memory).toEqual(memory);
+      state.players.find((player) => player.id === memory.ballPlayerId)!.dismissed = true;
+      expect(() => parseModelDecision(response, state, team)).toThrow(message);
+      memory.ballPlayerId = null;
+      expect(parseModelDecision(response, state, team).memory?.ballPlayerId).toBeNull();
+    },
+  );
 
   it('rejects conflicting assignments and a pass with no distinct ball player and receiver', () => {
     const plan = passingPlan();

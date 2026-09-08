@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createControllerScenarios } from '../src/fixtures/controller-scenarios.ts';
 import { evaluateControllers } from '../src/generation/evaluate.ts';
+import { budgetStopReason, reserveProviderUsd } from '../src/generation/budget.ts';
 import { geminiController, openaiController, ProviderError } from '../src/generation/providers.ts';
 import type { ControllerRequest, TeamController } from '../src/generation/providers.ts';
 import type { Observation } from '../src/protocol/observation.ts';
@@ -201,5 +202,24 @@ it('sends the reviewed model-specific settings and caps to each real adapter', a
       maxOutputTokens: 4096,
       responseMimeType: 'application/json',
     },
+  });
+});
+
+it('reserves Flash introductory prices against the provider ceiling without changing Lite', () => {
+  const flash = geminiController('unused', 'gemini-3.8-flash').config;
+  expect(flash.settings).toEqual({ thinkingLevel: 'LOW', temperature: 1 });
+  // 10k input + 2k output, including one repair: ($0.0075 + $0.0075) × 2.
+  const reservation = reserveProviderUsd([flash], 10_000, 2_000, 2);
+  expect(reservation).toEqual({ openai: 0, gemini: 0.03 });
+  const spent = { openai: 0, gemini: 0 };
+  expect(budgetStopReason(spent, reservation, 1, { gemini: 0.03 })).toBeNull();
+  expect(budgetStopReason(spent, reservation, 1, { gemini: 0.029999 })).toBe(
+    'gemini_estimated_cost_limit',
+  );
+  expect(geminiController('unused').config).toMatchObject({
+    model: 'gemini-3.1-flash-lite',
+    settings: { thinkingLevel: 'MINIMAL', temperature: 0.4 },
+    inputUsdPerMillion: 0.25,
+    outputUsdPerMillion: 1.5,
   });
 });
