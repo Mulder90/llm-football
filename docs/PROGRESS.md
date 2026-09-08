@@ -6,7 +6,15 @@ LLM Football is a replay-first spectator game with 22 robot players, a determini
 
 Development and readiness checks use the **local build**. The public website is an older release; the user asked to leave it alone and publish the new final version when ready. Pushing Git does not deploy. [Deployment instructions](DEVELOPMENT.md#deploy-the-website-to-cloudflare) remain available for that later step.
 
-## Latest work
+## Latest complete match — keeper review
+
+**One minute, two models** (`keeper-era-match-001`) is the new local default: Cyan wins **1–0** after exactly 60 playing seconds under `football-0.6`. All **96 paired rounds** contain full active-roster orders; **191/192 first replies pass**, with one repaired Coral memory reference and **zero fallbacks**. The match contains eleven completed passes, 38 deliberate carrier-move decisions, three Cyan shots and a catch. Independent replay matches **`ac2a3856`**. [Slice 23](slices/23-ONE-MINUTE-REVIEW.md) records the evidence and limitations.
+
+Generation took **21m 47s** and cost **$1.1262515 estimated** ($0.36848975 OpenAI / $0.75776175 Gemini), using 193 requests within the $3 combined / $1 OpenAI / $2 Gemini caps. The earlier full match cost $2.08662375 with the same recorded model settings and pricing: this run is **46% cheaper**, but different play, rules and prompts prevent attributing the saving to one change. Fresh user-reported balances were $3.17 OpenAI / £5.93 Gemini; estimated remaining credit is roughly **$2.80 / £5.37**, using reference FX rather than confirmed billing. The old short-trial allowance is separate. No generation is running.
+
+**The four-minute showcase is on hold for a reproduced keeper defect.** At tick 3245, a legal incoming catch attaches to a keeper facing outward at x=104.6: its 0.65 m hand offset puts the ball at x=105.25, beyond the 105 m goal line. The same tick awards an outside-area free kick; Cyan scores from the subsequent sequence. Original actions and score remain unchanged. This cannot establish successful keeper distribution. Coral also takes no shots and eventually carries out over the goal line. Next: fix and verify catch placement near boundaries offline, then review whether to adopt the requested two-minute halves and fund the longer run. The live website remains untouched.
+
+## Previous keeper-order reliability work
 
 Keeper-order reliability now passes a small real-provider check: **6/6 first replies accepted**, three paired rounds, eleven orders per team per round, zero repairs, fallbacks, execution failures or handling violations. The keeper catches, rolls to Coral #7, and #7 receives. Both model teams are active. The 2.45-second excerpt stops deliberately at the three-round cap; it does not establish sustained defending or full-match reliability.
 
@@ -14,7 +22,7 @@ The working provider schema is unchanged. Observations now identify the active k
 
 `keeper-reliability-01` cost **$0.03487 estimated** ($0.01097875 OpenAI / $0.02389125 Gemini), six requests in 42.43 seconds. This used the remaining original allowance, with a separate $0.10 ceiling, no retries and an immediate stop on fallback or incomplete roster. The original trial total is now **$0.47101375** ($0.11885875 OpenAI / $0.352155 Gemini), **67 requests and 435.51 generation seconds**. Remaining: $0.12898625 combined / $0.08114125 OpenAI / $0.047845 Gemini. Estimates include prior reservations without usage and are not confirmed billing. No generation is running.
 
-The new **Keeper orders · first-attempt check** recording is available locally through **Inside the match → Matches**, hash `86c27e6f`. The passing excerpt remains the default and the older failed keeper experiment remains labelled separately. [Slice 22](slices/22-KEEPER-ORDER-RELIABILITY.md) records the change, tests and sample limits. Next: review this catch-and-outlet clip, then a sustained keeper sequence with both teams active before the deferred full run.
+The **Keeper orders · first-attempt check** recording remains available locally through **Inside the match → Matches**, hash `86c27e6f`, alongside the passing excerpt and separately labelled failed keeper experiment. [Slice 22](slices/22-KEEPER-ORDER-RELIABILITY.md) records the change, tests and sample limits. The subsequent funded full match supersedes the earlier deferral and is now the default.
 
 ## Previous model excerpts and compatibility work
 
@@ -54,7 +62,7 @@ Estimated evaluation spending: **$0.10943875** ($0.036166 OpenAI / $0.07327275 G
 
 The obsolete concept image is removed, the original planning brief is archived, and current guides are separated from historical handoffs. Start at the [documentation index](README.md).
 
-## Latest complete LLM match — previous ruleset
+## Previous complete LLM match — previous ruleset
 
 **Finding their shape** (`positional-match-001`) was the previous default recording: GPT-5 mini versus Gemini 3.8 Flash, 0–0 after 60 playing seconds. Its 133 paired rounds used 293 requests, including 27 repairs and two explicit Coral fallbacks. Generation took 43m 43s and an estimated $2.08662375; independent replay matches hash `cd60f48a`.
 
@@ -71,9 +79,9 @@ That match predates the latest carrier and scheduling changes. Coral completed m
 
 ## Next step and limitations
 
-Next, review the new local keeper excerpt with the user, then check sustained keeper play under active opposition. The six-response check passes but does not establish longer reliability. The full two-half run is deferred until the user likes the football and adds credit. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled.
+Next, review the complete local match and address the catch-position defect using its saved pre-incident state. The requested two-minute halves remain conditional on football readiness; a linear estimate from this match is about $4.51 and 87 minutes of generation, not an approved dispatch plan or guaranteed price. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled.
 
-The engine never chooses tactics or repairs a model's chosen target. These short and partly fallback-driven evaluations cannot establish sustained defensive coordination or full-match cost savings. A model's written review may be wrong.
+The engine never chooses tactics or repairs a model's chosen target. The complete match establishes reliable paired generation and deliberate carrying by both models, but does not establish keeper buildup, strong finishing choices or consistently good defending. A model's written review may be wrong.
 
 The viewer runs locally and on Cloudflare. Live model-token streaming, generation resume, accounts and tournaments are not implemented. The inspector replays recorded observations; browser audio needs a play gesture. See [football rules](04-FOOTBALL-RULES.md) for omitted laws and [providers](07-PROVIDERS.md) for dated pricing assumptions.
 

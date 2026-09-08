@@ -24,3 +24,4 @@ These documents describe implementation and evidence **at the end of each slice*
 20. [Bounded paired-model trial and provider failure](20-PAIRED-MODEL-TRIAL.md)
 21. [Model excerpts and provider schema compatibility](21-MODEL-SEQUENCES-AND-SCHEMA.md)
 22. [Keeper-order reliability and first-attempt check](22-KEEPER-ORDER-RELIABILITY.md)
+23. [Complete one-minute match and keeper review](23-ONE-MINUTE-REVIEW.md)
