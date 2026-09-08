@@ -9,7 +9,7 @@ The shared rulebook describes our actual simulation: coordinates, current rulese
 `src/protocol/observation.ts` produces these fields for each side:
 
 - `responseIdentity`: match, team, decision ID and integer tick to copy into the batch.
-- `phase`, `phaseInstruction`, `half`, playing time, half duration/time remaining, match time remaining and score. The current half duration is 30 playing seconds.
+- `phase`, `phaseInstruction`, `half`, playing time, half duration/time remaining, match time remaining and score. The current half duration is 60 playing seconds.
 - `teamContext`: own/opponent goal centres for this half, `ballToOpponentGoal` distance in metres and opening angle in degrees, possession, carrier ID, active teammate/opponent IDs and shared positional briefs with half-relative flank coordinates.
 - `players`: all 22 public players with position, velocity, facing, role and discipline. Own players additionally expose their current order/lifetime, action context and stable starting position/side.
 - `actionContext`: `canKickNow`, reachable opposing carrier ID or null, tackle cooldown, `tackleFoul` (current careless/reckless/excessive test for a reachable target, otherwise null), distance to ball, and nearest teammate/opponent IDs and distances. The nearest teammate excludes the player itself and dismissed teammates. Keepers additionally expose `handlingEligible`, nullable `handlingRestriction`, `canPickUpNow` and `canDistributeNow`. `canKickNow` requires feet; a protected keeper is excluded from reachable tackle targets. Exact geometry is checked before display rounding; these facts do not guarantee success or rule out a foul.

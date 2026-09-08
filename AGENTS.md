@@ -13,8 +13,7 @@ Do not implement the whole roadmap in one pass. End each approved slice with a r
 - One sport: football. New project, no Agentathlon framework dependencies.
 - Full destination: 11 versus 11, including goalkeepers.
 - One LLM controls each team's players; 22 independent LLMs are not the initial architecture.
-- Two halves of 30 seconds of playing time each, following the user's latest development-duration instruction. During development, support only the current ruleset; old recordings may be removed instead of adding backward compatibility.
-- Final showcase target: two halves of 60 playing seconds each (two minutes total), per the user’s latest cost-saving instruction. Change the development duration only when that final run is ready.
+- Two halves of 60 seconds of playing time each (two minutes total), following the user's final-run instruction. Support only the current ruleset; old recordings may be preserved privately and removed from the catalogue instead of adding backward compatibility. Use bounded excerpts for shorter tests.
 - Top-down pitch rendering, minimal beautiful pixel art, animated players and stadium.
 - Spectator-first website with watch/re-watch functionality.
 - A deterministic engine owns physics, referee decisions and outcomes.

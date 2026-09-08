@@ -6,7 +6,7 @@ LLM Football is a spectator website: two language models control rival eleven-pl
 
 - One model controls each whole team, including its goalkeeper.
 - A deterministic engine resolves physics, possession, goals and referee decisions. Models choose actions, never outcomes.
-- Development matches use two 30-second playing halves. Restarts, halftime and goal celebrations add viewing time; draws stand.
+- Matches use two 60-second playing halves. Restarts, halftime and goal celebrations add viewing time; draws stand. Short bounded excerpts remain available for development.
 - Both models see all players' public movement and share one observation boundary. Each receives its own tactical memory and positional briefs; opponent orders and memory stay private.
 - The default view is the full-screen stadium with the whole pitch visible. Model names appear beneath teams; playback controls fade during idle play.
 - **Inside the match** reveals readable team plans, recorded observations, exact prompts and match provenance. It is optional, beside the pitch on desktop and over it on narrow screens.

@@ -18,7 +18,7 @@ import {
   recordingSecondsAt,
   watchSecondsAt,
 } from '../src/render/presentation-time.ts';
-import { BALL_CONTROL, FIELD, TICK_RATE } from '../src/sim/rules.ts';
+import { BALL_CONTROL, FIELD, MATCH_TIMING, TICK_RATE } from '../src/sim/rules.ts';
 import { cloneState, createMatch } from '../src/sim/state.ts';
 import { step } from '../src/sim/step.ts';
 import { PlaybackControls } from '../src/ui/PlaybackControls.tsx';
@@ -158,7 +158,9 @@ describe('broadcast presentation time', () => {
   });
 
   it('gives each goal nine watch seconds, with a held celebration and unchanged playing clock', () => {
-    expect(timeline.celebrations).toHaveLength(6);
+    const goals = recording.events.filter((event) => event.type === 'goal');
+    expect(goals.length).toBeGreaterThan(0);
+    expect(timeline.celebrations).toHaveLength(goals.length);
     for (const window of timeline.celebrations) {
       expect(window.watchEnd - window.watchStart).toBeCloseTo(9);
       const first = sample(recording, window.recordingStart);
@@ -187,7 +189,7 @@ describe('broadcast presentation time', () => {
     }
     const end = sample(recording, recordingSecondsAt(timeline, timeline.durationSeconds));
     expect(end.tick).toBe(recording.durationTicks);
-    expect(end.playingTicks).toBe(60 * TICK_RATE);
+    expect(end.playingTicks).toBe(2 * MATCH_TIMING.halfPlayingTicks);
     expect(end.phase).toEqual({
       type: 'full_time',
       reason: 'completed',

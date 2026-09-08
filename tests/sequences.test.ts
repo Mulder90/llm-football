@@ -12,6 +12,7 @@ import { stateHash, verifyRecording } from '../src/recording/record.ts';
 import type { Recording } from '../src/recording/record.ts';
 import type { observe } from '../src/protocol/observation.ts';
 import { awardRestart } from '../src/sim/restarts.ts';
+import { MATCH_TIMING } from '../src/sim/rules.ts';
 import type { Team } from '../src/sim/types.ts';
 
 type Observation = ReturnType<typeof observe>;
@@ -336,7 +337,7 @@ describe('sustained football through the paired match runner', () => {
     expect(verifyRecording(result.recording).tick).toBe(0);
   });
 
-  it.each([0, -1, NaN, Infinity, 1.5, 3601])(
+  it.each([0, -1, NaN, Infinity, 1.5, 2 * MATCH_TIMING.halfPlayingTicks + 1])(
     'rejects an invalid playing horizon %s',
     async (maximumPlayingTicks) => {
       await expect(

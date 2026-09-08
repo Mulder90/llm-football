@@ -2,6 +2,8 @@
 
 The runner supports a cheap default pair and the stronger pair used by the latest completed match: GPT-5 mini and Gemini 3.8 Flash. Keep real keys in an ignored local .env file or the runner environment. .env.example has empty placeholders. Never paste keys into prompts, commit them, use VITE_ prefixes or expose them to the spectator browser.
 
+The completed final two-minute run used the same reviewed mini/Flash settings and rates below. It cost $3.022239 estimated ($0.96770625 OpenAI / $2.05453275 Gemini), with 501 requests, seven repairs and zero fallbacks, within the user-authorized $4 ceiling. [Slice 27](slices/27-FINAL-TWO-MINUTE-MATCH.md) records the result and request accounting. Earlier trial allowances below are historical and were not reused for the final run.
+
 ## Current tested configuration
 
 The original Gemini 2.5 Flash-Lite suggestion returned HTTP 404 on this account in the integration smoke test: unavailable to new users. The runner now deliberately defaults to Gemini 3.1 Flash-Lite (minimal thinking, temperature 0.4), $0.25 input / $1.50 output per million tokens. GPT-5 nano uses low reasoning, after the minimal setting failed to deliver a kickoff. See [decision 003](decisions/003-MODEL-CONTROL-AND-INSPECTION.md) and the [measured test](slices/03-FIRST-MODEL-POSSESSION.md). Prices were rechecked against the official pages linked below on 2026-09-07. No automatic upgrade is permitted.

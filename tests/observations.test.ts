@@ -190,10 +190,11 @@ describe('team observations', () => {
       review: 'r'.repeat(PROTOCOL_LIMITS.reviewCharacters),
     };
     const observation = observe(state, 'coral', memory, 60);
-    expect(observation.halfDurationSeconds).toBe(30);
-    expect(observation.halfSecondsRemaining).toBe(30);
-    expect(rulebook()).toContain('Two 30-second playing halves');
-    expect(rulebook()).toContain('at exactly 30 playing seconds');
+    expect(observation.halfDurationSeconds).toBe(60);
+    expect(observation.halfSecondsRemaining).toBe(60);
+    expect(observation.matchSecondsRemaining).toBe(120);
+    expect(rulebook()).toContain('Two 60-second playing halves');
+    expect(rulebook()).toContain('at exactly 60 playing seconds');
     const inputBytes =
       Buffer.byteLength(
         rulebook() + JSON.stringify(observation) + JSON.stringify(RESPONSE_JSON_SCHEMA),

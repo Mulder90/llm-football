@@ -2,9 +2,9 @@
   "version": 1,
   "matches": [
     {
-      "id": "goal-aware-match-001",
-      "file": "goal-aware-match-001.json.gz",
-      "title": "Playing to win",
+      "id": "final-match-001",
+      "file": "final-match-001.json.gz",
+      "title": "Two minutes, two models",
       "complete": true
     }
   ]

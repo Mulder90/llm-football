@@ -1,18 +1,30 @@
 # Current progress
 
-LLM Football is a replay-first spectator game with 22 robot players, a deterministic football engine, two team controllers and a full-screen comic stadium. Development matches have two 30-second playing halves. Watching the included recordings makes no API calls.
+LLM Football is a replay-first spectator game with 22 robot players, a deterministic football engine, two team controllers and a full-screen comic stadium. The final ruleset has two 60-second playing halves. Watching recordings makes no API calls.
 
-## Latest match — Playing to win
+## Final two-minute match — ready locally
+
+The user requested the final run with one minute per half, and allowed extra spending if needed. `football-0.9` changes only the duration and ruleset version; running speed remains 7 m/s, acceleration 18 m/s², with unchanged ball physics, prompts apart from the interpolated duration, models, cadence and repair policy. The previous match's movement orders averaged about 0.806 pace for both teams. Increasing speed would not ensure better tactics, so no paid speed experiment is being run.
+
+**Two minutes, two models** (`final-match-001`) is the only bundled local recording: **Coral 0–5 Cyan**, exactly 120 playing seconds, halftime at 60 seconds. Independent replay verifies **`fae9b050`**. Simulation lasts 156.75 seconds; stoppages and the existing celebrations make the watch timeline **192.5 seconds (3m 12.5s)**. All five goals belong to Cyan #10. This is the first and only final run; no result was selected or rewritten.
+
+Generation took **53m 35s**, with **247 paired rounds / 501 requests**, seven repaired Coral replies and zero fallbacks. **487/494 first replies** passed; all 494 accepted team batches cover the full active roster. Estimated cost is **$3.022239** ($0.96770625 OpenAI / $2.05453275 Gemini), within the $4 combined / $1.50 / $2.50 ceilings and one-hour deadline. No generation is running.
+
+The match contains 38 completed passes (Coral 24, Cyan 14), 23 shots (Coral 2, Cyan 21), six keeper catches, five distributions and no handling violations or cards. It also contains 55 interceptions and 41 failed actions, mostly tackles that did not reach the carrier. These are preserved football outcomes, not new reasons to tune or rerun. The result is one-sided and does not establish consistently good play.
+
+TypeScript, all 287 tests, the production build, stream import, compressed round trip and independent replay pass. The local file is 3.15 MB compressed / 32.94 MB decoded, within the unchanged 80 MiB viewer limit. Only title/description differ from the untouched private generation file. The current live release remains **Playing to win** until a new deployment is requested. [Decision 014](decisions/014-FINAL-MATCH-DURATION.md) records the duration boundary; [slice 27](slices/27-FINAL-TWO-MINUTE-MATCH.md) retains the handoff.
+
+## Previous complete match — Playing to win (currently live)
 
 The authorized local slice uses `football-0.8`: catches retain legal contact XY, held motion follows actual keeper displacement, and kicks/shots preserve the actual launch point. Observations expose neutral goal geometry/pitch clearance and the existing tackle foul test; the prompt explicitly prioritizes scoring more than the opponent. No card thresholds, model settings, cadence or development duration changed. TypeScript and all 287 tests pass.
 
 Short tests used **48 requests**, all accepted first try with complete active-roster orders, at **$0.2836075 estimated** ($0.087967 OpenAI / $0.1956405 Gemini). Eight shot/cutback decisions first exposed the kick-origin error; their original internal 0.7 source/report is preserved, and the accepted choices were re-executed offline under 0.8. Both eight-second paired sequences reached their horizons without repairs, fallbacks, order failures or handling violations. The receiving drill passes its specific criterion; the keeper drill's intended pass was intercepted. That is normal football, not a readiness blocker: the user explicitly wants imperfect LLM tactics to remain.
 
-**Playing to win** (`goal-aware-match-001`) is the only bundled recording locally and on Cloudflare. Cyan wins **3–1** after exactly 60 playing seconds (two 30-second halves). Independent replay verifies hash **`8eed7d0a`**. Both teams shoot and carry; the match contains nine shots, sixteen completed passes, two keeper catches and two throws, including one completed keeper outlet. There are no handling violations or cards. Normal interceptions and unsuccessful actions remain unchanged.
+**Playing to win** (`goal-aware-match-001`) remains the only bundled recording on Cloudflare. The local catalogue now contains the final 0.9 match; the original review file/catalogue and 0.8 source were preserved privately. Cyan wins **3–1** after exactly 60 playing seconds (two 30-second halves). Independent replay verifies hash **`8eed7d0a`**. Both teams shoot and carry; the match contains nine shots, sixteen completed passes, two keeper catches and two throws, including one completed keeper outlet. There are no handling violations or cards. Normal interceptions and unsuccessful actions remain unchanged.
 
 All **210 replies across 105 paired rounds** were accepted first try, with no repairs or fallbacks. One Coral reply omitted #2; 209/210 team batches cover the full active roster. Six tackles fail to reach the carrier and one repeated restart kick executes without foot possession. These outcomes are preserved, not repaired after generation. Generation took **22m 39s**, costing **$1.26326275 estimated** ($0.39642025 OpenAI / $0.8668425 Gemini), within the $1.50 combined / $0.50 / $1 caps and 30-minute deadline. This slice's short tests plus full match total **$1.54687025 estimated**, 258 requests. No generation is running.
 
-The final showcase target is one minute per half, two playing minutes total, after the user watches this review. [Slice 25](slices/25-CATCH-AND-KICK-GEOMETRY.md) records the changes, mechanism, verification and limitations.
+The user has now requested the final one-minute-per-half run. [Slice 25](slices/25-CATCH-AND-KICK-GEOMETRY.md) records this preceding review's changes, mechanism, verification and limitations.
 
 The historical public file and catalogue were preserved under ignored `artifacts/private/football-awareness-baseline-public/` before removal from the current catalogue and release. Old recordings retain their original rulesets and outcomes; they are not relabelled for the new engine.
 
@@ -95,7 +107,7 @@ That match predates the latest carrier and scheduling changes. Coral completed m
 
 ## Next step and limitations
 
-Next, watch **Playing to win** locally or on the live site and judge whether the football is entertaining. The final target is one minute per half, two minutes total. The development review remains 60 seconds total; short tests are preferred where sufficient. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled, and normal LLM mistakes do not require another tuning cycle.
+Next, watch **Two minutes, two models** locally, then deploy the final version when requested and prepare accurate X/LinkedIn material from this actual result. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. Normal LLM mistakes do not require another tuning cycle or a replacement match.
 
 The engine never chooses tactics or repairs a model's chosen target. The latest match demonstrates paired generation, carrying and shots by both models, and a completed keeper outlet. One match cannot establish consistently good teamwork, finishing or defending. A model's written review may be wrong.
 

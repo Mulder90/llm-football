@@ -1,6 +1,6 @@
 # Football mechanics and referee
 
-The current ruleset is `football-0.8`. It fixes keeper catch placement and preserves the actual kick launch point while retaining hand possession, handling laws and two 30-second development halves. It provides recognisable football with explicit simplifications, not complete compliance with the official Laws. [Decision 002](decisions/002-MATCH-RULES.md) records the physical/restart foundation; [decision 004](decisions/004-CONTACT-REFEREE.md) records contact officiating, offside and primary rule references; [decision 006](decisions/006-TACTICAL-MEMORY.md) records the current duration and tactical-memory change.
+The current ruleset is `football-0.9`. It extends the match to two 60-second playing halves, retaining the corrected catch/kick geometry and all movement, handling and referee settings from 0.8. It provides recognisable football with explicit simplifications, not complete compliance with the official Laws. [Decision 002](decisions/002-MATCH-RULES.md) records the physical/restart foundation; [decision 004](decisions/004-CONTACT-REFEREE.md) records contact officiating, offside and primary rule references; [decision 006](decisions/006-TACTICAL-MEMORY.md) records tactical memory; [decision 014](decisions/014-FINAL-MATCH-DURATION.md) sets the final duration.
 
 ## Match and phases
 

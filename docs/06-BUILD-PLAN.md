@@ -2,7 +2,7 @@
 
 The project already generates and replays real two-model football. The user wants the football to be entertaining, including ordinary LLM mistakes. Interceptions, missed shots, weak passes and poor positioning are expected; they are not requirements for another tuning cycle. The deterministic engine must faithfully execute model choices and apply the same rules to both sides.
 
-## 1. Watch the completed local review
+## 1. Completed review
 
 `football-0.8` fixes legal catches being moved outside the area and kicks being launched from a different position after aiming. Models now see neutral goal-opening/distance and boundary facts, and the prompt states the objective to score more than the opponent and win. Current tackle/card thresholds remain; no new football laws or automatic tactics were added. [Decision 013](decisions/013-CATCH-PLACEMENT-AND-GOAL-AWARENESS.md) records the mechanisms and evidence.
 
@@ -10,11 +10,11 @@ The short tests made 48 requests at an estimated $0.2836075, with no repairs or 
 
 The complete review is **Playing to win**: Cyan wins 3–1 across **two 30-second playing halves**, with nine shots, sixteen completed passes and two keeper catches. All 210 replies were accepted first try, with no repairs/fallbacks; one reply omitted a player order. Independent replay verifies `8eed7d0a`. Generation took 22m 39s and cost $1.26326275 estimated, within the $1.50 combined / $0.50 OpenAI / $1 Gemini caps and 30-minute deadline. At the user's request, this verified version is now live on Cloudflare with this match alone. Watch the actual football and preserve every result.
 
-## 2. Final match: one minute per half
+## 2. Final match complete: one minute per half
 
-The latest user instruction sets the final showcase to **one minute per half, two playing minutes total**, to control cost. This supersedes the earlier two-minute-per-half plan. The current development duration stays unchanged until the final run is ready.
+The user has requested the final showcase: **one minute per half, two playing minutes total**. `football-0.9` now uses that duration. Speed, acceleration, ball physics, tactical guidance, models and request cadence remain unchanged. Short development tests use bounded excerpts. [Decision 014](decisions/014-FINAL-MATCH-DURATION.md) records the new timing boundary.
 
-After reviewing the minute, use fresh remaining-balance estimates, explicit provider/combined caps, request and wall-time bounds. Change the duration contract and its tests once for that final ruleset. A linear extrapolation from this complete minute is roughly $2.53 ($0.79 OpenAI / $1.73 Gemini) and 45 generation minutes for the final match, not a guaranteed cost or an approved dispatch plan. No final run has started.
+**Two minutes, two models** (`final-match-001`) is ready locally: Coral 0–5 Cyan, exactly 120 playing seconds, hash `fae9b050`. It took 53m 35s and an estimated $3.022239 ($0.96770625 OpenAI / $2.05453275 Gemini), within the $4 allowance and one-hour deadline. Its 247 paired rounds used 501 requests, seven repaired replies and no fallbacks; all accepted batches cover the full roster. All 287 tests, TypeScript, build and replay checks pass. Watch the actual result. No extra paid speed test or replacement match is planned.
 
 ## 3. Publish and share the actual result
 

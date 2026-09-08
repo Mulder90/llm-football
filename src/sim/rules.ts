@@ -1,5 +1,5 @@
 /** Football tuning. Distances are metres, speeds m/s, accelerations m/s². */
-export const ENGINE_VERSION = 'football-0.8';
+export const ENGINE_VERSION = 'football-0.9';
 export const TICK_RATE = 60;
 export const SECONDS_PER_TICK = 1 / TICK_RATE;
 export const PLAYERS_PER_TEAM = 11;
@@ -63,7 +63,7 @@ export const NUMERIC_TOLERANCE = {
 export const BEFORE_MATCH_TICK = -1000;
 
 export const MATCH_TIMING = {
-  halfPlayingTicks: 30 * TICK_RATE,
+  halfPlayingTicks: 60 * TICK_RATE,
   restartSetupTicks: 2 * TICK_RATE,
   restartDeliveryTicks: 6 * TICK_RATE,
   halftimeTicks: 3 * TICK_RATE,

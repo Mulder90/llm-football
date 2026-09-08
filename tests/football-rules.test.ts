@@ -249,16 +249,17 @@ describe('contested play and match completion', () => {
     expect(JSON.stringify(state)).toBe(finished);
   });
 
-  it('runs and replays a complete one-minute scripted baseline with both halves and no fabricated completion', () => {
+  it('runs and replays a complete two-minute scripted baseline with both halves and no fabricated completion', () => {
     const recording = createFullMatchFixture();
     const final = verifyRecording(recording);
     expect(recording.kind).toBe('fixture');
     expect(final.phase).toMatchObject({ type: 'full_time', reason: 'completed' });
-    expect(final.playingTicks).toBe(60 * TICK_RATE);
+    expect(final.playingTicks).toBe(120 * TICK_RATE);
     expect(final.half).toBe(2);
     expect(recording.events.some((event) => event.type === 'goal')).toBe(true);
     expect(recording.events.filter((event) => event.type === 'halftime')).toHaveLength(1);
     const secondHalfStart = recording.frames.find((frame) => frame.half === 2)!;
+    expect(secondHalfStart.playingTicks).toBe(60 * TICK_RATE);
     expect(sample(recording, (secondHalfStart.tick - 0.5) / TICK_RATE).half).toBe(1);
   }, 20_000);
 });

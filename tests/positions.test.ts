@@ -12,7 +12,7 @@ import {
 import type { TacticalMemory } from '../src/protocol/schema.ts';
 import { stateHash, verifyRecording } from '../src/recording/record.ts';
 import { applyDecision, emptyBatch, validateBatch } from '../src/sim/orders.ts';
-import { FIELD, TICK_RATE } from '../src/sim/rules.ts';
+import { FIELD, MATCH_TIMING, TICK_RATE } from '../src/sim/rules.ts';
 import { cloneState, createMatch, resetFormation } from '../src/sim/state.ts';
 import { step } from '../src/sim/step.ts';
 import type { MatchState, Team } from '../src/sim/types.ts';
@@ -175,8 +175,8 @@ describe('starting positional briefs', () => {
       state.phase = { type: 'open_play', sinceTick: 4300 };
       state.half = 2;
       state.tick = 4321;
-      state.playingTicks = 2500;
       state.halfPlayingTicks = 700;
+      state.playingTicks = MATCH_TIMING.halfPlayingTicks + state.halfPlayingTicks;
       state.decisionId = 123;
       // A busy boundary: all active orders, long numeric representations, and both feedback lists full.
       for (const player of state.players) {
@@ -213,7 +213,14 @@ describe('starting positional briefs', () => {
       memory.pass!.target = { x: 75.12345678901235, y: 33.123456789012344 };
       tacticalMemorySchema.parse(memory);
       validateTacticalMemory(memory, state.players, 'coral');
-      const snapshot = observe(state, 'coral', memory, TICK_RATE, 4310, 3600);
+      const snapshot = observe(
+        state,
+        'coral',
+        memory,
+        TICK_RATE,
+        4310,
+        2 * MATCH_TIMING.halfPlayingTicks,
+      );
       const serialized = JSON.stringify(snapshot);
       expect(JSON.parse(serialized).privateMemory).toEqual(memory);
       expect(snapshot.orderFeedback).toHaveLength(PROTOCOL_LIMITS.recentEvents);

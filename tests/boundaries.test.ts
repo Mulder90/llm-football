@@ -20,7 +20,7 @@ it('keeps the simulation free of platform imports and external clocks', () => {
 
 it('protects the foundation fixture from unnoticed rule or numeric drift', () => {
   // Changes require reviewing the event sequence, engine version and slice record.
-  // football-0.8 preserves the actual kick origin. Reviewed: nine kicks,
-  // eight same-team receptions and one Cyan interception; no order failures.
-  expect(createPassingFixture().finalHash).toBe('0614dee1');
+  // football-0.9 changes only the duration contract and version. This short fixture
+  // retains nine kicks, eight same-team receptions, one interception and no failures.
+  expect(createPassingFixture().finalHash).toBe('78ff5e8a');
 });
