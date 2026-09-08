@@ -13,9 +13,21 @@ const GOAL_EFFECTS = {
   netDepthPixels: 18,
   netGridPixels: 5,
   rippleDurationTicks: 0.85 * TICK_RATE,
-  confettiPieces: 18,
-  confettiReachPixels: 40,
+  confettiPieces: 28,
+  confettiReachPixels: 48,
 } as const;
+
+function drawCelebrationStar(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  color: string,
+): void {
+  drawPixelRect(context, x - 1, y - 4, 3, 9, color);
+  drawPixelRect(context, x - 4, y - 1, 9, 3, color);
+  drawPixelRect(context, x - 2, y - 2, 5, 5, color);
+  drawPixelRect(context, x, y - 1, 1, 3, '#fff8dd');
+}
 
 /** Local net/stand reaction sampled from the goal's age, with no mutable particle state. */
 export function drawGoalEffects(
@@ -63,7 +75,15 @@ export function drawGoalEffects(
     const x = goalCenter.x + direction * (8 + travel);
     const y = goalCenter.y + side * (halfGoalPixels + 7 + travel * 0.5) - arc;
     const color = piece % 3 === 0 ? '#fff0bd' : teamColor;
-    drawPixelRect(context, x, y, piece % 2 === 0 ? 3 : 2, piece % 3 === 0 ? 2 : 4, color);
+    if (piece % 7 === 0) drawCelebrationStar(context, x, y, color);
+    else {
+      drawPixelRect(context, x, y, piece % 2 === 0 ? 3 : 2, piece % 3 === 0 ? 2 : 4, color);
+      if (piece % 5 === 0) {
+        // Short stepped streamers stay beside the net, outside the field of play.
+        drawPixelRect(context, x + direction * 2, y - 3, 2, 4, color);
+        drawPixelRect(context, x + direction * 4, y - 5, 2, 3, color);
+      }
+    }
   }
   const celebration = celebrationFrame(record, frame, false);
   if (
@@ -80,6 +100,8 @@ export function drawGoalEffects(
         drawPixelRect(context, landing.x + side * spread, landing.y + 2, 3, 1, '#fff0bd');
         drawPixelRect(context, landing.x + side * (spread + 4), landing.y, 2, 2, teamColor);
         drawPixelRect(context, landing.x + side * (spread - 3), landing.y + 5, 2, 1, '#fff0bd');
+        if (gesture.landingPulse > 0.25)
+          drawCelebrationStar(context, landing.x + side * (spread + 8), landing.y - 3, teamColor);
       }
     }
   }

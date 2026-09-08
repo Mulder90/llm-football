@@ -14,6 +14,8 @@ import type { PresentationTimeline } from '../render/presentation-time.ts';
 import type { PlaybackAudio } from '../audio/playback-audio.ts';
 import { cameraAt } from '../render/camera.ts';
 import { atmosphereAt, createFootballMoments } from '../render/match-atmosphere.ts';
+import { actionAccentAt, drawActionAccent, drawCarryAccents } from '../render/action-accents.ts';
+import { drawSidelines } from '../render/sideline.ts';
 
 const PRESENTATION_TIMING = {
   millisecondsPerSecond: 1000,
@@ -85,6 +87,8 @@ export function Pitch({
       context.translate(-camera.x, -camera.y);
       context.drawImage(background, 0, 0);
       drawCrowd(context, frame, reducedMotion, playhead.current * TICK_RATE, atmosphere);
+      drawSidelines(context, frame, atmosphere, playhead.current * TICK_RATE, reducedMotion);
+      drawCarryAccents(context, recording, frame, reducedMotion);
       drawReferee(context, frame, refereeTrack, reducedMotion);
       const presentedFrame = drawPlayers(
         context,
@@ -96,6 +100,7 @@ export function Pitch({
         footballMoments,
       );
       drawGoalEffects(context, frame, recording, reducedMotion);
+      drawActionAccent(context, actionAccentAt(recording, frame, footballMoments), reducedMotion);
       drawDecisionFocus(context, presentedFrame, recording, selectedPlayer);
       context.restore();
       audio.current?.advance(

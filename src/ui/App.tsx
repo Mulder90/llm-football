@@ -10,6 +10,7 @@ import { formatTime, recordingLabel } from './format.ts';
 import { MatchMoment } from './MatchMoment.tsx';
 import { useRecordings } from './useRecordings.ts';
 import { useSound } from './useSound.ts';
+import { useControlsVisibility } from './useControlsVisibility.ts';
 
 const DOWNLOAD_URL_LIFETIME_MS = 1000;
 export function App() {
@@ -30,6 +31,7 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
     () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   );
   const [panel, setPanel] = useState<InspectorTab | null>(null);
+  const controlsVisibility = useControlsVisibility(playback.isPlaying, panel !== null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   function closeInspector() {
@@ -68,7 +70,7 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
   return (
     <main className={`broadcast-app ${panel ? 'with-inspector' : ''}`} ref={broadcastRef}>
       <section className="watch-area" aria-label="Match broadcast">
-        <div className="stadium-wrap">
+        <div className="stadium-wrap" ref={controlsVisibility.surfaceRef}>
           <Pitch
             recording={recording}
             timeline={playback.timeline}
@@ -131,6 +133,8 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
             </p>
           )}
           <PlaybackControls
+            containerRef={controlsVisibility.controlsRef}
+            hidden={controlsVisibility.hidden}
             playback={playback}
             showPlayerNumbers={showPlayerNumbers}
             wholePitch={wholePitch || reducedMotion}

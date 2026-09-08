@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, Ref } from 'react';
 import type { Playback } from './usePlayback.ts';
 import { formatTime } from './format.ts';
 import { TICK_RATE } from '../sim/rules.ts';
@@ -7,6 +7,8 @@ import type { useSound } from './useSound.ts';
 const PLAYBACK_SPEEDS = [0.5, 1, 1.5, 2, 4];
 
 type ControlsProps = {
+  containerRef?: Ref<HTMLDivElement>;
+  hidden?: boolean;
   playback: Playback;
   showPlayerNumbers: boolean;
   wholePitch: boolean;
@@ -19,6 +21,8 @@ type ControlsProps = {
 };
 
 export function PlaybackControls({
+  containerRef,
+  hidden = false,
   playback,
   showPlayerNumbers,
   wholePitch,
@@ -37,7 +41,12 @@ export function PlaybackControls({
   const sliderMaximum = Math.round(playback.durationSeconds * TICK_RATE);
 
   return (
-    <div className="transport">
+    <div
+      className={`transport${hidden ? ' transport-hidden' : ''}`}
+      ref={containerRef}
+      inert={hidden}
+      aria-hidden={hidden || undefined}
+    >
       <div className="timeline">
         <input
           aria-label="Replay position"

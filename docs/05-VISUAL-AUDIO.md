@@ -41,6 +41,8 @@ Goal presentation uses the first frame containing the updated score. A compact b
 
 Cyan scorers keep the turning leap and wide landing; Coral scorers make two smaller fist-raised hops. Actual saves, nearby shot exits and completed passes trigger short keeper, shooter and teammate gestures. Possession and phase checks cancel stale reactions; no invented thoughts are displayed. The same precomputed moment list synchronizes sound and crowd responses.
 
+Robot helmets now have stronger toy-like silhouettes and expressive visors, with comic punctuation tied to actual saves, passes and nearby shot exits. Coaches, bench crews and drummers animate in fixed touchline pockets. Opening-half setup displays the taker and a nearby teammate at the centre while applying existing referee placement to copied poses; live positions stay canonical. The bottom transport disappears after 2.8 seconds of idle playback and remains reachable by pointer, tap or keyboard.
+
 The ball's drawn altitude uses 12 pixels per metre for legibility while its ground shadow remains at the physical x/y. The shadow broadens/fades with height and the ball rolls during a carry. This deliberate visual exaggeration never changes contact or flight physics.
 
 The earlier running GIF was a rough experiment with shape drift and is intentionally not included as a production reference. The selected overhead viewpoint needs its own aligned assets.

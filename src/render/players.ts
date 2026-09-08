@@ -1,15 +1,16 @@
 import { MOVEMENT, TICK_RATE } from '../sim/rules.ts';
-import { unitVector } from '../sim/math.ts';
+import { clamp, unitVector } from '../sim/math.ts';
 import type { Player, Team } from '../sim/types.ts';
 import type { Frame, PlayerFrame, Recording } from '../recording/record.ts';
 import { worldToScreen } from './layout.ts';
 import { drawPixelRect } from './pixels.ts';
 import { celebrationFrame, celebrationGesture } from './celebration.ts';
 import type { CelebrationGesture } from './celebration.ts';
-import { robotReactions, robotStyle } from './robot-character.ts';
+import { idleRobotPose, robotExpression, robotReactions, robotStyle } from './robot-character.ts';
 import type { RobotReaction } from './robot-character.ts';
 import { drawBall, drawBallTrail } from './ball.ts';
 import type { FootballMoment } from './match-atmosphere.ts';
+import { kickoffFrame } from './kickoff.ts';
 
 type KitPalette = { highlight: string; shirt: string; shade: string; boots: string };
 const TEAM_KITS: Record<Team, KitPalette> = {
@@ -80,6 +81,12 @@ function drawRobot(
   const isTackling = ticksSinceTackle >= 0 && ticksSinceTackle < ANIMATION.tackleDurationTicks;
   const ticksSinceSave = tick - frame.lastSaveTick;
   const isSaving = ticksSinceSave >= 0 && ticksSinceSave < ANIMATION.saveDurationTicks && !pumping;
+  const focused = hasBall || isKicking || isTackling || isSaving || preparing || receiving;
+  const expression = robotExpression(reaction, celebrating, focused);
+  const idle = !isMoving && !focused && !celebrating && !reaction && !frame.guarding;
+  const idlePose = idle
+    ? idleRobotPose(player, animationTick, reducedMotion)
+    : { headTilt: 0, headBob: 0, antennaLean: 0 };
   const facingSide = celebrating
     ? 0
     : Math.abs(facing.x) > ANIMATION.horizontalFacingThreshold
@@ -88,7 +95,9 @@ function drawRobot(
   const facingAway = celebrating ? celebration.facingAway : facing.y < -0.65;
   const movingSide = speed > 0 ? frame.velocity.x / speed : 0;
   const movingDepth = speed > 0 ? frame.velocity.y / speed : 0;
-  const lean = reducedMotion ? 0 : Math.round((frame.velocity.x / MOVEMENT.maximumSpeed) * 2);
+  const lean = reducedMotion
+    ? 0
+    : Math.round(clamp(frame.velocity.x / MOVEMENT.maximumSpeed, -1, 1) * 2);
   const tackleCrouch = isTackling ? (ticksSinceTackle < ANIMATION.tackleReachTicks ? 3 : 1) : 0;
   const headBob = isMoving && !reducedMotion && runFrame % 2 === 1 ? -style.runBob : 0;
   const bodyY =
@@ -96,7 +105,19 @@ function drawRobot(
     tackleCrouch +
     Math.round(celebration?.crouch ?? 0) +
     (conceded || frustrated ? 2 : preparing ? 1 : 0);
-  const headX = lean + facingSide;
+  const headSpring =
+    isMoving && !reducedMotion
+      ? Math.round(Math.sin(frame.distanceTravelled * Math.PI * 1.2) * style.headBounce)
+      : 0;
+  const headX = lean + facingSide + idlePose.headTilt;
+  const helmetY = bodyY + headSpring + idlePose.headBob;
+  const torsoSquash =
+    !reducedMotion &&
+    (celebration?.phase === 'windup' ||
+      celebration?.phase === 'landing' ||
+      (isMoving && runFrame % 2 === 1))
+      ? 1
+      : 0;
   const kit = player.role === 'keeper' ? KEEPER_KITS[player.team] : TEAM_KITS[player.team];
 
   // Ground markings never hop with the sprite. Foot position remains the spatial anchor.
@@ -203,10 +224,15 @@ function drawRobot(
       player.role === 'keeper' ? '#f5efd2' : kit.highlight,
     );
   }
-  pixel(-5 + lean, -11 + bodyY, 11, 9, OUTLINE);
-  pixel(-4 + lean, -10 + bodyY, 9, 6, kit.shirt);
-  pixel(-3 + lean, -10 + bodyY, 7, 2, kit.highlight);
-  pixel(-4 + lean, -5 + bodyY, 9, 2, kit.shade);
+  // The little neck joint stretches with the head; the boots stay at their existing anchors.
+  if (helmetY < bodyY) {
+    pixel(headX - 1, -11 + helmetY, 3, bodyY - helmetY + 2, OUTLINE);
+    pixel(headX, -10 + helmetY, 1, bodyY - helmetY, kit.shade);
+  }
+  pixel(-5 + lean - torsoSquash, -11 + bodyY, 11 + torsoSquash * 2, 9, OUTLINE);
+  pixel(-4 + lean - torsoSquash, -10 + bodyY, 9 + torsoSquash * 2, 6, kit.shirt);
+  pixel(-3 + lean - torsoSquash, -10 + bodyY, 7 + torsoSquash * 2, 2, kit.highlight);
+  pixel(-4 + lean - torsoSquash, -5 + bodyY, 9 + torsoSquash * 2, 2, kit.shade);
   if (facingAway) pixel(-2 + lean, -7 + bodyY, 5, 2, kit.shade);
   else {
     pixel(-2 + lean, -7 + bodyY, 2, 2, '#e7efd1');
@@ -215,49 +241,93 @@ function drawRobot(
 
   // The visor turns within the helmet; an away-facing runner shows its rear panel.
   const headPixel = (x: number, y: number, width: number, height: number, color: string) =>
-    pixel(x + headX, y + bodyY, width, height, color);
-  headPixel(-7, -22, 15, 12, OUTLINE);
-  headPixel(-6, -21, 13, 10, kit.shirt);
-  headPixel(-5, -20, 11, 2, kit.highlight);
-  headPixel(5, -18, 2, 7, kit.shade);
-  headPixel(-8, -17, 2, 4, kit.shade);
-  headPixel(7, -17, 2, 4, kit.shade);
-  if (style.variant === 1) headPixel(-1, -21, 2, 3, kit.shade);
-  else if (style.variant === 2) headPixel(-5, -20, 3, 3, '#eff0cb');
-  if (facingAway) {
-    headPixel(-3, -17, 7, 4, kit.shade);
-    headPixel(-2, -16, 5, 1, OUTLINE);
-    headPixel(-2, -14, 3, 1, kit.highlight);
+    pixel(x + headX, y + helmetY, width, height, color);
+  if (style.helmet === 'round') {
+    headPixel(-7, -25, 15, 15, OUTLINE);
+    headPixel(-9, -23, 19, 11, OUTLINE);
+    headPixel(-7, -23, 15, 12, kit.shirt);
+    headPixel(-8, -22, 17, 9, kit.shirt);
+    headPixel(-5, -24, 11, 2, kit.highlight);
+  } else if (style.helmet === 'square') {
+    headPixel(-9, -24, 19, 14, OUTLINE);
+    headPixel(-8, -23, 17, 12, kit.shirt);
+    headPixel(-7, -22, 15, 2, kit.highlight);
+    headPixel(-11, -20, 3, 6, OUTLINE);
+    headPixel(9, -20, 3, 6, OUTLINE);
+    headPixel(-10, -19, 2, 4, kit.highlight);
+    headPixel(9, -19, 2, 4, kit.shade);
+    headPixel(-2, -27, 5, 3, OUTLINE);
+    headPixel(-1, -26, 3, 3, kit.highlight);
   } else {
-    headPixel(-4 + facingSide, -18, 9, 6, VISOR);
+    headPixel(-7, -27, 15, 17, OUTLINE);
+    headPixel(-6, -26, 13, 15, kit.shirt);
+    headPixel(-5, -25, 11, 2, '#eff0cb');
+    headPixel(-9, -21, 3, 7, OUTLINE);
+    headPixel(7, -21, 3, 7, OUTLINE);
+    headPixel(-8, -20, 2, 5, kit.highlight);
+    headPixel(7, -20, 2, 5, kit.shade);
+  }
+  if (facingAway) {
+    headPixel(-4, -21, 9, 7, kit.shade);
+    headPixel(-3, -20, 7, 2, OUTLINE);
+    headPixel(-2, -16, 5, 1, kit.highlight);
+  } else {
+    headPixel(-5 + facingSide, -22, 11, 10, VISOR);
     const blinking =
       !reducedMotion &&
-      !celebrating &&
-      !isSaving &&
+      expression === 'neutral' &&
       (Math.floor(animationTick) + player.number * 19 + (player.team === 'cyan' ? 71 : 0)) %
         ANIMATION.blinkPeriodTicks <
         ANIMATION.blinkDurationTicks;
-    for (const eyeX of [-2, 2]) {
-      const eyeHeight =
-        blinking || conceded || frustrated ? 1 : reaction?.gesture === 'control' ? 3 : 2;
-      headPixel(eyeX + facingSide, -16 + (shrugging && eyeX < 0 ? -1 : 0), 2, eyeHeight, EYES);
-      if (celebrating) headPixel(eyeX + facingSide - 1, -15, 1, 1, EYES);
+    for (const eyeX of [-4, 2]) {
+      const x = eyeX + facingSide;
+      if (blinking) headPixel(x, -18, 3, 1, EYES);
+      else if (expression === 'joy') {
+        headPixel(x + 1, -20, 1, 1, EYES);
+        headPixel(x, -19, 3, 1, EYES);
+        headPixel(x, -18, 1, 1, EYES);
+        headPixel(x + 2, -18, 1, 1, EYES);
+      } else if (expression === 'frustrated') {
+        const outer = eyeX < 0 ? x : x + 2;
+        headPixel(outer, -20, 1, 1, EYES);
+        headPixel(x + 1, -19, 1, 1, EYES);
+        headPixel(outer, -18, 1, 1, EYES);
+      } else {
+        headPixel(x, -20, 3, expression === 'surprised' ? 4 : 3, EYES);
+        if (expression === 'determined') headPixel(eyeX < 0 ? x + 2 : x, -20, 1, 1, VISOR);
+        else if (expression === 'neutral') headPixel(x + 1 + facingSide, -18, 1, 1, VISOR);
+      }
     }
-    if (celebrating) headPixel(-1 + facingSide, -13, 3, 1, kit.highlight);
-    else if (isKicking || isTackling || preparing) headPixel(-2 + facingSide, -18, 6, 1, kit.shade);
-    else if (conceded || frustrated) headPixel(-1 + facingSide, -13, 3, 1, kit.shade);
+    if (expression === 'joy') {
+      headPixel(-2 + facingSide, -15, 1, 1, EYES);
+      headPixel(2 + facingSide, -15, 1, 1, EYES);
+      headPixel(-1 + facingSide, -14, 3, 1, EYES);
+    } else if (expression === 'frustrated') {
+      headPixel(-1 + facingSide, -15, 3, 1, EYES);
+      headPixel(-2 + facingSide, -14, 1, 1, EYES);
+      headPixel(2 + facingSide, -14, 1, 1, EYES);
+    } else
+      headPixel(
+        facingSide,
+        -14,
+        expression === 'surprised' ? 2 : 1,
+        expression === 'surprised' ? 2 : 1,
+        EYES,
+      );
   }
-  const antennaSway = !reducedMotion && isMoving ? Math.sign(stride) : 0;
-  const antenna = antennaSway + style.antennaOffset;
-  headPixel(antenna, -25, 1, 3, OUTLINE);
-  headPixel(-1 + antenna, -26, 3, 2, celebrating ? EYES : kit.highlight);
-  if (style.variant === 2) {
-    headPixel(4 - antennaSway, -24, 1, 2, OUTLINE);
-    headPixel(3 - antennaSway, -25, 3, 1, kit.highlight);
+  const antennaSway = (!reducedMotion && isMoving ? Math.sign(stride) : 0) + idlePose.antennaLean;
+  if (style.helmet === 'round') {
+    headPixel(antennaSway, -29, 1, 4, OUTLINE);
+    headPixel(-1 + antennaSway, -31, 4, 3, celebrating ? EYES : kit.highlight);
+  } else if (style.helmet === 'twin') {
+    for (const side of [-1, 1]) {
+      headPixel(side * 4 + antennaSway, -30, 1, 4, OUTLINE);
+      headPixel(side * 4 - 1 + antennaSway, -32, 3, 3, celebrating ? EYES : kit.highlight);
+    }
   }
 
   if (player.role === 'keeper') pixel(-5 + lean, -5 + bodyY, 2, 2, TEAM_KITS[player.team].shirt);
-  if (frame.yellowCards > 0) pixel(9, -23, 3, 5, '#ffe493');
+  if (frame.yellowCards > 0) pixel(17, -23, 3, 5, '#ffe493');
   if (showNumbers) {
     context.font = '8px monospace';
     context.textAlign = 'center';
@@ -277,8 +347,12 @@ export function drawPlayers(
   animationTick = frame.tick,
   moments: readonly FootballMoment[] = [],
 ): Frame {
-  const celebration = celebrationFrame(record, frame, reducedMotion);
   const reactions = robotReactions(record, frame, moments);
+  const celebration = celebrationFrame(
+    record,
+    kickoffFrame(record, frame, reducedMotion),
+    reducedMotion,
+  );
   frame = celebration.frame;
   const ballMoving = drawBallTrail(context, frame, record, reducedMotion);
   const drawingOrder = record.initial.players

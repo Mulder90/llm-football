@@ -1,5 +1,6 @@
 import { PITCH_LAYOUT, STADIUM_SIZE } from './layout.ts';
 import { drawPixelRect } from './pixels.ts';
+import { drawSidelineStructures } from './sideline.ts';
 import {
   decorationNoise,
   drawCornerFlagPoles,
@@ -155,21 +156,7 @@ function drawPitch(context: CanvasRenderingContext2D): void {
 
 function drawDugoutsAndLights(context: CanvasRenderingContext2D): void {
   // Dugouts and tunnel, kept out of the pitch.
-  for (const dugoutX of [305, 560]) {
-    drawPixelRect(context, dugoutX, 572, 96, 22, '#0a202a');
-    drawPixelRect(context, dugoutX, 572, 96, 3, '#6f9caa');
-    for (let i = 0; i < 7; i++) {
-      drawPixelRect(
-        context,
-        dugoutX + 8 + i * 12,
-        580,
-        7,
-        9,
-        dugoutX < 400 ? '#bd665b' : '#5aafba',
-      );
-    }
-    drawPixelRect(context, dugoutX, 593, 96, 2, '#779692');
-  }
+  drawSidelineStructures(context);
   drawPixelRect(context, 450, 572, 60, 81, '#09171f');
   for (let i = 0; i < 8; i++) drawPixelRect(context, 450, 595 + i * 7, 60, 1, '#29414a');
   // Warm floodlights, deliberately pixel clusters instead of a full-canvas glow.

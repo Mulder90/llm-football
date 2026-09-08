@@ -17,6 +17,7 @@ export type RobotReaction = {
   target: Vec2 | null;
   ageTicks: number;
 };
+export type RobotExpression = 'neutral' | 'joy' | 'determined' | 'frustrated' | 'surprised';
 
 const RECEIVER_TARGET_MATCH_METRES = 3;
 const REACTION_TIMING = {
@@ -30,9 +31,46 @@ export function robotStyle(player: Player) {
   const variant = (player.number + (player.team === 'cyan' ? 1 : 0)) % 3;
   return {
     variant,
+    helmet: variant === 0 ? 'round' : variant === 1 ? 'square' : 'twin',
     runBob: variant === 0 ? 2 : variant === 1 ? 0 : 1,
     armSwing: variant === 2 ? 1.4 : 1,
-    antennaOffset: variant === 1 ? -3 : 0,
+    headBounce: variant === 0 ? 2 : variant === 1 ? 1 : 3,
+  };
+}
+
+/** Visor expressions are readable illustrations of the same recorded actions as the body. */
+export function robotExpression(
+  reaction: RobotReaction | undefined,
+  celebrating: boolean,
+  focused: boolean,
+): RobotExpression {
+  if (celebrating || reaction?.gesture === 'save-pump' || reaction?.gesture === 'acknowledge')
+    return 'joy';
+  if (
+    reaction?.gesture === 'frustrated' ||
+    reaction?.gesture === 'conceded' ||
+    reaction?.gesture === 'shrug'
+  )
+    return 'frustrated';
+  if (reaction?.gesture === 'control') return 'surprised';
+  return focused ? 'determined' : 'neutral';
+}
+
+/** A brief, staggered head tilt. It has no bearing on attention, tactics or player ability. */
+export function idleRobotPose(player: Player, animationTick: number, reducedMotion: boolean) {
+  const still = { headTilt: 0, headBob: 0, antennaLean: 0 };
+  if (reducedMotion) return still;
+  const periodTicks = 8 * TICK_RATE;
+  const gestureTicks = 0.9 * TICK_RATE;
+  const phase =
+    (animationTick + player.number * 41 + (player.team === 'cyan' ? 97 : 0)) % periodTicks;
+  if (phase >= gestureTicks) return still;
+  const arc = Math.sin((phase / gestureTicks) * Math.PI);
+  const side = player.number % 2 === 0 ? -1 : 1;
+  return {
+    headTilt: Math.round(arc * 2) * side,
+    headBob: -Math.round(arc),
+    antennaLean: Math.round(arc) * side,
   };
 }
 

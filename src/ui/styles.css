@@ -410,6 +410,11 @@ body,
   border-radius: 7px;
   background: #0a1e27df;
   box-shadow: 0 8px 25px #04101835;
+  transition: opacity 180ms ease;
+}
+.transport-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 .timeline {
   height: 22px;
@@ -984,16 +989,6 @@ details > summary:focus-visible {
 .referee-moment {
   z-index: 3;
   bottom: 110px;
-}
-@media (hover: hover) and (pointer: fine) {
-  .transport {
-    opacity: 0.55;
-  }
-  .watch-area:hover .transport,
-  .transport:focus-within,
-  .transport:has(details[open]) {
-    opacity: 1;
-  }
 }
 @media (max-width: 1000px) {
   .broadcast-app.with-inspector {

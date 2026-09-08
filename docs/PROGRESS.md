@@ -32,6 +32,8 @@ At the user's request, `coordination-match-001` was stopped after 129.3667 playi
 
 - Slice 12: shared recorded moments synchronize attacking percussion, supporter buildup and opposing crowd reactions. Cyan retains the turning leap; Coral has two compact hops, with actual saves, near misses and completed passes driving brief robot gestures. Future observations include seven positional briefs and receiver-arrival guidance. Offline verification and limitations are in the [handoff](slices/12-ANTICIPATION-AND-ROLES.md); no paid generation was started.
 
+- Slice 13: toy-like expressive robot helmets, event punctuation and carrying puffs, reacting coaches/bench crews, club pennants and tiny drummers. Playback controls disappear after 2.8 seconds of idle play with keyboard/pointer safeguards. Opening-half presentation places the taker and support near the centre and respects referee geometry without rewriting recorded play. All 156 tests pass; no paid generation or engine change. See [handoff](slices/13-PLAYFUL-BROADCAST.md).
+
 ## Code quality agreement
 
 Use descriptive names, explicit units for physics constants, named replay fields, focused functions and components, and Prettier. The user explicitly permits necessary dependencies but wants simple, maintainable code without excessive defensive checks or premature architecture. External JSON remains untrusted and must be validated.
