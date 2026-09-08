@@ -77,20 +77,6 @@ export const modelResponseSchema = z.strictObject({
 });
 export const RESPONSE_JSON_SCHEMA = z.toJSONSchema(modelResponseSchema, { target: 'draft-7' });
 
-export function responseSchemaFor(identity: Omit<Batch, 'orders'>) {
-  return z.toJSONSchema(
-    modelResponseSchema.extend({
-      batch: modelResponseSchema.shape.batch.extend({
-        matchId: z.literal(identity.matchId),
-        decisionId: z.literal(identity.decisionId),
-        tick: z.literal(identity.tick),
-        team: z.literal(identity.team),
-      }),
-    }),
-    { target: 'draft-7' },
-  );
-}
-
 export type ModelDecision = { batch: Batch; intent: string; memory: TacticalMemory | null };
 export function parseModelDecision(raw: unknown, state: MatchState, team: Team): ModelDecision {
   const response = modelResponseSchema.safeParse(raw);

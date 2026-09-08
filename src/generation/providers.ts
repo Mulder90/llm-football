@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { ControllerConfig, TokenUsage } from '../recording/provenance.ts';
-import type { responseSchemaFor } from '../protocol/schema.ts';
+import type { RESPONSE_JSON_SCHEMA } from '../protocol/schema.ts';
 import { userPrompt } from '../protocol/prompt.ts';
 
 export type ControllerRequest = {
@@ -8,7 +8,7 @@ export type ControllerRequest = {
   observation: string;
   feedback: string | null;
   maximumOutputTokens: number;
-  responseSchema: ReturnType<typeof responseSchemaFor>;
+  responseSchema: typeof RESPONSE_JSON_SCHEMA;
 };
 export type ProviderReply = {
   text: string;

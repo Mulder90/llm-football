@@ -5,14 +5,18 @@ import {
 import type { ControllerScenario } from '../fixtures/controller-scenarios.ts';
 import { observe } from '../protocol/observation.ts';
 import { rulebook } from '../protocol/rulebook.ts';
-import { parseModelDecision, responseSchemaFor } from '../protocol/schema.ts';
+import { parseModelDecision, RESPONSE_JSON_SCHEMA } from '../protocol/schema.ts';
 import type { ModelDecision } from '../protocol/schema.ts';
 import type { ControllerConfig, ProviderUsd, RequestReceipt } from '../recording/provenance.ts';
-import { emptyBatch } from '../sim/orders.ts';
 import { DEFAULT_LIMITS } from './run.ts';
 import { ProviderError } from './providers.ts';
 import type { ControllerRequest, TeamController } from './providers.ts';
-import { budgetStopReason, estimateRequestUsd, reserveProviderUsd } from './budget.ts';
+import {
+  budgetStopReason,
+  estimateRequestUsd,
+  requestInputBytes,
+  reserveProviderUsd,
+} from './budget.ts';
 
 export type ScenarioResult = {
   scenarioId: string;
@@ -89,7 +93,7 @@ async function evaluateOne(
         observation,
         feedback,
         maximumOutputTokens: DEFAULT_LIMITS.maximumOutputTokens,
-        responseSchema: responseSchemaFor(emptyBatch(scenario.state, scenario.team)),
+        responseSchema: RESPONSE_JSON_SCHEMA,
       };
       const reply = await controller.request(
         request,
@@ -166,12 +170,7 @@ export async function evaluateControllers(options: {
         scenario.previousDecisionTick,
       ),
     );
-    const inputBytes =
-      Buffer.byteLength(
-        report.rules +
-          observation +
-          JSON.stringify(responseSchemaFor(emptyBatch(scenario.state, scenario.team))),
-      ) + 1024;
+    const inputBytes = requestInputBytes(report.rules, observation);
     if (inputBytes > DEFAULT_LIMITS.maximumInputBytes) {
       report.stopReason = 'input_limit';
       break;

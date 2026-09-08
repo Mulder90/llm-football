@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createControllerScenarios,
   evaluateControllerScenario,
+  recordedPossessionScenario,
 } from '../src/fixtures/controller-scenarios.ts';
 import type { ControllerScenario } from '../src/fixtures/controller-scenarios.ts';
 import { observe } from '../src/protocol/observation.ts';
@@ -12,6 +13,7 @@ import { BALL_CONTROL, TICK_RATE } from '../src/sim/rules.ts';
 import { cloneState } from '../src/sim/state.ts';
 import { step } from '../src/sim/step.ts';
 import type { Order } from '../src/sim/types.ts';
+import { createFullMatchFixture } from '../src/fixtures/full-match.ts';
 
 const scenarios = createControllerScenarios();
 const situation = (id: ControllerScenario['id']) =>
@@ -173,5 +175,65 @@ describe('controller comparison situations', () => {
     expect(result.metrics.spacingMetres.minimum).toBeLessThan(1);
     expect(result.metrics.spacingMetres.final).toBeLessThan(1);
     expect(result.metrics.spacingMetres.initial).toBeGreaterThan(8);
+  });
+
+  it('offers a real shot through the open side without awarding goals for choosing shoot', () => {
+    const scenario = situation('shooting-chance');
+    const openSide = evaluate(scenario, [
+      { type: 'shoot', playerId: 'coral-10', target: { x: 105, y: 36.5 }, speed: 24, loft: 0 },
+    ]);
+    const miss = evaluate(scenario, [
+      { type: 'shoot', playerId: 'coral-10', target: { x: 105, y: 45 }, speed: 24, loft: 0 },
+    ]);
+    expect(openSide.metrics.goalsFor).toBe(1);
+    expect(miss.metrics.goalsFor).toBe(0);
+    expect(openSide.events.some((event) => event.type === 'shot')).toBe(true);
+  });
+
+  it('extracts either team’s exact possession boundary and original opposition without changing the replay', () => {
+    const recording = createFullMatchFixture();
+    const initialHash = stateHash(recording.initial);
+    const state = cloneState(recording.initial);
+    let decisionIndex = 0;
+    const checked = new Set<string>();
+    while (state.tick < recording.durationTicks && checked.size < 2) {
+      const decision = recording.decisions[decisionIndex];
+      if (decision?.tick === state.tick) {
+        const carrier = state.players.find((player) => player.id === state.ball.owner);
+        if (
+          state.phase.type === 'open_play' &&
+          carrier?.role === 'outfield' &&
+          !checked.has(carrier.team)
+        ) {
+          const scenario = recordedPossessionScenario(recording, decisionIndex, carrier.team);
+          expect(stateHash(scenario.state)).toBe(stateHash(state));
+          expect(scenario.opponentOrders).toEqual(
+            decision.batches.find((batch) => batch.team !== carrier.team)!.orders,
+          );
+          expect(scenario.memory).toBeNull();
+          const result = evaluateControllerScenario(
+            scenario,
+            decision.batches.find((batch) => batch.team === carrier.team)!,
+          );
+          const replay = cloneState(state);
+          applyDecision(replay, ...decision.batches);
+          while (replay.tick < result.finalState.tick) step(replay);
+          expect(result.finalHash).toBe(stateHash(replay));
+          expect(
+            result.metrics.controlSeconds.own +
+              result.metrics.controlSeconds.opponent +
+              result.metrics.controlSeconds.loose,
+          ).toBeCloseTo(result.metrics.simulatedSeconds);
+          checked.add(carrier.team);
+        }
+        applyDecision(state, ...decision.batches);
+        decisionIndex++;
+      }
+      step(state);
+    }
+    expect(checked).toEqual(new Set(['coral', 'cyan']));
+    expect(() => recordedPossessionScenario(recording, 0, 'coral')).toThrow('open-play');
+    expect(() => recordedPossessionScenario(recording, -1, 'coral')).toThrow('index');
+    expect(stateHash(recording.initial)).toBe(initialHash);
   });
 });

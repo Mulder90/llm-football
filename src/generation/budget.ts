@@ -1,8 +1,17 @@
+import { RESPONSE_JSON_SCHEMA } from '../protocol/schema.ts';
 import type {
   ControllerConfig,
   GenerationProvenance,
   ProviderUsd,
 } from '../recording/provenance.ts';
+
+const SCHEMA_BYTES = Buffer.byteLength(JSON.stringify(RESPONSE_JSON_SCHEMA));
+const REQUEST_OVERHEAD_BYTES = 1024;
+
+/** Shared by dispatch and dry runs; reserve room for framing and repair feedback. */
+export function requestInputBytes(rules: string, observation: string): number {
+  return Buffer.byteLength(rules + observation) + SCHEMA_BYTES + REQUEST_OVERHEAD_BYTES;
+}
 
 export function estimateRequestUsd(
   controller: ControllerConfig,

@@ -43,6 +43,20 @@ The smoke run permits one request per provider with no repairs. The ten-decision
 
 Recordings and request metadata are saved to `artifacts/private/<name>/match.json`. Use a fresh name for each run. Ctrl+C asks the runner to stop and save an incomplete checkpoint; it does not create a resumable job. Development matches currently use two 30-second halves. Generation time and cost depend on the model requests; playback uses the saved recording.
 
+## Evaluate short football situations
+
+Select models and situations before paying for another complete game. `--dry-run` lists cases, input sizes and base request count without calling either provider or requiring keys:
+
+```sh
+pnpm evaluate-controllers --dry-run \
+  --models gpt-5-mini,gemini-3.8-flash \
+  --scenarios carry-space,pass-pressure,shooting-chance --repetitions 2
+```
+
+To evaluate real positions, add `--recording public/matches/positional-match-001.json.gz --possessions coral:5,cyan:82`. Selectors use team and **zero-based decision index**, not seconds. The recording is validated and replayed to those exact boundaries; its previous own memory and current opponent batch are reused. Future opponent decisions are not supplied.
+
+Remove `--dry-run` only when intending paid requests, and set a fresh `--name`, `--usd`, `--openai-usd` and `--gemini-usd`. Omitting `--models` compares all four supported configurations; omitting `--scenarios` includes all five authored situations. Each repetition is an independent request per model, with at most one repair. Reports are saved in `artifacts/private/<name>/report.json`. These two-second diagnostics are not model-versus-model matches.
+
 ## Add a recording to the viewer
 
 ```sh

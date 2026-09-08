@@ -21,7 +21,9 @@ The runner serializes both observations before either request is dispatched. It 
 
 Both batches are validated against the same match, team, tick and decision identity before either is applied. Arrival order cannot expose an opponent's pending orders or let one side move earlier. Instantaneous kicks resolve before tackles, then movement/body separation, then the ball, then the match clock. A stopped phase skips subsequent open-play work. Equal physical contacts have declared priority and explicit seeded tie-breaking.
 
-A scheduled decision is due after one simulated second. Phase changes interrupt sooner; a possession change can interrupt after a minimum 15 ticks. Both teams always receive the same opportunity. A model order can be structurally valid yet physically fail—for example a kick without possession. Such an outcome is a recorded football event, distinct from a rejected JSON batch or operational fallback.
+A scheduled decision is due after one simulated second. Phase changes interrupt sooner; gaining control of the ball can interrupt after a minimum 15 ticks since the last decision. A release into flight does not itself request a replan: existing runs continue, with loose-ball play reviewed at the regular interval. The scheduler remembers a release so even the same player's later recapture can prompt both teams. Both teams always receive the same opportunity. A valid order can still fail physically; that is a recorded football event, distinct from rejected JSON or operational fallback.
+
+Both providers receive the same stable response schema. Match/team/tick/decision values are supplied in the observation and checked in code after parsing. They are no longer embedded as changing schema constants. This allows prefix/schema reuse without accepting stale replies; cache hits and actual latency remain measured provider behavior.
 
 The observation stream shown to spectators follows these recorded boundaries. It is not a WebSocket or a claim of live model token streaming. Partial JSON never becomes a committed action.
 
@@ -32,7 +34,7 @@ Each team starts with null tactical memory. A valid response replaces its own me
 1. **Simulation:** integer ticks at 60 Hz, including setup and halftime.
 2. **Playing time:** 1,800 eligible ticks per half, defined once in football-0.5. Restart setup/ready and halftime pause this clock. Ends swap after the interval. Thirty seconds per half is the current development duration.
 3. **Generation wall time:** provider latency, validation, retries and checkpoint writes. It cannot alter physics through response arrival order.
-4. **Presentation:** a watch timeline maps to recorded simulation time, sampled/interpolated at the browser's frame rate. Each eligible goal vignette takes six watch seconds at 1× while ordinary play retains its original rate. Controls show the extended duration. The spectator can pause, seek and change speed; a hidden tab pauses instead of catching up.
+4. **Presentation:** a watch timeline maps to recorded simulation time, sampled/interpolated at the browser's frame rate. Each eligible goal vignette takes nine watch seconds at 1× while ordinary play retains its original rate. Controls show the extended duration. The spectator can pause, seek and change speed; a hidden tab pauses instead of catching up.
 
 Goal huddles use a presentation copy of pre-goal poses during the recorded stopped-clock setup. The watch timeline gives this sequence more viewing time; it does not extend a shot, add model decisions or move canonical players. Score, inspection and event audio always sample mapped recording time. Decorative jumps and flags use watch time. [Decision 007](decisions/007-BROADCAST-TIME.md) covers the mapping and exact endpoint handling. The renderer bounds a single elapsed frame to 0.25 seconds and updates React controls at roughly 10 Hz; sprite rendering uses `requestAnimationFrame` independently.
 

@@ -175,15 +175,13 @@ it('sends the reviewed model-specific settings and caps to each real adapter', a
       ),
     );
   });
-  const { responseSchemaFor } = await import('../src/protocol/schema.ts');
-  const { emptyBatch } = await import('../src/sim/orders.ts');
-  const state = createControllerScenarios()[0]!.state;
+  const { RESPONSE_JSON_SCHEMA } = await import('../src/protocol/schema.ts');
   const request: ControllerRequest = {
     rules: 'rules',
     observation: '{}',
     feedback: null,
     maximumOutputTokens: 4096,
-    responseSchema: responseSchemaFor(emptyBatch(state, 'coral')),
+    responseSchema: RESPONSE_JSON_SCHEMA,
   };
   await openaiController('unused', 'gpt-5-mini').request(request, signal());
   await geminiController('unused', 'gemini-3.8-flash').request(request, signal());

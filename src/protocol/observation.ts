@@ -94,7 +94,7 @@ export function observe(
       : state.phase.type === 'restart_setup'
         ? 'Setup only: position your team with move or guard. Guard already moves the keeper; do not add a separate move for the same player. The delivery decision follows setup.'
         : state.phase.type === 'open_play'
-          ? "Coordinate the team: carrier action, receiver/support runs, and defensive cover. Read teamContext and each owned player's actionContext. Kicks and tackles execute now; movement persists."
+          ? 'Choose carry, pass or shoot from space, pressure and goal position; move carries an owned ball. Coordinate support and cover, and a receiver only when passing. Read actionContext. Movement persists; kicks/tackles execute now.'
           : 'The clock is stopped for the interval or full time. No orders are accepted.';
   return {
     protocolVersion: 1,

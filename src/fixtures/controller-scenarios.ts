@@ -1,5 +1,6 @@
 import type { TacticalMemory } from '../protocol/schema.ts';
 import { capture, SAMPLE_INTERVAL_TICKS, stateHash } from '../recording/record.ts';
+import type { Recording } from '../recording/record.ts';
 import { footPosition } from '../sim/ball.ts';
 import { distanceBetween } from '../sim/math.ts';
 import { applyDecision, emptyBatch } from '../sim/orders.ts';
@@ -10,10 +11,16 @@ import { step } from '../sim/step.ts';
 import type { Batch, MatchState, Order, Team, Vec2 } from '../sim/types.ts';
 
 export type ControllerScenario = {
-  id: 'carry-space' | 'pass-pressure' | 'blocked-lane' | 'keeper-distribution';
+  id:
+    | 'carry-space'
+    | 'pass-pressure'
+    | 'blocked-lane'
+    | 'keeper-distribution'
+    | 'shooting-chance'
+    | `recorded-${Team}-${number}`;
   title: string;
   description: string;
-  team: 'coral';
+  team: Team;
   state: MatchState;
   memory: TacticalMemory | null;
   previousDecisionTick: number;
@@ -161,7 +168,59 @@ export function createControllerScenarios(): ControllerScenario[] {
       'coral-7',
     ),
     keeperDistribution(),
+    scenario(
+      'shooting-chance',
+      'An open shooting angle',
+      'Coral #10 controls the ball near goal; the keeper is displaced toward the upper post. Compare a shot through the open side with carrying or passing. The engine decides whether it scores.',
+      {
+        'coral-10': { x: 94, y: 36 },
+        'cyan-1': { x: 102, y: 31 },
+        'cyan-2': { x: 82, y: 12 },
+        'cyan-3': { x: 84, y: 26 },
+        'cyan-4': { x: 84, y: 44 },
+        'cyan-5': { x: 82, y: 56 },
+      },
+      'coral-10',
+      [{ type: 'guard', playerId: 'cyan-1', target: { x: 102, y: 31 } }],
+    ),
   ];
+}
+
+/** Replay to a real possession boundary, then hold the recorded opposition to that one batch. */
+export function recordedPossessionScenario(
+  recording: Recording,
+  decisionIndex: number,
+  team: Team,
+): ControllerScenario {
+  const boundary = recording.decisions[decisionIndex];
+  if (!boundary) throw new Error('No recorded decision at that index');
+  const state = cloneState(recording.initial);
+  let nextDecision = 0;
+  while (state.tick < boundary.tick) {
+    const decision = recording.decisions[nextDecision];
+    if (decision?.tick === state.tick) {
+      applyDecision(state, ...decision.batches);
+      nextDecision++;
+    }
+    const tick = state.tick;
+    step(state);
+    if (state.tick === tick) throw new Error('Recorded boundary follows a stopped simulation');
+  }
+  const carrier = state.players.find((player) => player.id === state.ball.owner);
+  if (state.phase.type !== 'open_play' || carrier?.team !== team || carrier.role !== 'outfield')
+    throw new Error('Choose an open-play outfield possession for the controlled team');
+  const previous = recording.decisions[decisionIndex - 1];
+  return {
+    id: `recorded-${team}-${boundary.tick}`,
+    title: `${team} possession at recorded tick ${boundary.tick}`,
+    description: `Exact state and prior memory from ${recording.initial.matchId}. Opposition executes its recorded orders at this boundary, with no later replanning. This is a counterfactual diagnostic, not a continuation of the match.`,
+    team,
+    state,
+    memory: structuredClone(previous?.notes?.[team].memory ?? null),
+    previousDecisionTick: previous?.tick ?? 0,
+    opponentOrders: structuredClone(boundary.batches.find((batch) => batch.team !== team)!.orders),
+    evaluationTicks: EVALUATION_TICKS,
+  };
 }
 
 function minimumOwnSpacing(state: MatchState, team: Team): number {
@@ -184,10 +243,16 @@ export function evaluateControllerScenario(scenario: ControllerScenario, accepte
   const carrierOrder = acceptedBatch.orders.find((order) => order.playerId === carrier.id);
   const direction = attackDirection(initial, scenario.team);
   const initialEventCount = state.events.length;
-  const batches = applyDecision(state, acceptedBatch, {
-    ...emptyBatch(state, 'cyan'),
+  const opponent: Team = scenario.team === 'coral' ? 'cyan' : 'coral';
+  const opposition = {
+    ...emptyBatch(state, opponent),
     orders: scenario.opponentOrders,
-  });
+  };
+  const batches = applyDecision(
+    state,
+    scenario.team === 'coral' ? acceptedBatch : opposition,
+    scenario.team === 'cyan' ? acceptedBatch : opposition,
+  );
   const frames = [capture(state)];
   const controlTicks = { coral: 0, cyan: 0, loose: 0 };
   let lastControlTeam: Team = scenario.team;
@@ -253,7 +318,7 @@ export function evaluateControllerScenario(scenario: ControllerScenario, accepte
       maximumControlledForwardMetres,
       controlSeconds: {
         own: controlTicks[scenario.team] / TICK_RATE,
-        opponent: controlTicks.cyan / TICK_RATE,
+        opponent: controlTicks[opponent] / TICK_RATE,
         loose: controlTicks.loose / TICK_RATE,
       },
       finalOwnerId: finalOwner?.id ?? null,
@@ -277,8 +342,8 @@ export function evaluateControllerScenario(scenario: ControllerScenario, accepte
       ownOrderFailures: events.filter(
         (event) => event.type === 'order_failed' && event.playerId?.startsWith(`${scenario.team}-`),
       ).length,
-      goalsFor: state.score.coral - initial.score.coral,
-      goalsAgainst: state.score.cyan - initial.score.cyan,
+      goalsFor: state.score[scenario.team] - initial.score[scenario.team],
+      goalsAgainst: state.score[opponent] - initial.score[opponent],
       finalPhase: state.phase.type,
       spacingMetres: {
         initial: initialSpacing,

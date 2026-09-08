@@ -9,7 +9,7 @@ import { step } from '../sim/step.ts';
 import type { MatchState, Team } from '../sim/types.ts';
 import { observe } from '../protocol/observation.ts';
 import { rulebook } from '../protocol/rulebook.ts';
-import { parseModelDecision, RESPONSE_JSON_SCHEMA, responseSchemaFor } from '../protocol/schema.ts';
+import { parseModelDecision, RESPONSE_JSON_SCHEMA } from '../protocol/schema.ts';
 import type { ModelDecision, TacticalMemory } from '../protocol/schema.ts';
 import { ProviderError } from './providers.ts';
 import type { ControllerRequest, TeamController } from './providers.ts';
@@ -17,6 +17,7 @@ import {
   budgetStopReason,
   estimateRequestUsd,
   generationProviderUsd,
+  requestInputBytes,
   reserveProviderUsd,
 } from './budget.ts';
 
@@ -33,8 +34,6 @@ export const DEFAULT_LIMITS: GenerationProvenance['limits'] = {
 const REQUEST_TIMEOUT_MS = 45_000;
 const MINIMUM_DECISION_SPACING_TICKS = 15;
 const MAXIMUM_MATCH_TICKS = 20 * 60 * TICK_RATE;
-const SCHEMA_BYTES = Buffer.byteLength(JSON.stringify(RESPONSE_JSON_SCHEMA));
-const REQUEST_OVERHEAD_BYTES = 1024;
 const TEAMS = ['coral', 'cyan'] as const;
 
 type GenerationOptions = {
@@ -80,8 +79,7 @@ export async function decideTogether(
     ),
   );
   for (const observation of observations) {
-    const inputBytes =
-      Buffer.byteLength(provenance.rulebook + observation) + SCHEMA_BYTES + REQUEST_OVERHEAD_BYTES;
+    const inputBytes = requestInputBytes(provenance.rulebook, observation);
     if (inputBytes > provenance.limits.maximumInputBytes) throw new Error('input_limit');
   }
   const results = await Promise.all(
@@ -122,7 +120,7 @@ export async function decideTogether(
             observation: observations[teamIndex]!,
             feedback,
             maximumOutputTokens: provenance.limits.maximumOutputTokens,
-            responseSchema: responseSchemaFor(emptyBatch(state, team)),
+            responseSchema: RESPONSE_JSON_SCHEMA,
           };
           const reply = await controller.request(
             request,
@@ -265,8 +263,13 @@ export async function generateMatch(options: GenerationOptions): Promise<Recordi
     const phaseKey = `${state.phase.type}:${state.phase.sinceTick}`;
     const phaseChanged = phaseKey !== previousPhase;
     const elapsedTicks = state.tick - lastDecisionTick;
+    if (state.ball.owner === null) observedOwner = null;
+    // Let a released ball travel under the chosen runs. A new controller of the ball
+    // still prompts both teams; loose-ball chases are reviewed at the regular interval.
     const possessionChanged =
-      state.ball.owner !== observedOwner && elapsedTicks >= MINIMUM_DECISION_SPACING_TICKS;
+      state.ball.owner !== null &&
+      state.ball.owner !== observedOwner &&
+      elapsedTicks >= MINIMUM_DECISION_SPACING_TICKS;
     const decisionDue =
       phaseChanged || elapsedTicks >= limits.decisionIntervalTicks || possessionChanged;
     if (decisionDue && state.phase.type !== 'halftime') {

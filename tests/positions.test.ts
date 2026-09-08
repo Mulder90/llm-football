@@ -6,7 +6,6 @@ import { rulebook } from '../src/protocol/rulebook.ts';
 import {
   PROTOCOL_LIMITS,
   RESPONSE_JSON_SCHEMA,
-  responseSchemaFor,
   tacticalMemorySchema,
   validateTacticalMemory,
 } from '../src/protocol/schema.ts';
@@ -207,10 +206,9 @@ describe('starting positional briefs', () => {
       const serialized = JSON.stringify(snapshot);
       expect(JSON.parse(serialized).privateMemory).toEqual(memory);
       expect(snapshot.orderFeedback).toHaveLength(PROTOCOL_LIMITS.recentEvents);
-      for (const schema of [RESPONSE_JSON_SCHEMA, responseSchemaFor(emptyBatch(state, 'coral'))]) {
-        const bytes = Buffer.byteLength(rulebook() + serialized + JSON.stringify(schema)) + 1024;
-        expect(bytes).toBeLessThanOrEqual(DEFAULT_LIMITS.maximumInputBytes);
-      }
+      const bytes =
+        Buffer.byteLength(rulebook() + serialized + JSON.stringify(RESPONSE_JSON_SCHEMA)) + 1024;
+      expect(bytes).toBeLessThanOrEqual(DEFAULT_LIMITS.maximumInputBytes);
     },
   );
 
@@ -229,9 +227,7 @@ describe('starting positional briefs', () => {
           maximumBytes = Math.max(
             maximumBytes,
             Buffer.byteLength(
-              rulebook() +
-                JSON.stringify(snapshot) +
-                JSON.stringify(responseSchemaFor(emptyBatch(state, team))),
+              rulebook() + JSON.stringify(snapshot) + JSON.stringify(RESPONSE_JSON_SCHEMA),
             ) + 1024,
           );
         }

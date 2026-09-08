@@ -104,6 +104,10 @@ describe('shared model protocol', () => {
     expect(() => parseModelDecision(valid, state, 'coral')).not.toThrow();
     for (const raw of [
       { ...valid, batch: { ...valid.batch, tick: 1 } },
+      { ...valid, batch: { ...valid.batch, decisionId: 1 } },
+      { ...valid, batch: { ...valid.batch, matchId: 'another-match' } },
+      { ...valid, batch: { ...valid.batch, team: 'cyan' } },
+      { ...valid, batch: { ...valid.batch, version: 2 } },
       { ...valid, batch: { ...valid.batch, orders: [{ type: 'hold', playerId: 'cyan-2' }] } },
       {
         ...valid,
@@ -114,6 +118,79 @@ describe('shared model protocol', () => {
       },
     ])
       expect(() => parseModelDecision(raw, state, 'coral')).toThrow();
+  });
+
+  it('reuses one provider schema across changing identities while rejecting stale replies', async () => {
+    const seen: ControllerRequest[] = [];
+    const controller = mockController((request) => {
+      seen.push(request);
+      return response(request);
+    });
+    const recording = await generateMatch({
+      matchId: 'stable-schema',
+      controllers: { coral: controller, cyan: controller },
+      limits: { ...DEFAULT_LIMITS, maximumDecisions: 3 },
+    });
+    expect(seen).toHaveLength(6);
+    expect(new Set(seen.map((request) => JSON.stringify(request.responseSchema))).size).toBe(1);
+    expect(recording.generation!.responseSchema).toBe(JSON.stringify(seen[0]!.responseSchema));
+    const identities = seen.map((request) => JSON.parse(request.observation).responseIdentity);
+    expect(new Set(identities.map((identity) => identity.tick)).size).toBe(3);
+    expect(new Set(identities.map((identity) => identity.team)).size).toBe(2);
+    const state = createMatch('stable-schema');
+    const stale = response(seen[0]!);
+    state.tick++;
+    expect(() => parseModelDecision(stale, state, 'coral')).toThrow('stale');
+  });
+
+  it('keeps acquisition and restart decisions but lets a released ball travel until the heartbeat', async () => {
+    const controller = mockController((request) => {
+      const observation = JSON.parse(request.observation) as ReturnType<typeof observe>;
+      const reply = response(request);
+      const carrier = observation.players.find((player) => player.actionContext?.canKickNow);
+      if (!carrier) return reply;
+      const restarting = observation.phase.type === 'restart_ready';
+      return {
+        ...reply,
+        batch: {
+          ...reply.batch,
+          orders: [
+            {
+              type: 'kick',
+              playerId: carrier.id,
+              target: { x: restarting ? 40 : 80, y: 34 },
+              speed: restarting ? 8 : 10,
+              loft: restarting ? 0 : 8,
+            },
+          ],
+        },
+      };
+    });
+    const recording = await generateMatch({
+      matchId: 'pass-flight-cadence',
+      controllers: { coral: controller, cyan: controller },
+      limits: { ...DEFAULT_LIMITS, maximumDecisions: 9 },
+    });
+    const observations = recording.decisions.map(
+      (decision) => JSON.parse(decision.observations!.coral) as ReturnType<typeof observe>,
+    );
+    const acquisition = observations.findIndex(
+      (observation) =>
+        observation.phase.type === 'open_play' && observation.ball.owner === 'coral-7',
+    );
+    expect(acquisition).toBeGreaterThan(0);
+    const received = observations[acquisition]!;
+    expect(
+      received.responseIdentity.tick - observations[acquisition - 1]!.responseIdentity.tick,
+    ).toBeLessThan(60);
+    const afterRelease = observations[acquisition + 1]!;
+    expect(afterRelease.responseIdentity.tick - received.responseIdentity.tick).toBe(60);
+    expect(afterRelease.ball.owner).toBeNull();
+    expect(afterRelease.ball.position.z).toBeGreaterThan(1);
+    expect(observations.some((observation) => observation.phase.type === 'restart_ready')).toBe(
+      true,
+    );
+    expect(verifyRecording(recording).tick).toBe(recording.durationTicks);
   });
 
   it('locks an accepted reply while repairing only the rejected team on the same unchanged snapshot', async () => {

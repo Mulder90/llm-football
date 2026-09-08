@@ -1,9 +1,20 @@
-import { existsSync } from 'node:fs';
+import { existsSync, openAsBlob } from 'node:fs';
 import { mkdir, open, rename, rm, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
 import { evaluateControllers } from '../src/generation/evaluate.ts';
 import { geminiController, openaiController } from '../src/generation/providers.ts';
+import {
+  createControllerScenarios,
+  recordedPossessionScenario,
+} from '../src/fixtures/controller-scenarios.ts';
+import { readRecordingStream } from '../src/recording/validate.ts';
+import { verifyRecording } from '../src/recording/record.ts';
+import { teamSchema } from '../src/protocol/schema.ts';
+import { requestInputBytes } from '../src/generation/budget.ts';
+import { observe } from '../src/protocol/observation.ts';
+import { rulebook } from '../src/protocol/rulebook.ts';
+import { TICK_RATE } from '../src/sim/rules.ts';
 
 if (existsSync('.env')) process.loadEnvFile('.env');
 const { values } = parseArgs({
@@ -13,6 +24,11 @@ const { values } = parseArgs({
     'openai-usd': { type: 'string' },
     'gemini-usd': { type: 'string' },
     repetitions: { type: 'string', default: '2' },
+    models: { type: 'string' },
+    scenarios: { type: 'string' },
+    recording: { type: 'string' },
+    possessions: { type: 'string' },
+    'dry-run': { type: 'boolean', default: false },
   },
 });
 const name = z
@@ -28,14 +44,85 @@ const maximumEstimatedUsdByProvider = {
   ...(openaiUsd !== undefined && { openai: openaiUsd }),
   ...(geminiUsd !== undefined && { gemini: geminiUsd }),
 };
-if (!process.env.OPENAI_API_KEY || !process.env.GEMINI_API_KEY)
-  throw new Error('Set both provider keys in local .env; never use VITE_ prefixes');
-const controllers = [
-  openaiController(process.env.OPENAI_API_KEY),
-  openaiController(process.env.OPENAI_API_KEY, 'gpt-5-mini'),
-  geminiController(process.env.GEMINI_API_KEY),
-  geminiController(process.env.GEMINI_API_KEY, 'gemini-3.8-flash'),
-];
+const supportedModels = [
+  'gpt-5-nano',
+  'gpt-5-mini',
+  'gemini-3.1-flash-lite',
+  'gemini-3.8-flash',
+] as const;
+const models = z
+  .array(z.enum(supportedModels))
+  .min(1)
+  .refine((models) => new Set(models).size === models.length, 'Choose each model once')
+  .parse(values.models?.split(',') ?? supportedModels);
+const controllers = models.map((model) => {
+  const openai = model.startsWith('gpt-');
+  const key = values['dry-run']
+    ? 'unused'
+    : process.env[openai ? 'OPENAI_API_KEY' : 'GEMINI_API_KEY'];
+  if (!key) throw new Error(`Set ${openai ? 'OPENAI_API_KEY' : 'GEMINI_API_KEY'} locally`);
+  return openai ? openaiController(key, model) : geminiController(key, model);
+});
+let scenarios = createControllerScenarios();
+if (values.scenarios) {
+  const selected = values.scenarios.split(',');
+  scenarios = selected.map((id) => {
+    const scenario = scenarios.find((scenario) => scenario.id === id);
+    if (!scenario) throw new Error(`Unknown scenario: ${id}`);
+    return scenario;
+  });
+  if (new Set(selected).size !== selected.length) throw new Error('Choose each scenario once');
+}
+if (Boolean(values.recording) !== Boolean(values.possessions))
+  throw new Error('Use --recording PATH with --possessions TEAM:DECISION_INDEX,...');
+if (values.recording && values.possessions) {
+  const stream = (await openAsBlob(values.recording)).stream();
+  const recording = await readRecordingStream(
+    values.recording.endsWith('.gz') ? stream.pipeThrough(new DecompressionStream('gzip')) : stream,
+  );
+  verifyRecording(recording);
+  for (const selection of values.possessions.split(',')) {
+    const [team, index] = z
+      .tuple([teamSchema, z.coerce.number().int().nonnegative()])
+      .parse(selection.split(':'));
+    scenarios.push(recordedPossessionScenario(recording, index, team));
+  }
+  if (new Set(scenarios.map((scenario) => scenario.id)).size !== scenarios.length)
+    throw new Error('Choose each possession once');
+}
+if (values['dry-run']) {
+  console.log(
+    JSON.stringify(
+      {
+        controllers: controllers.map((controller) => controller.config),
+        repetitions,
+        cases: scenarios.map((scenario) => ({
+          id: scenario.id,
+          team: scenario.team,
+          inputBytes: requestInputBytes(
+            rulebook(),
+            JSON.stringify(
+              observe(
+                scenario.state,
+                scenario.team,
+                scenario.memory,
+                scenario.evaluationTicks,
+                scenario.previousDecisionTick,
+              ),
+            ),
+          ),
+          playingSeconds: scenario.state.playingTicks / TICK_RATE,
+        })),
+        baseRequests: scenarios.length * controllers.length * repetitions,
+        maximumEstimatedUsd,
+        maximumEstimatedUsdByProvider,
+      },
+      null,
+      2,
+    ),
+  );
+  process.exit(0);
+}
 const folder = `artifacts/private/${name}`;
 await mkdir('artifacts/private', { recursive: true });
 const lock = await open('artifacts/private/generation.lock', 'wx').catch(() => {
@@ -57,6 +144,7 @@ try {
   );
   const report = await evaluateControllers({
     controllers,
+    scenarios,
     repetitions,
     maximumEstimatedUsd,
     maximumEstimatedUsdByProvider,

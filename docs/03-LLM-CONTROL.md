@@ -39,6 +39,8 @@ A new match starts with null memory. Each accepted response replaces that team's
 
 Memory is not an action queue or engine-certified result. The model must translate retained assignments and pass plans into actual orders. It should review events and current ownership, use event ticks to avoid treating old incidents as new, and say unresolved when evidence is inconclusive. A confident `review` does not prove that a pass succeeded. The spectator inspector labels this field as a model assessment and can reveal both plans from the recording; the opposing controller never receives them.
 
+For new responses, the prompt asks for at most three useful off-ball assignments, a short plan and review, and only current threats. These are brevity instructions; the schema bounds above still define what is accepted. All active players still receive actual orders. `pass` describes a teammate pass issued in the current batch: `ballPlayerId` is its kicker and `receiverId` a different teammate. Otherwise the model should return `pass: null`, including during carrying, defending or flight. This avoids repeatedly describing the entire formation or confusing an in-flight receiver with its passer. Historical recordings retain their exact original prompts and memory.
+
 ## Positional responsibilities
 
 Starting positions follow the existing 4–3–3 roster: #1 keeper, #2/#5 fullbacks, #3/#4 centre backs, #7 holding midfielder, #6/#8 central midfielders, #9/#11 wingers and #10 striker. Seven shared short briefs cover possession, defending and recovery. Stable starting roles can coexist with temporary memory assignments; interchanges need explicit cover. Half-relative goals and left/right touchlines keep the same identities meaningful after ends swap.
@@ -60,7 +62,7 @@ Return `{ batch, intent, memory }`. A batch copies the exact identity and adds `
 
 The prompt asks for one purposeful order per active teammate, including the keeper. The validator still permits omitted players: their existing orders continue until normal expiry, with no invented tactical fallback. A tactical note saying “others support” cannot execute those movements.
 
-The model must coordinate a carrier's pass with its receiver's movement and consider arrival time, opposing players and supporting angles. Matching targets alone does not synchronize arrival: compare ball speed with receiver travel time, velocity, pace and acceleration; choose a reachable meeting point, slower delivery or wait/carry when needed. It must also choose defensive cover, divide pressing/marking work and keep a goalkeeper protecting the current own goal. The model chooses every target. There is no automatic receiver selection, pass correction, supporting run, man-marking or ball-chasing in the engine.
+The model first chooses whether to carry, pass or shoot from the actual space, pressure and goal position. `canKickNow` permits a release; it does not require one. A carrier's `move` keeps the ball at its foot. Only after choosing a pass should the model coordinate the receiver's movement and ball arrival. Matching targets alone does not synchronize arrival: compare ball speed with receiver travel time, velocity, pace and acceleration. Choose a reachable meeting point, slower delivery or retain possession when needed. Supporting runs, defensive cover, pressing and keeper positioning remain explicit model choices. There is no automatic receiver selection, pass correction, marking or ball-chasing.
 
 The spacing guidance names one ball player and gives the pass meeting point to one receiver. Other players need distinct targets, width, different depths and defensive cover. It asks the model to compare friendly movement targets before submitting, to prefer at least six metres between supporting players where space allows, and to retain useful current destinations across decisions. Close challenges and runs can be exceptions. Six metres is prompt guidance, not a collision radius, hard validation rule or hidden movement correction.
 
@@ -72,7 +74,9 @@ Every provider JSON response passes strict shape, finite/range, identity, team o
 
 An accepted action can still fail physically. A kick without possession or tackle out of reach is an engine event, not a successful action and not silently repaired into another tactic. These failures are shown to that team in its next observation. The inspector exposes recorded attempts, feedback and accepted decisions.
 
-The runner reserves both teams' requests and possible repairs before advancing a decision boundary. Request count, input/output size, estimated usage and wall time are bounded. Slow replies do not give opponents extra simulation time. The current schedule is one second, interrupted by phase changes and eligible possession changes after a minimum 15 ticks.
+The runner reserves both teams' requests and possible repairs before advancing a decision boundary. Request count, input/output size, estimated usage and wall time are bounded. Slow replies do not give opponents extra simulation time. The current schedule is one second, interrupted by phase changes and gaining control after a minimum 15 ticks. A release alone does not trigger another request; reception, recapture and turnovers can. Phase changes can still interrupt sooner.
+
+One stable JSON schema is used across requests and recorded in provenance. Identity values remain in `responseIdentity` and must match the frozen state exactly in runtime validation; unsupported versions, stale replies and wrong-team orders remain rejected. Compact JSON and brief public notes reduce repeated output. See [decision 010](decisions/010-CARRIER-CHOICES-AND-REQUESTS.md).
 
 ## Evaluation and replay
 
