@@ -29,3 +29,4 @@ These documents describe implementation and evidence **at the end of each slice*
 25. [Faithful ball geometry and a clearer football objective](25-CATCH-AND-KICK-GEOMETRY.md)
 26. [Playing to win — Cloudflare release](26-PLAYING-TO-WIN-RELEASE.md)
 27. [Final two-minute match](27-FINAL-TWO-MINUTE-MATCH.md)
+28. [Final match — Cloudflare release](28-FINAL-MATCH-RELEASE.md)
