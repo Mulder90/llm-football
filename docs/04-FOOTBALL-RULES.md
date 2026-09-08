@@ -1,6 +1,6 @@
 # Football mechanics and referee
 
-The current ruleset is `football-0.6`. It adds keeper hand possession and handling laws while retaining two 30-second development halves. It provides recognisable football with explicit simplifications, not complete compliance with the official Laws. [Decision 002](decisions/002-MATCH-RULES.md) records the physical/restart foundation; [decision 004](decisions/004-CONTACT-REFEREE.md) records contact officiating, offside and primary rule references; [decision 006](decisions/006-TACTICAL-MEMORY.md) records the current duration and tactical-memory change.
+The current ruleset is `football-0.8`. It fixes keeper catch placement and preserves the actual kick launch point while retaining hand possession, handling laws and two 30-second development halves. It provides recognisable football with explicit simplifications, not complete compliance with the official Laws. [Decision 002](decisions/002-MATCH-RULES.md) records the physical/restart foundation; [decision 004](decisions/004-CONTACT-REFEREE.md) records contact officiating, offside and primary rule references; [decision 006](decisions/006-TACTICAL-MEMORY.md) records the current duration and tactical-memory change.
 
 ## Match and phases
 
@@ -25,6 +25,8 @@ Structured tactical memory changes what a controller carries between decisions, 
 
 ## Ball and scoring
 
+Open-play kicks and shots launch from the actual ball XY. Choosing a new direction changes velocity/facing without rotating the ball around the player. This avoids parallel shifts of the intended path, especially near goal. Restart delivery still starts from its explicit restart point.
+
 The ball has three-dimensional position/velocity, radius, owner, optional hand control, separate handling histories, last touch, recapture cooldown and restart-touch marker. A whole-ball crossing between the posts and beneath the crossbar scores, followed by a kickoff for the conceding team. The goal frame can rebound a shot. The engine does not continue a pending shot after full time.
 
 A touchline crossing awards a throw to the opponent of the last toucher. A goal-line miss after a defender touch awards a corner; after an attacker touch, a goal kick. Direct throw-in/indirect-kick goals are disallowed, as are direct own goals from a restart. A taker's second touch before another player yields an indirect free kick.
@@ -42,7 +44,7 @@ Hand possession persists through move/hold/guard changes, omitted orders and ord
 
 A target determines direction; the engine does not choose a recipient or ensure reception. Releases start at the actual held-ball x/y, preventing an aiming turn from teleporting the ball over a line. Roll/throw directly into the opposing goal awards a goal kick; direct own goals stand. Punts use normal kick scoring rules. Another player contact or subsequent foot play ends the direct-throw marker. The normal 18-tick recapture delay also applies to distributions.
 
-Handling uses the **ball centre**, including the penalty-area line, rather than the keeper's centre. This is a deliberate point approximation: ball-radius overlap and hand/body geometry do not decide the handling line. Guard catches use the swept contact; held movement checks its resulting hand anchor each tick. Carrying outside immediately awards a direct free kick at the bounded incident position, with possible fixed-tick overshoot; no movement clamp chooses to stop the keeper. Illegal pickup inside awards an indirect free kick. An attempt without ownership fails rather than causing an imaginary touch.
+Handling uses the **ball centre**, including the penalty-area line, rather than the keeper's centre. This is a deliberate point approximation: ball-radius overlap and hand/body geometry do not decide the handling line. Catch/pickup preserves the legal contact x/y and raises the ball to 1.2 m. A held ball then translates by the keeper's actual per-tick displacement, including body separation; changing facing cannot reposition it. Catching discards the remaining sub-tick time, as other contacts do. Each later held movement checks the resulting ball centre. A stationary exact-line catch remains exact because its displacement is zero. Put-down returns to the existing facing-based foot anchor; the model must leave room for the 0.65 m dribbling offset. Carrying outside immediately awards a direct free kick at the bounded incident position, with possible fixed-tick overshoot; no movement clamp chooses to stop the keeper. Illegal pickup inside awards an indirect free kick. An attempt without ownership fails rather than causing an imaginary touch.
 
 Restrictions have separate reset rules:
 
@@ -70,6 +72,8 @@ Opponents remain 9.15 m away, or 2 m at a throw. Kickoffs use the initial format
 ## Fouls and cards
 
 A straight tackle reach through the carrier before the ball is careless. Closing speed of at least 5 m/s is reckless and cautioned; at least 10 m/s is excessive and dismissed. These are declared game heuristics, not thresholds in the official Laws. A foul awards a direct free kick at the victim's position, or a penalty when that point is inside/on the offender's own penalty-area boundary. No advantage is played.
+
+For reachable opposing foot carriers, observations expose `tackleFoul` from this same exact calculation. Closing speed is the relative velocity projected along tackler-to-carrier, not either player's speed alone. A head-on 6.3 + 6.3 m/s challenge is excessive even if ball-first; equal velocities are not closing. The models may brake or contain, but the engine does not change an order to avoid a card. [Decision 013](decisions/013-CATCH-PLACEMENT-AND-GOAL-AWARENESS.md) records the review.
 
 A second caution dismisses. Dismissed players keep their IDs but cannot be ordered or interact with play. Fewer than seven active players abandons the match without a fabricated forfeit score. A dismissed keeper is not automatically replaced.
 

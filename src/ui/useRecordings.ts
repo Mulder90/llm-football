@@ -48,6 +48,10 @@ export function useRecordings() {
         if (abort.signal.aborted) return;
         setMatches(catalog.matches);
         const latest = catalog.matches.find((entry) => entry.complete) ?? catalog.matches[0];
+        if (!latest && import.meta.env.DEV) {
+          setRecording(createKeeperFixture());
+          return;
+        }
         if (!latest) throw new Error('No recordings are available');
         const match = await fetchMatch(latest, abort.signal);
         if (!abort.signal.aborted) setRecording(match);

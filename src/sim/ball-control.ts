@@ -1,4 +1,4 @@
-import { BALL_CONTROL, KEEPER } from './rules.ts';
+import { BALL_CONTROL } from './rules.ts';
 import { inPenaltyArea } from './state.ts';
 import type { Ball, MatchState, Player, Vec3 } from './types.ts';
 
@@ -8,10 +8,6 @@ export function footPosition(player: Player): Vec3 {
     y: player.position.y + player.facing.y * BALL_CONTROL.carryingOffset,
     z: BALL_CONTROL.radius,
   };
-}
-
-export function handPosition(player: Player): Vec3 {
-  return { ...footPosition(player), z: KEEPER.handHeight };
 }
 
 export function possessionMode(

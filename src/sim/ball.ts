@@ -77,11 +77,7 @@ export function executeKick(state: MatchState, player: Player): void {
   state.ball.kickedAt = state.tick;
   state.ball.position = restart
     ? { ...restart.position, z: isThrow ? RESTART_RULES.throwReleaseHeight : BALL_CONTROL.radius }
-    : {
-        x: player.position.x + direction.x * BALL_CONTROL.kickReleaseOffset,
-        y: player.position.y + direction.y * BALL_CONTROL.kickReleaseOffset,
-        z: BALL_CONTROL.radius,
-      };
+    : { ...state.ball.position, z: BALL_CONTROL.radius };
   state.ball.velocity = { x: direction.x * speed, y: direction.y * speed, z: order.loft ?? 0 };
   emitEvent(
     state,
@@ -190,8 +186,7 @@ function resolvePlayerContact(state: MatchState, contact: PlayerContact, positio
   const previousPlayer = state.players.find((player) => player.id === state.ball.lastTouch);
   state.ball.lastTouch = receiver.id;
   if (contact.isSave) {
-    collectInHands(state, receiver, 'catch', position.z);
-    updateHeldBall(state, receiver);
+    collectInHands(state, receiver, 'catch', position);
     return;
   }
   if (contact.canControl) {
@@ -231,7 +226,7 @@ export function advanceBall(state: MatchState, previousPositions: ReadonlyMap<st
   if (ball.owner) {
     const carrier = state.players.find((player) => player.id === ball.owner)!;
     if (ball.handControl) {
-      updateHeldBall(state, carrier);
+      updateHeldBall(state, carrier, previousPositions.get(carrier.id)!);
       return;
     }
     ball.position = footPosition(carrier);

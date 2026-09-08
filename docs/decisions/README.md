@@ -17,4 +17,6 @@ These records explain approved choices and their evidence. For current behavior,
 | [011 — Goalkeeper hand possession](011-GOALKEEPER-HAND-POSSESSION.md)             | Current persistent hand state, distribution, handling histories, timing and replay boundaries.                               |
 | [012 — Bounded paired sequences](012-BOUNDED-PAIRED-SEQUENCES.md)                 | One match scheduler for full games and excerpts; scripted provenance, playing-time stops and a shared model-trial allowance. |
 
+| [013 — Catch placement and goal awareness](013-CATCH-PLACEMENT-AND-GOAL-AWARENESS.md) | Legal catch placement, neutral goal geometry and explicit scoring objective; current tackle thresholds retained. |
+
 Add an ADR only when an approved choice constrains future work. Describe the context, decision, principal alternative, consequences, relevant verification and revisit condition. Ordinary filenames and hypothetical systems do not need records.

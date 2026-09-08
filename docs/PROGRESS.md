@@ -2,19 +2,33 @@
 
 LLM Football is a replay-first spectator game with 22 robot players, a deterministic football engine, two team controllers and a full-screen comic stadium. Development matches have two 30-second playing halves. Watching the included recordings makes no API calls.
 
+## Latest local match — Playing to win
+
+The authorized local slice uses `football-0.8`: catches retain legal contact XY, held motion follows actual keeper displacement, and kicks/shots preserve the actual launch point. Observations expose neutral goal geometry/pitch clearance and the existing tackle foul test; the prompt explicitly prioritizes scoring more than the opponent. No card thresholds, model settings, cadence or development duration changed. TypeScript and all 287 tests pass.
+
+Short tests used **48 requests**, all accepted first try with complete active-roster orders, at **$0.2836075 estimated** ($0.087967 OpenAI / $0.1956405 Gemini). Eight shot/cutback decisions first exposed the kick-origin error; their original internal 0.7 source/report is preserved, and the accepted choices were re-executed offline under 0.8. Both eight-second paired sequences reached their horizons without repairs, fallbacks, order failures or handling violations. The receiving drill passes its specific criterion; the keeper drill's intended pass was intercepted. That is normal football, not a readiness blocker: the user explicitly wants imperfect LLM tactics to remain.
+
+**Playing to win** (`goal-aware-match-001`) is the only bundled local recording. Cyan wins **3–1** after exactly 60 playing seconds (two 30-second halves). Independent replay verifies hash **`8eed7d0a`**. Both teams shoot and carry; the match contains nine shots, sixteen completed passes, two keeper catches and two throws, including one completed keeper outlet. There are no handling violations or cards. Normal interceptions and unsuccessful actions remain unchanged.
+
+All **210 replies across 105 paired rounds** were accepted first try, with no repairs or fallbacks. One Coral reply omitted #2; 209/210 team batches cover the full active roster. Six tackles fail to reach the carrier and one repeated restart kick executes without foot possession. These outcomes are preserved, not repaired after generation. Generation took **22m 39s**, costing **$1.26326275 estimated** ($0.39642025 OpenAI / $0.8668425 Gemini), within the $1.50 combined / $0.50 / $1 caps and 30-minute deadline. This slice's short tests plus full match total **$1.54687025 estimated**, 258 requests. No generation is running.
+
+The final showcase target is one minute per half, two playing minutes total, after the user watches this review. [Slice 25](slices/25-CATCH-AND-KICK-GEOMETRY.md) records the changes, mechanism, verification and limitations.
+
+The historical public file and catalogue were preserved under ignored `artifacts/private/football-awareness-baseline-public/` before removal from the current local catalogue. The deployed review match remains on its original ruleset; old outcomes are not relabelled for the new engine.
+
 ## Website
 
 Cloudflare Web Analytics is installed using the user's supplied module-script snippet in `index.html`. The analytics release (`ff722704-0ab7-4573-af6a-65b5fa656de4`) changes only the public HTML; the seven other assets and single-match catalogue are unchanged. TypeScript, production build, focused formatting, deployment dry run and exact live-HTML comparison pass. Dashboard receipt has not been checked. The browser loads Cloudflare's beacon with the public site token; simulation and recorded outcomes remain independent of analytics. Next: check incoming visits in Cloudflare Web Analytics.
 
 The user requested deployment of this version with only the latest game. [The Cloudflare website](https://llm-football.lore-cinque.workers.dev) now serves **One minute, two models** as its only bundled recording. Older match files return 404; scripted practice choices remain development-only. All eight live assets match the checked build by SHA-256. Deployment version: `ff1ae8ca-4e69-4017-8aa5-e8bbc83bc1f4`. [Slice 24](slices/24-SINGLE-MATCH-CLOUDFLARE-RELEASE.md) records the release checks. Pushing Git and deploying remain separate actions.
 
-## Latest complete match — keeper review
+## Previous complete match — deployed keeper review
 
-**One minute, two models** (`keeper-era-match-001`) is the new local default: Cyan wins **1–0** after exactly 60 playing seconds under `football-0.6`. All **96 paired rounds** contain full active-roster orders; **191/192 first replies pass**, with one repaired Coral memory reference and **zero fallbacks**. The match contains eleven completed passes, 38 deliberate carrier-move decisions, three Cyan shots and a catch. Independent replay matches **`ac2a3856`**. [Slice 23](slices/23-ONE-MINUTE-REVIEW.md) records the evidence and limitations.
+**One minute, two models** (`keeper-era-match-001`) remains deployed on Cloudflare: Cyan wins **1–0** after exactly 60 playing seconds under `football-0.6`. All **96 paired rounds** contain full active-roster orders; **191/192 first replies pass**, with one repaired Coral memory reference and **zero fallbacks**. The match contains eleven completed passes, 38 deliberate carrier-move decisions, three Cyan shots and a catch. Independent replay matches **`ac2a3856`**. [Slice 23](slices/23-ONE-MINUTE-REVIEW.md) records the evidence and limitations.
 
 Generation took **21m 47s** and cost **$1.1262515 estimated** ($0.36848975 OpenAI / $0.75776175 Gemini), using 193 requests within the $3 combined / $1 OpenAI / $2 Gemini caps. The earlier full match cost $2.08662375 with the same recorded model settings and pricing: this run is **46% cheaper**, but different play, rules and prompts prevent attributing the saving to one change. Fresh user-reported balances were $3.17 OpenAI / £5.93 Gemini; estimated remaining credit is roughly **$2.80 / £5.37**, using reference FX rather than confirmed billing. The old short-trial allowance is separate. No generation is running.
 
-**The four-minute showcase is on hold for a reproduced keeper defect.** At tick 3245, a legal incoming catch attaches to a keeper facing outward at x=104.6: its 0.65 m hand offset puts the ball at x=105.25, beyond the 105 m goal line. The same tick awards an outside-area free kick; Cyan scores from the subsequent sequence. Original actions and score remain unchanged. This cannot establish successful keeper distribution. Coral also takes no shots and eventually carries out over the goal line. Next: fix and verify catch placement near boundaries offline, then review whether to adopt the requested two-minute halves and fund the longer run. The deployed review match retains the keeper caveat.
+**This deployed match retains a reproduced keeper defect.** At tick 3245, a legal incoming catch attaches to a keeper facing outward at x=104.6: its 0.65 m hand offset puts the ball at x=105.25, beyond the 105 m goal line. The same tick awards an outside-area free kick; Cyan scores from the subsequent sequence. Original actions and score remain unchanged. This cannot establish successful keeper distribution. Coral also takes no shots and eventually carries out over the goal line. The local 0.8 engine fixes the catch placement; the deployed review retains its original rules and keeper caveat.
 
 ## Previous keeper-order reliability work
 
@@ -81,9 +95,9 @@ That match predates the latest carrier and scheduling changes. Coral completed m
 
 ## Next step and limitations
 
-Next, review the complete local match and address the catch-position defect using its saved pre-incident state. The requested two-minute halves remain conditional on football readiness; a linear estimate from this match is about $4.51 and 87 minutes of generation, not an approved dispatch plan or guaranteed price. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled.
+Next, watch **Playing to win** locally and judge whether the football is entertaining. The final target is one minute per half, two minutes total. The development review remains 60 seconds total; short tests are preferred where sufficient. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled, and normal LLM mistakes do not require another tuning cycle.
 
-The engine never chooses tactics or repairs a model's chosen target. The complete match establishes reliable paired generation and deliberate carrying by both models, but does not establish keeper buildup, strong finishing choices or consistently good defending. A model's written review may be wrong.
+The engine never chooses tactics or repairs a model's chosen target. The latest match demonstrates paired generation, carrying and shots by both models, and a completed keeper outlet. One match cannot establish consistently good teamwork, finishing or defending. A model's written review may be wrong.
 
 The viewer runs locally and on Cloudflare. Live model-token streaming, generation resume, accounts and tournaments are not implemented. The inspector replays recorded observations; browser audio needs a play gesture. See [football rules](04-FOOTBALL-RULES.md) for omitted laws and [providers](07-PROVIDERS.md) for dated pricing assumptions.
 

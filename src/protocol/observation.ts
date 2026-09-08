@@ -1,6 +1,7 @@
 import { BALL_CONTROL, FIELD, KEEPER, TACKLE, TICK_RATE, MATCH_TIMING } from '../sim/rules.ts';
 import { handlingRestriction, possessionMode } from '../sim/ball-control.ts';
 import { distanceBetween } from '../sim/math.ts';
+import { tackleFoul } from '../sim/fouls.ts';
 import { attackDirection, cloneOrder, clonePhase } from '../sim/state.ts';
 import type { MatchState, Order, Player, Team, Vec2 } from '../sim/types.ts';
 import { PROTOCOL_LIMITS } from './schema.ts';
@@ -83,6 +84,7 @@ function actionContext(state: MatchState, player: Player) {
         }
       : {}),
     reachableTackleTargetId: canReachCarrier ? carrier.id : null,
+    tackleFoul: canReachCarrier ? tackleFoul(state, player, carrier) : null,
     tackleCooldownTicks,
     distanceToBall: round(distanceToBall),
     nearestTeammate: nearestTeammate
@@ -109,6 +111,16 @@ export function observe(
   evaluationPlayingTicks?: number,
 ) {
   const direction = attackDirection(state, team);
+  const goalX = direction === 1 ? FIELD.length : 0;
+  const goalDx = goalX - state.ball.position.x;
+  const goalDy = FIELD.width / 2 - state.ball.position.y;
+  const topPostDy = (FIELD.width - FIELD.goalWidth) / 2 - state.ball.position.y;
+  const bottomPostDy = (FIELD.width + FIELD.goalWidth) / 2 - state.ball.position.y;
+  // Angle between the two post vectors: atan2 avoids acos rounding and 0/0 at a post.
+  const opening = Math.atan2(
+    Math.abs(goalDx * FIELD.goalWidth),
+    goalDx * goalDx + topPostDy * bottomPostDy,
+  );
   const carrier = state.players.find((player) => player.id === state.ball.owner);
   const phaseInstruction =
     state.phase.type === 'restart_ready'
@@ -160,6 +172,10 @@ export function observe(
         rightTouchlineY: direction === 1 ? FIELD.width : 0,
         briefs: { ...POSITION_BRIEFS },
       },
+      ballToOpponentGoal: {
+        distanceMetres: round(Math.hypot(goalDx, goalDy)),
+        openingAngleDegrees: round((opening * 180) / Math.PI),
+      },
       possession: carrier ? (carrier.team === team ? 'ours' : 'theirs') : 'loose',
       ballCarrierId: carrier?.id ?? null,
       teammateIds: state.players
@@ -177,6 +193,12 @@ export function observe(
       owner: state.ball.owner,
       lastTouch: state.ball.lastTouch,
       possessionMode: possessionMode(state.ball),
+      pitchClearanceMetres: {
+        left: round(state.ball.position.x),
+        right: round(FIELD.length - state.ball.position.x),
+        top: round(state.ball.position.y),
+        bottom: round(FIELD.width - state.ball.position.y),
+      },
       holdTicksRemaining: state.ball.handControl
         ? Math.max(
             0,

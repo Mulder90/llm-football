@@ -26,3 +26,4 @@ These documents describe implementation and evidence **at the end of each slice*
 22. [Keeper-order reliability and first-attempt check](22-KEEPER-ORDER-RELIABILITY.md)
 23. [Complete one-minute match and keeper review](23-ONE-MINUTE-REVIEW.md)
 24. [Single-match Cloudflare release](24-SINGLE-MATCH-CLOUDFLARE-RELEASE.md)
+25. [Faithful ball geometry and a clearer football objective](25-CATCH-AND-KICK-GEOMETRY.md)

@@ -1,6 +1,5 @@
 import {
   footPosition,
-  handPosition,
   handlingRestriction,
   noteDeliberateKick,
   noteHandlingTouch,
@@ -11,22 +10,23 @@ import { snapshotOffside } from './offside.ts';
 import { awardRestart } from './restarts.ts';
 import { BALL_CONTROL, FIELD, KEEPER } from './rules.ts';
 import { attackDirection, inPenaltyArea, opponent } from './state.ts';
-import type { MatchState, Player, Vec3 } from './types.ts';
+import type { MatchState, Player, Vec2, Vec3 } from './types.ts';
 
 export function collectInHands(
   state: MatchState,
   keeper: Player,
   kind: 'catch' | 'pickup',
-  height: number,
+  contact: Vec3,
 ): void {
   state.ball.owner = keeper.id;
   state.ball.handControl = {
     sinceTick: state.tick,
     sincePlayingTick: state.playingTicks,
     kind,
-    height,
+    height: contact.z,
   };
-  state.ball.position = handPosition(keeper);
+  // Keep the legal contact's XY. Facing is not permission to relocate a catch.
+  state.ball.position = { ...contact, z: KEEPER.handHeight };
   state.ball.velocity = { x: 0, y: 0, z: 0 };
   state.ball.lastTouch = keeper.id;
   if (kind === 'catch') keeper.lastSaveTick = state.tick;
@@ -88,7 +88,7 @@ export function executeKeeperOrder(state: MatchState, keeper: Player): void {
       return;
     }
     noteHandlingTouch(state, keeper, true);
-    collectInHands(state, keeper, 'pickup', state.ball.position.z);
+    collectInHands(state, keeper, 'pickup', state.ball.position);
     return;
   }
   if (!state.ball.handControl) {
@@ -166,9 +166,12 @@ export function checkKeeperHoldLimit(state: MatchState): void {
   });
 }
 
-export function updateHeldBall(state: MatchState, keeper: Player): void {
-  const next: Vec3 = handPosition(keeper);
-  state.ball.position = next;
+export function updateHeldBall(state: MatchState, keeper: Player, previousPosition: Vec2): void {
+  // Translate by actual movement (including body separation), not facing or velocity.
+  // Adding a zero delta preserves an exact area-line catch without round-off drift.
+  const next = state.ball.position;
+  next.x += keeper.position.x - previousPosition.x;
+  next.y += keeper.position.y - previousPosition.y;
   state.ball.velocity = { ...keeper.velocity, z: 0 };
   if (!inPenaltyArea(state, keeper.team, next))
     penalizeHandling(state, keeper, 'Keeper carried the ball outside the own penalty area', next);

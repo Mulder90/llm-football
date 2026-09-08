@@ -17,6 +17,7 @@ export type ControllerScenario = {
     | 'blocked-lane'
     | 'keeper-distribution'
     | 'shooting-chance'
+    | 'narrow-angle'
     | `recorded-${Team}-${number}`;
   title: string;
   description: string;
@@ -166,7 +167,7 @@ export function createControllerScenarios(): ControllerScenario[] {
         'coral-7': { x: 45, y: 34 },
         'coral-6': { x: 50, y: 19 },
         'coral-10': { x: 59, y: 43 },
-        'cyan-10': { x: 46.2, y: 34 },
+        'cyan-10': { x: 46.65, y: 34 },
       },
       'coral-7',
       [{ type: 'tackle', playerId: 'cyan-10', targetId: 'coral-7' }],
@@ -183,6 +184,22 @@ export function createControllerScenarios(): ControllerScenario[] {
         'cyan-10': { x: 55, y: 34 },
       },
       'coral-7',
+    ),
+    scenario(
+      'narrow-angle',
+      'A narrow angle near the goal line',
+      'Coral #10 owns the ball outside the posts near the opponent goal line. A central teammate is available. Measure whether the carrier cuts back, passes or continues narrowing the angle; no result or preferred receiver is inserted.',
+      {
+        'coral-10': { x: 102, y: 18 },
+        'coral-6': { x: 92, y: 34 },
+        'cyan-1': { x: 103, y: 34 },
+        'cyan-2': { x: 82, y: 12 },
+        'cyan-3': { x: 84, y: 26 },
+        'cyan-4': { x: 84, y: 44 },
+        'cyan-5': { x: 82, y: 56 },
+      },
+      'coral-10',
+      [{ type: 'guard', playerId: 'cyan-1', target: { x: 103, y: 34 } }],
     ),
     keeperDistribution(),
     scenario(

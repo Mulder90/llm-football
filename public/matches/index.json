@@ -2,9 +2,9 @@
   "version": 1,
   "matches": [
     {
-      "id": "keeper-era-match-001",
-      "file": "keeper-era-match-001.json.gz",
-      "title": "One minute, two models",
+      "id": "goal-aware-match-001",
+      "file": "goal-aware-match-001.json.gz",
+      "title": "Playing to win",
       "complete": true
     }
   ]

@@ -1,5 +1,5 @@
 /** Football tuning. Distances are metres, speeds m/s, accelerations m/s². */
-export const ENGINE_VERSION = 'football-0.6';
+export const ENGINE_VERSION = 'football-0.8';
 export const TICK_RATE = 60;
 export const SECONDS_PER_TICK = 1 / TICK_RATE;
 export const PLAYERS_PER_TEAM = 11;
@@ -30,7 +30,6 @@ export const MOVEMENT = {
 export const BALL_CONTROL = {
   radius: 0.11,
   carryingOffset: 0.65,
-  kickReleaseOffset: 0.8,
   receivingRadius: 0.9,
   groundDeceleration: 1.4,
   minimumKickSpeed: 2,

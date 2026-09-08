@@ -14,6 +14,7 @@ Do not implement the whole roadmap in one pass. End each approved slice with a r
 - Full destination: 11 versus 11, including goalkeepers.
 - One LLM controls each team's players; 22 independent LLMs are not the initial architecture.
 - Two halves of 30 seconds of playing time each, following the user's latest development-duration instruction. During development, support only the current ruleset; old recordings may be removed instead of adding backward compatibility.
+- Final showcase target: two halves of 60 playing seconds each (two minutes total), per the user’s latest cost-saving instruction. Change the development duration only when that final run is ready.
 - Top-down pitch rendering, minimal beautiful pixel art, animated players and stadium.
 - Spectator-first website with watch/re-watch functionality.
 - A deterministic engine owns physics, referee decisions and outcomes.
@@ -36,6 +37,8 @@ Do not implement the whole roadmap in one pass. End each approved slice with a r
 ## Keep the surface small
 
 Proposed tools: strict TypeScript, pnpm, Vite, React, Canvas 2D, Vitest. Start with one package and football-specific functions. Avoid premature generic game interfaces, plugin systems, monorepos, ECS, databases, authentication, deployment work, or new dependencies without demonstrated need.
+
+LLM tactical mistakes are part of the intended entertainment. Interceptions, missed shots and poor positioning are normal football, not automatic reasons for more tuning or paid retries. Fix inconsistent engine execution and unclear control contracts; preserve the models’ actual choices and outcomes.
 
 Human/scripted fixtures are permitted for development and baselines. Never label them LLM-played. Never alter results or select winners to improve drama.
 

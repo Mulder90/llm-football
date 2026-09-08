@@ -32,7 +32,7 @@ Each team starts with null tactical memory. A valid response replaces its own me
 ## Four clocks
 
 1. **Simulation:** integer ticks at 60 Hz, including setup and halftime.
-2. **Playing time:** 1,800 eligible ticks per half, defined once in the current ruleset (football-0.6). Restart setup/ready and halftime pause this clock. Ends swap after the interval. Thirty seconds per half is the current development duration.
+2. **Playing time:** 1,800 eligible ticks per half, defined once in the current ruleset (football-0.8). Restart setup/ready and halftime pause this clock. Ends swap after the interval. Thirty seconds per half is the current development duration.
 3. **Generation wall time:** provider latency, validation, retries and checkpoint writes. It cannot alter physics through response arrival order.
 4. **Presentation:** a watch timeline maps to recorded simulation time, sampled/interpolated at the browser's frame rate. Each eligible goal vignette takes nine watch seconds at 1× while ordinary play retains its original rate. Controls show the extended duration. The spectator can pause, seek and change speed; a hidden tab pauses instead of catching up.
 
