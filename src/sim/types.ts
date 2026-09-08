@@ -129,10 +129,3 @@ export type Batch = {
   tick: number;
   orders: Order[];
 };
-export type Decision = {
-  tick: number;
-  batches: [Batch, Batch];
-  fallback: Team[];
-  notes?: Record<Team, { intent: string; memory: string }>;
-  observations?: Record<Team, string>;
-};

@@ -1,11 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { RefObject } from 'react';
 import { sample } from '../recording/record.ts';
 import type { Recording } from '../recording/record.ts';
 import { createStadium, drawCrowd } from '../render/stadium.ts';
 import { STADIUM_SIZE } from '../render/layout.ts';
 import { drawPlayers } from '../render/players.ts';
-import { drawReferee } from '../render/referee.ts';
+import { createRefereeTrack, drawReferee } from '../render/referee.ts';
+import { drawGoalEffects } from '../render/goal-effects.ts';
 import { drawDecisionFocus } from '../render/decision-focus.ts';
 import { TICK_RATE } from '../sim/rules.ts';
 import type { PlaybackAudio } from '../audio/playback-audio.ts';
@@ -41,6 +42,7 @@ export function Pitch({
 }: PitchProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const backgroundRef = useRef<HTMLCanvasElement | null>(null);
+  const refereeTrack = useMemo(() => createRefereeTrack(recording), [recording]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -66,8 +68,8 @@ export function Pitch({
 
       const frame = sample(recording, playhead.current);
       context.drawImage(background, 0, 0);
-      drawCrowd(context, frame.tick, reducedMotion);
-      drawReferee(context, frame, recording);
+      drawCrowd(context, frame, recording, reducedMotion);
+      drawReferee(context, frame, refereeTrack, reducedMotion);
       const presentedFrame = drawPlayers(
         context,
         frame,
@@ -75,6 +77,7 @@ export function Pitch({
         showPlayerNumbers,
         reducedMotion,
       );
+      drawGoalEffects(context, frame, recording, reducedMotion);
       drawDecisionFocus(context, presentedFrame, recording, selectedPlayer);
       audio.current?.advance(recording.events, frame.tick, isPlaying, speed, seekRevision);
 
@@ -109,6 +112,7 @@ export function Pitch({
     };
   }, [
     recording,
+    refereeTrack,
     playhead,
     isPlaying,
     speed,

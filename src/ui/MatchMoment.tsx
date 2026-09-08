@@ -1,22 +1,42 @@
 import type { Frame, Recording } from '../recording/record.ts';
+import type { CSSProperties } from 'react';
+import { activeGoal, GOAL_PRESENTATION } from '../render/celebration.ts';
 import { TICK_RATE } from '../sim/rules.ts';
 import { formatPlayerId } from './format.ts';
 
-const GOAL_BANNER_TICKS = 1.8 * TICK_RATE;
 export function MatchMoment({ recording, frame }: { recording: Recording; frame: Frame }) {
-  const goal = recording.events.findLast(
-    (event) => event.type === 'goal' && event.tick < frame.tick,
-  );
-  if (goal && frame.tick - goal.tick < GOAL_BANNER_TICKS && frame.phase.type !== 'full_time') {
+  const moment = activeGoal(recording, frame);
+  if (moment) {
+    const { event: goal, ageTicks } = moment;
+    const teamName = recording.teams[goal.team!].name;
+    const arrival = Math.min(1, ageTicks / GOAL_PRESENTATION.bannerArrivalTicks);
+    const departure = Math.min(
+      1,
+      (GOAL_PRESENTATION.durationTicks - ageTicks) / GOAL_PRESENTATION.bannerDepartureTicks,
+    );
+    const style = {
+      '--goal-opacity': Math.min(arrival, departure),
+      '--goal-scale': 0.94 + 0.06 * arrival,
+    } as CSSProperties;
     return (
-      <div className={`goal-moment ${goal.team}`} key={goal.id} aria-label={`${goal.team} goal`}>
-        <span className="goal-kicker">NORTH GARDEN ERUPTS</span>
-        <strong>
-          GOOOAL<span>!</span>
+      <div
+        className={`goal-moment ${goal.team}`}
+        style={style}
+        key={goal.id}
+        aria-label={`${teamName} goal`}
+      >
+        <span className="goal-kicker">THE CROWD GOES WILD</span>
+        <strong className="goal-title">
+          GOAAAAL<span>!</span>
         </strong>
-        <span className="goal-team">{goal.team ? recording.teams[goal.team].name : ''}</span>
-        <span className="goal-score">
-          {frame.score.coral} — {frame.score.cyan}
+        <div className="goal-summary">
+          <span className="goal-team">{teamName}</span>
+          <span className="goal-score">
+            {frame.score.coral} — {frame.score.cyan}
+          </span>
+        </div>
+        <span className="goal-detail">
+          {goal.playerId ? `Last touch · ${formatPlayerId(goal.playerId)}` : 'A goal for the team'}
         </span>
       </div>
     );
@@ -31,7 +51,7 @@ export function MatchMoment({ recording, frame }: { recording: Recording; frame:
     );
   const incident = recording.events.findLast(
     (event) =>
-      event.tick <= frame.tick &&
+      event.tick < frame.tick &&
       (['foul', 'offside', 'yellow_card', 'red_card'].includes(event.type) ||
         (event.type === 'restart_awarded' && event.detail === 'penalty')),
   );

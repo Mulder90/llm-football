@@ -14,7 +14,9 @@ This is initially a spectator experiment and a substantial engineering project. 
 - One model controls each team and issues instructions for its players.
 - Target roster is 11 versus 11 including goalkeepers.
 - Continuous-looking action with LLM observation/decision cycles underneath.
-- Two two-minute halves for new matches (approved 8 September 2026).
+- Two 30-second halves for development matches (latest approval, 8 September 2026).
+- Prioritize entertaining football before the next broadcast, highlights, decision-storytelling and rendering improvements.
+- Give each team structured tactical memory and visible opponent movement while keeping the opponent's private plan hidden.
 - Watch and re-watch on the website.
 - Top-down rendering selected over the oblique 2.5D mockups.
 - Minimal but beautiful pixel art, animated players, attractive pitch and stadium.
@@ -28,7 +30,7 @@ This is initially a spectator experiment and a substantial engineering project. 
 - TypeScript, Canvas 2D, React, Vite, pnpm and Vitest in one package.
 - 60 simulation ticks per second; one team decision per simulated second initially.
 - Generate completed matches before publishing. Add buffered broadcasting only after generation throughput is measured.
-- Pause the playing clock during restart setup. Matches have four minutes of active play; total viewing duration includes restarts and halftime. Display each recording's actual duration.
+- Pause the playing clock during restart setup. Development matches have one minute of active play; total viewing duration includes restarts and halftime. Display each recording's actual duration.
 - Normal matches may end in a draw. Knockout extensions are later scope.
 - Single initial stadium, team palette swaps, whole-pitch camera first, optional tracking camera later.
 
@@ -43,3 +45,5 @@ Account systems, submissions from strangers, live matchmaking, leaderboards acro
 ## Product test
 
 Watch a few possessions without opening the inspector. Can a viewer follow the ball, recognise which team is attacking, understand a goal or foul, and see a purposeful pass or defensive response? If not, investigate control design, execution mechanics and visual readability before adding site features.
+
+The current slice addresses players converging on the same location. A useful outcome is one player contesting the ball while teammates maintain different passing options and defensive jobs across decisions. Role labels or a confident written plan alone do not establish that outcome; inspect executed movement and actual receptions, turnovers and spacing.

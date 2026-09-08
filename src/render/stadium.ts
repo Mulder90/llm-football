@@ -1,7 +1,11 @@
 import { PITCH_LAYOUT, STADIUM_SIZE } from './layout.ts';
 import { drawPixelRect } from './pixels.ts';
-
-const CROWD_COLORS = ['#3c6670', '#74a590', '#debb91', '#e5dbc6', '#d26458', '#5bbed0', '#243f50'];
+import {
+  decorationNoise,
+  drawStadiumAtmosphere,
+  drawSupporterStands,
+} from './stadium-atmosphere.ts';
+export { drawCrowd } from './stadium-atmosphere.ts';
 
 const FIELD_MARKINGS = {
   centerCircleRadiusMetres: 9.15,
@@ -14,12 +18,6 @@ const FIELD_MARKINGS = {
 } as const;
 const MOWING_STRIPE_COUNT = 14;
 
-// A coordinate hash, solely for decorative texture. No simulation RNG is consumed.
-function decorationNoise(x: number, y: number, seed = 0): number {
-  let hash = Math.imul(x + seed, 374761393) + Math.imul(y, 668265263);
-  hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
-  return ((hash ^ (hash >>> 16)) >>> 0) / 4294967296;
-}
 function drawTree(context: CanvasRenderingContext2D, x: number, y: number) {
   drawPixelRect(context, x + 1, y + 10, 5, 14, '#352f24');
   drawPixelRect(context, x - 13, y - 6, 29, 20, '#123e32');
@@ -28,34 +26,6 @@ function drawTree(context: CanvasRenderingContext2D, x: number, y: number) {
   drawPixelRect(context, x - 9, y - 12, 13, 10, '#4b8e57');
   drawPixelRect(context, x - 2, y - 5, 16, 10, '#36804c');
 }
-function drawStand(
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-) {
-  drawPixelRect(context, x + 3, y + 4, width, height, '#060e17');
-  drawPixelRect(context, x, y, width, height, '#182d3b');
-  for (let rowOffset = 0; rowOffset < height - 5; rowOffset += 12) {
-    drawPixelRect(context, x, y + rowOffset + 10, width, 2, '#294252');
-    for (let seatOffset = 5; seatOffset < width - 5; seatOffset += 9) {
-      if (Math.floor(seatOffset / 54) % 5 === 4) {
-        drawPixelRect(context, x + seatOffset, y + rowOffset, 7, 10, '#607078');
-        continue;
-      }
-      const textureValue = decorationNoise(x + seatOffset, y + rowOffset);
-      if (textureValue < 0.12) continue;
-      const color = CROWD_COLORS[Math.floor(textureValue * CROWD_COLORS.length)]!;
-      drawPixelRect(context, x + seatOffset, y + rowOffset + 5, 5, 5, color);
-      drawPixelRect(context, x + seatOffset + 1, y + rowOffset + 2, 3, 3, '#c5b493');
-      drawPixelRect(context, x + seatOffset, y + rowOffset + 10, 6, 1, '#0c1a27');
-    }
-  }
-  drawPixelRect(context, x, y, width, 2, '#547080');
-  drawPixelRect(context, x, y + height - 2, width, 2, '#38546a');
-}
-
 function drawConcourseAndStands(context: CanvasRenderingContext2D): void {
   drawPixelRect(context, 0, 0, STADIUM_SIZE.width, STADIUM_SIZE.height, '#10202a');
   // Paved concourse, block seams, planted corners and four stands.
@@ -70,10 +40,7 @@ function drawConcourseAndStands(context: CanvasRenderingContext2D): void {
         decorationNoise(x, y) > 0.5 ? '#263c43' : '#2b4147',
       );
     }
-  drawStand(context, 112, 13, 735, 49);
-  drawStand(context, 112, 600, 735, 49);
-  drawStand(context, 12, 110, 55, 432);
-  drawStand(context, 893, 110, 55, 432);
+  drawSupporterStands(context);
   for (const [x, y] of [
     [40, 42],
     [910, 42],
@@ -254,16 +221,6 @@ export function createStadium(): HTMLCanvasElement {
   drawConcourseAndStands(context);
   drawPitch(context);
   drawDugoutsAndLights(context);
+  drawStadiumAtmosphere(context);
   return canvas;
-}
-
-export function drawCrowd(context: CanvasRenderingContext2D, tick: number, reducedMotion: boolean) {
-  if (reducedMotion) return;
-  for (let i = 0; i < 36; i++) {
-    const x = 130 + i * 19,
-      y = i % 2 ? 32 : 619;
-    if (Math.floor(tick / 24 + i * 1.7) % 7 !== 0) continue;
-    drawPixelRect(context, x, y, 2, 4, i % 2 ? '#dc8d75' : '#80c1ba');
-    drawPixelRect(context, x + 7, y - 1, 2, 4, '#c5b493');
-  }
 }

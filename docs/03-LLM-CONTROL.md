@@ -9,15 +9,33 @@ The shared rulebook describes our actual simulation: coordinates, current rulese
 `src/protocol/observation.ts` produces these fields for each side:
 
 - `responseIdentity`: match, team, decision ID and integer tick to copy into the batch.
-- `phase`, `phaseInstruction`, `half`, playing time, half duration/time remaining and score.
+- `phase`, `phaseInstruction`, `half`, playing time, half duration/time remaining, match time remaining and score. The current half duration is 30 playing seconds.
 - `teamContext`: own/opponent goal centres for this half, possession, carrier ID and active teammate/opponent IDs.
 - `players`: all 22 public players with position, velocity, facing, role and discipline. Own players additionally expose their current order/lifetime and action context.
-- `actionContext`: `canKickNow`, reachable opposing carrier ID or null, tackle cooldown, distance to ball and nearest opponent ID/distance. Exact geometry is checked before display rounding; these facts do not guarantee success or rule out a foul.
+- `actionContext`: `canKickNow`, reachable opposing carrier ID or null, tackle cooldown, distance to ball, and nearest teammate/opponent IDs and distances. The nearest teammate excludes the player itself and dismissed teammates. Exact geometry is checked before display rounding; these facts do not guarantee success or rule out a foul.
 - `ball`: position, velocity, owner and last touch; `offside`: the public current snapshot.
-- `recentEvents`: latest 12 public events; `orderFeedback`: latest 12 own failed orders/restart violations since the previous shared decision.
-- `privateMemory`: the team's prior notebook, bounded to 500 characters and never supplied to the opponent.
+- `recentEvents`: latest 12 public events excluding repetitive `block` contacts; `orderFeedback`: latest 12 own failed orders/restart violations since the previous shared decision. The complete recording retains every event.
+- `previousDecisionTick`: boundary against which to distinguish a new incident from retained history.
+- `privateMemory`: the team's prior structured tactical plan, or null at the first decision. It is never supplied to the opponent.
 
-Players' public coordinates are rounded to centimetres for observation only. Opponent orders, opponent memory, seed and pending responses are never exposed. The added nearest-opponent fact does not replace the full opposing roster.
+Players' public coordinates are rounded to centimetres for observation only. Opponent orders, opponent memory, seed and pending responses are never exposed. Both models already receive the entire opposing roster's public positions, velocities and facing. A model can infer possible runs or pressure from those facts, but its inference is not privileged access to an opponent's intended action. Nearest-player summaries do not replace the full rosters.
+
+## Structured tactical memory
+
+`src/protocol/schema.ts` defines the same strict memory shape for both providers:
+
+| Field          | Meaning and bound                                                                                                                               |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plan`         | One objective, up to 120 characters                                                                                                             |
+| `ballPlayerId` | One active teammate carrying, pressing or collecting the ball, or null                                                                          |
+| `pass`         | Null, or a distinct active teammate's `receiverId` and a pitch-bounded `target` meeting point                                                   |
+| `assignments`  | Up to 10 distinct active teammates, each with `role` (`width`, `support`, `run`, `cover` or `mark`) and an opposing active `opponentId` or null |
+| `threats`      | Up to two opposing active players, each with `opponentId` and a `concern` of at most 80 characters                                              |
+| `review`       | The model's assessment of its previous attempt, up to 120 characters                                                                            |
+
+A new match starts with null memory. Each accepted response replaces that team's memory, which is cloned into its next observation. Invalid replies cannot replace it, and operational fallback preserves the previous memory. The model must revise stale references or plans after dismissal, a turnover, restart or end swap. No automatic tactical reset chooses a replacement plan.
+
+Memory is not an action queue or engine-certified result. The model must translate retained assignments and pass plans into actual orders. It should review events and current ownership, use event ticks to avoid treating old incidents as new, and say unresolved when evidence is inconclusive. A confident `review` does not prove that a pass succeeded. The spectator inspector labels this field as a model assessment and can reveal both plans from the recording; the opposing controller never receives them.
 
 ## Coordinated action batches
 
@@ -36,11 +54,13 @@ The prompt asks for one purposeful order per active teammate, including the keep
 
 The model must coordinate a carrier's pass with its receiver's movement and consider arrival time, opposing players and supporting angles. It must also choose defensive cover, divide pressing/marking work and keep a goalkeeper protecting the current own goal. The model chooses every target. There is no automatic receiver selection, pass correction, supporting run, man-marking or ball-chasing in the engine.
 
+The spacing guidance names one ball player and gives the pass meeting point to one receiver. Other players need distinct targets, width, different depths and defensive cover. It asks the model to compare friendly movement targets before submitting, to prefer at least six metres between supporting players where space allows, and to retain useful current destinations across decisions. Close challenges and runs can be exceptions. Six metres is prompt guidance, not a collision radius, hard validation rule or hidden movement correction.
+
 Kick/shot/tackle orders execute once and are never queued for later possession. Movement and guard persist for three seconds unless replaced, cancelled or completed. At most one order per player means the passer cannot also receive a move in the same batch; its next supporting run needs a later decision. Both sides may change the world after this snapshot, so an action that was reachable can still fail when committed.
 
 ## Validation and feedback
 
-Every provider JSON response passes strict shape, finite/range, identity, team ownership, duplicate-player and phase validation. Invalid batches receive at most one repair against the same serialized snapshot; the other team's accepted reply stays locked. Exhaustion records an explicit empty batch. A permanent provider failure stops generation as incomplete.
+Every provider JSON response passes strict shape, finite/range, identity, team ownership, duplicate-player and phase validation. Memory also validates active player ownership, distinct assignments and a different receiver from the ball player for a pass. Invalid responses receive at most one repair against the same serialized snapshot; the other team's accepted reply stays locked. Exhaustion records an explicit empty batch and preserves the previous memory. A permanent provider failure stops generation as incomplete.
 
 An accepted action can still fail physically. A kick without possession or tackle out of reach is an engine event, not a successful action and not silently repaired into another tactic. These failures are shown to that team in its next observation. The inspector exposes recorded attempts, feedback and accepted decisions.
 
@@ -50,4 +70,4 @@ The runner reserves both teams' requests and possible repairs before advancing a
 
 Bounded real-model runs record exact prompts, observations, attempts, failures and accepted orders. Assess both immediate execution failures and continuous team behaviour. Single-snapshot improvements do not prove sustained teamwork. Old viewer recordings are removed when their ruleset changes; development does not maintain historical engine support.
 
-Scripted fixtures are development controls, never labelled model-played. Replays use recorded decisions/frames and call no model. Public observation inspection follows the replay playhead; it is not a live provider token stream. See [decision 005](decisions/005-SHORTER-MATCHES-AND-COORDINATION.md) for the approved timing/coordination change and its numeric boundaries.
+Scripted fixtures are development controls, never labelled model-played. Replays use recorded decisions/frames and call no model. Public observation inspection follows the replay playhead; it is not a live provider token stream. See [decision 006](decisions/006-TACTICAL-MEMORY.md) for the approved memory, spacing and development-duration change.

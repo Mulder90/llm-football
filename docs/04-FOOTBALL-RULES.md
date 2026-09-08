@@ -1,10 +1,10 @@
 # Football mechanics and referee
 
-The current ruleset is `football-0.4`. It keeps football-0.3 physics and referee behaviour and changes new matches to two-minute halves. It provides recognisable football with explicit simplifications, not complete compliance with the official Laws. [Decision 002](decisions/002-MATCH-RULES.md) records the physical/restart foundation; [decision 004](decisions/004-CONTACT-REFEREE.md) records contact officiating, offside and primary rule references; [decision 005](decisions/005-SHORTER-MATCHES-AND-COORDINATION.md) records the duration and controller changes.
+The current ruleset is `football-0.5`. It keeps the existing physics and referee behaviour and changes development matches to 30-second halves. It provides recognisable football with explicit simplifications, not complete compliance with the official Laws. [Decision 002](decisions/002-MATCH-RULES.md) records the physical/restart foundation; [decision 004](decisions/004-CONTACT-REFEREE.md) records contact officiating, offside and primary rule references; [decision 006](decisions/006-TACTICAL-MEMORY.md) records the current duration and tactical-memory change.
 
 ## Match and phases
 
-Eleven stable players per team, including one keeper. One model chooses each team's orders. New matches have two halves of 120 playing seconds; draws stand. Both teams switch ends at halftime. Simulation ticks include a two-second restart setup, up to six seconds for delivery, and a three-second halftime interval. These periods pause the playing clock.
+Eleven stable players per team, including one keeper. One model chooses each team's orders. Development matches have two halves of 30 playing seconds; draws stand. Both teams switch ends at halftime. Simulation ticks include a two-second restart setup, up to six seconds for delivery, and a three-second halftime interval. These periods pause the playing clock.
 
 Phases are explicit variants: `open_play`, `restart_setup`, `restart_ready`, `halftime` and `full_time`. The engine owns transitions. Referee position, cards, whistles and goal effects only display recorded state/events. The fixed half clock ends after the final tick's incidents; it does not extend for an awarded or in-flight penalty.
 
@@ -18,6 +18,8 @@ Phases are explicit variants: `open_play`, `restart_setup`, `restart_ready`, `ha
 - `restart_taker`: select an eligible taker during the awarded team's setup opportunity.
 
 Movement/guarding lasts up to three seconds unless replaced or cleared. Omitted orders continue until expiry. Ground first-touch control and symmetric body separation are mechanical assistance shared by both sides. Faster/higher ball contacts can rebound. Kicks commit before tackles; the earliest swept frame/player/boundary incident owns a ball-contact tick. Exact ties have declared priorities and explicit seeded selection.
+
+Structured tactical memory changes what a controller carries between decisions, not these action semantics. A remembered marking job, pass or spacing preference has no physical effect until the model issues the corresponding current orders. There is no automatic spreading of crowded teammates.
 
 ## Ball and scoring
 

@@ -3,6 +3,7 @@ import { distanceBetween } from '../sim/math.ts';
 import { attackDirection, cloneOrder, clonePhase } from '../sim/state.ts';
 import type { MatchState, Player, Team, Vec2 } from '../sim/types.ts';
 import { PROTOCOL_LIMITS } from './schema.ts';
+import type { TacticalMemory } from './schema.ts';
 
 const round = (value: number) => Math.round(value * 100) / 100;
 const position = (point: Vec2) => ({ x: round(point.x), y: round(point.y) });
@@ -20,6 +21,18 @@ function actionContext(state: MatchState, player: Player) {
     undefined,
   );
   const carrier = opponents.find((other) => other.id === state.ball.owner);
+  const teammates = state.players.filter(
+    (other) => other.team === player.team && other.id !== player.id && !other.dismissed,
+  );
+  const nearestTeammate = teammates.reduce<Player | undefined>(
+    (closest, other) =>
+      !closest ||
+      distanceBetween(player.position, other.position) <
+        distanceBetween(player.position, closest.position)
+        ? other
+        : closest,
+    undefined,
+  );
   const distanceToBall = distanceBetween(player.position, state.ball.position);
   const tackleCooldownTicks = Math.max(
     0,
@@ -41,6 +54,12 @@ function actionContext(state: MatchState, player: Player) {
     reachableTackleTargetId: canReachCarrier ? carrier.id : null,
     tackleCooldownTicks,
     distanceToBall: round(distanceToBall),
+    nearestTeammate: nearestTeammate
+      ? {
+          playerId: nearestTeammate.id,
+          distance: round(distanceBetween(player.position, nearestTeammate.position)),
+        }
+      : null,
     nearestOpponent: nearest
       ? {
           playerId: nearest.id,
@@ -53,7 +72,7 @@ function actionContext(state: MatchState, player: Player) {
 export function observe(
   state: MatchState,
   team: Team,
-  memory: string,
+  memory: TacticalMemory | null,
   decisionIntervalTicks: number,
   previousDecisionTick = 0,
 ) {
@@ -85,6 +104,8 @@ export function observe(
     playingSeconds: state.playingTicks / TICK_RATE,
     halfDurationSeconds: MATCH_TIMING.halfPlayingTicks / TICK_RATE,
     halfSecondsRemaining: (MATCH_TIMING.halfPlayingTicks - state.halfPlayingTicks) / TICK_RATE,
+    matchSecondsRemaining: (2 * MATCH_TIMING.halfPlayingTicks - state.playingTicks) / TICK_RATE,
+    previousDecisionTick: Math.max(0, previousDecisionTick),
     secondsUntilNextScheduledDecision: decisionIntervalTicks / TICK_RATE,
     attackDirection: direction,
     teamContext: {
@@ -126,12 +147,15 @@ export function observe(
                   remainingTicks: Math.max(0, player.active.expires - state.tick),
                 }
               : null,
-            tackleReady: state.tick - player.lastTackleTick >= TACKLE.recoveryTicks,
             actionContext: actionContext(state, player),
           }
         : {}),
     })),
-    recentEvents: state.events.slice(-PROTOCOL_LIMITS.recentEvents).map((event) => ({ ...event })),
+    // Repeated deflections can otherwise bury the pass, reception or turnover needed to review a plan.
+    recentEvents: state.events
+      .filter((event) => event.type !== 'block')
+      .slice(-PROTOCOL_LIMITS.recentEvents)
+      .map((event) => ({ ...event })),
     orderFeedback: state.events
       .filter(
         (event) =>
@@ -141,7 +165,7 @@ export function observe(
       )
       .slice(-PROTOCOL_LIMITS.recentEvents)
       .map((event) => ({ ...event })),
-    privateMemory: memory,
+    privateMemory: memory ? structuredClone(memory) : null,
   };
 }
 

@@ -25,13 +25,19 @@ Canvas 2D renders the world at a logical 960×660 resolution, with HTML/React co
 
 World metres are independent of pixels. Round at drawing boundaries, not in physics. Stable foot anchors and layered drawing prevent sliding and overlap errors. An aerial ball separates from its ground shadow. Keep it visible near players. Tactical overlays are opt-in.
 
-The static pitch/stadium is cached on a canvas. Actors and selected crowd details animate from recorded samples. React receives control updates at roughly 10 Hz; each sprite frame is drawn independently. Selecting an order adds a team-coloured player ring, number and target line without affecting the match.
+The static pitch/stadium is cached on a canvas: supporter sections, scarves, banners, rails and aisles. A subset of spectators animate with varied decorative rhythms; team-aware goal, save and shot reactions use recorded events. Flag cloth is drawn separately from the cache to avoid ghosting and becomes static under reduced motion. Actors and crowd details animate from recorded samples. React receives control updates at roughly 10 Hz; each sprite frame is drawn independently. Selecting an order adds a team-coloured player ring, number and target line without affecting the match.
 
 ## Animation
 
 Priority set: idle, run, decelerate/turn, pass/kick, receive, tackle, fall/recover, keeper ready/dive/catch, celebrate and referee signal. Add states as mechanics require them. Prefer a few strong consistent frames over many inconsistent generated poses.
 
 Use one base player with palette/equipment variants. Head size, anchors and lighting stay stable. Run cadence follows movement speed; stationary feet stop cycling. Kick anticipation, contact and recovery align with actual simulation action phases.
+
+Robots now have directional footwork and body lean, rear helmet panels, deterministic blinks, kick/tackle recovery, keeper gloves and celebratory faces/arms. Jumping leaves shadows fixed on the ground. Two faint past positions help track a fast loose ball without tracing across possession changes or restarts.
+
+The referee has its own cream-shell/lime-kit sprite, movement-driven run cycle, whistle-to-point gestures and raised cards. A cached route follows earlier recorded play with bounded speed and acceleration. Arbitrary seeking samples that same route; signals never anticipate their recorded incident. Reduced motion retains readable signals while removing decorative steps, bobbing, blinking and card-rise animation.
+
+Goal presentation uses the first frame containing the updated score. A compact banner leaves the huddle visible, with a local net ripple and team-coloured confetti outside the pitch. Five scoring-side players gather, celebrate and return during the existing stopped-clock setup. The canonical frames and outcome never change; reduced motion retains their original positions.
 
 The earlier running GIF was a rough experiment with shape drift and is intentionally not included as a production reference. The selected overhead viewpoint needs its own aligned assets.
 

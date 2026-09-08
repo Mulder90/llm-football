@@ -1,6 +1,8 @@
-# Shorter matches and team coordination
+# Tactical memory and clearer football
 
-The current ruleset is football-0.4 with two 120-second halves. Team observations and the shared prompt now support coordinated full-roster decisions. A verified 10.75-second real excerpt is in the viewer; the complete four-minute model run is in progress. Per the user's explicit direction, old viewer recordings and compatibility code have been removed.
+The current ruleset is football-0.5 with two 30-second development halves. Each controller now carries structured tactical memory, sees nearest-teammate spacing alongside the complete public rosters, and receives explicit guidance to distribute off-ball jobs and targets. The user's priority is entertaining football before more broadcast or rendering work. A complete one-minute model match is now published locally: generation took 27m 05.8s and an estimated $0.6361. Its first half shows much less Cyan crowding; Coral remains prone to repeated intercepted keeper passes. The user also approved stadium, player, goal and referee presentation improvements during generation.
+
+At the user's request, `coordination-match-001` was stopped after 129.3667 playing seconds, with saved estimated usage of $1.008124. Its private incomplete checkpoint remains diagnostic evidence. Previous public recordings are removed, and no compatibility layer is maintained. The entries below describe historical slices and their evidence at the time; older artifacts are not current viewer content.
 
 ## Implemented
 
@@ -20,18 +22,22 @@ The current ruleset is football-0.4 with two 120-second halves. Team observation
 
 - Slice 7: one current two-minute-half ruleset, explicit goal/possession/action context, team failure feedback, whole-roster coordination instructions, and 65 passing tests. The new short model run has 45 full-roster batches out of 48 and no failed execution events. See [handoff](slices/07-SHORTER-COORDINATED-MATCHES.md).
 
+- Slice 8: structured team plans with validated player references, private carry-forward and fallback preservation; opponent-awareness and spacing guidance; nearest-teammate geometry; 30-second halves and a readable inspector view of each recorded plan. The scripted baseline completes one minute of play with unchanged physical rules. Verification and model-run evidence are tracked in the [handoff](slices/08-TACTICAL-MEMORY.md).
+
+- Slice 9: supporter sections, varied crowd/flag animation, expressive robot poses, a causal animated referee and synchronized net/goal/huddle effects. These read the recording without changing it. All 80 tests pass; production build, full 1× browser playback and export checks pass. See [handoff](slices/09-LIVELIER-BROADCAST.md).
+
 ## Code quality agreement
 
 Use descriptive names, explicit units for physics constants, named replay fields, focused functions and components, and Prettier. The user explicitly permits necessary dependencies but wants simple, maintainable code without excessive defensive checks or premature architecture. External JSON remains untrusted and must be validated.
 
 ## Next slice
 
-Complete the new four-minute model match and inspect sustained coordination. Then address pass timing and defensive spacing using recorded evidence. Keep outcomes determined by the engine.
+Address keeper distribution and adaptation after repeated interceptions. Use the recorded pass outcomes and spacing measures to evaluate the next small change. Broadcast openings, highlights and decision storytelling remain later work. Keep outcomes determined by the engine.
 
 ## Limitations
 
-- Model football is still rough. More orders and fewer immediate failures do not prove good pass timing or defensive shape. The engine never corrects tactical intent.
-- The football-0.4 rules intentionally simplify contact, offside involvement and several referee decisions; [the rules document](04-FOOTBALL-RULES.md) states the omissions.
+- Model football is still rough. Structured assignments and fewer immediate failures do not prove good pass timing or defensive shape. A model's review may be inaccurate, and the engine never corrects tactical intent or spreads players into better positions.
+- The football-0.5 rules intentionally simplify contact, offside involvement and several referee decisions; [the rules document](04-FOOTBALL-RULES.md) states the omissions.
 - Playback is a recording. Observations follow its playhead, not a live provider token stream. Sound is synthetic and muted until enabled; event timing is checked, but there is no human listening assessment.
 - The viewer runs locally and can be built as a static site; public deployment is a separate slice. Generation cannot resume a private checkpoint yet.
 
@@ -41,4 +47,4 @@ Complete the new four-minute model match and inspect sustained coordination. The
 
 The user requested direct work and pushes on `main`; the foundation commits have been fast-forwarded and pushed there. Continue on main.
 
-Latest user direction is implemented: game/viewport by default; optional desktop side panel for clear team/player decisions, exact prompt/rules and observations following playback; goal effects and player celebrations.
+The viewport-first presentation, optional desktop side panel, exact prompt/rules and observation replay, goal effects and player celebrations remain available. The current work includes controller memory, football spacing and the presentation improvements approved while the evaluation ran.

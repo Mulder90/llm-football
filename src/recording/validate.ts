@@ -4,6 +4,8 @@ import {
   pitchTargetSchema,
   playerIdSchema,
   teamSchema,
+  tacticalMemorySchema,
+  validateTacticalMemory,
 } from '../protocol/schema.ts';
 import { BALL_CONTROL, ENGINE_VERSION, MATCH_TIMING } from '../sim/rules.ts';
 import type { Recording } from './record.ts';
@@ -246,7 +248,10 @@ const recordingSchema = z.strictObject({
         notes: z
           .record(
             teamSchema,
-            z.strictObject({ intent: z.string().max(160), memory: z.string().max(500) }),
+            z.strictObject({
+              intent: z.string().max(160),
+              memory: tacticalMemorySchema.nullable(),
+            }),
           )
           .optional(),
         observations: z.record(teamSchema, z.string().max(32768)).optional(),
@@ -315,6 +320,11 @@ export function parseRecording(raw: unknown): Recording {
     )
       throw new Error('Recording decision identity or timeline is inconsistent');
     previousTick = decision.tick;
+    if (decision.notes)
+      for (const team of ['coral', 'cyan'] as const) {
+        const memory = decision.notes[team].memory;
+        if (memory) validateTacticalMemory(memory, recording.initial.players, team);
+      }
     if (decision.observations)
       for (const team of ['coral', 'cyan'] as const) {
         let observation: unknown;

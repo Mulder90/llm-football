@@ -4,9 +4,11 @@ import { ProviderError, openaiController, geminiController } from '../src/genera
 import type { TeamController, ControllerRequest } from '../src/generation/providers.ts';
 import type { GenerationProvenance } from '../src/recording/provenance.ts';
 import { verifyRecording, stateHash } from '../src/recording/record.ts';
+import { parseRecording } from '../src/recording/validate.ts';
 import { observe } from '../src/protocol/observation.ts';
 import { rulebook } from '../src/protocol/rulebook.ts';
 import { parseModelDecision } from '../src/protocol/schema.ts';
+import type { TacticalMemory } from '../src/protocol/schema.ts';
 import { createMatch } from '../src/sim/state.ts';
 import { emptyBatch } from '../src/sim/orders.ts';
 import type { Team } from '../src/sim/types.ts';
@@ -32,11 +34,21 @@ function mockController(
     },
   };
 }
+function memory(team: Team, plan = `${team} private plan`): TacticalMemory {
+  return {
+    plan,
+    ballPlayerId: `${team}-7`,
+    pass: { receiverId: `${team}-9`, target: { x: 52, y: 16 } },
+    assignments: [{ playerId: `${team}-11`, role: 'width', opponentId: null }],
+    threats: [],
+    review: '',
+  };
+}
 function response(request: ControllerRequest) {
   const observation = JSON.parse(request.observation) as ReturnType<typeof observe>;
   return {
     batch: { ...observation.responseIdentity, orders: [] },
-    memory: 'private plan',
+    memory: memory(observation.responseIdentity.team),
     intent: 'Hold this shape',
   };
 }
@@ -62,8 +74,8 @@ describe('shared model protocol', () => {
       issued: 0,
       expires: 60,
     };
-    const coral = observe(state, 'coral', 'coral notebook', 60);
-    const cyan = observe(state, 'cyan', 'cyan notebook', 60);
+    const coral = observe(state, 'coral', memory('coral'), 60);
+    const cyan = observe(state, 'cyan', memory('cyan'), 60);
     expect(coral.responseIdentity).toEqual({
       version: 1,
       matchId: state.matchId,
@@ -79,15 +91,17 @@ describe('shared model protocol', () => {
       'currentOrder',
     );
     expect(coral).not.toHaveProperty('seed');
-    expect(JSON.stringify(coral)).not.toContain('cyan notebook');
+    expect(coral.privateMemory).toEqual(memory('coral'));
+    expect(cyan.privateMemory).toEqual(memory('cyan'));
+    expect(JSON.stringify(coral)).not.toContain('cyan private plan');
     expect(coral.ball).toEqual(cyan.ball);
   });
 
-  it('rejects invalid ownership, non-finite actions, oversized memory and stale identities', () => {
+  it('rejects invalid ownership, non-finite actions and stale identities', () => {
     const state = createMatch();
-    const valid = { batch: emptyBatch(state, 'coral'), memory: '', intent: '' };
+    const valid = { batch: emptyBatch(state, 'coral'), memory: memory('coral'), intent: '' };
+    expect(() => parseModelDecision(valid, state, 'coral')).not.toThrow();
     for (const raw of [
-      { ...valid, memory: 'x'.repeat(501) },
       { ...valid, batch: { ...valid.batch, tick: 1 } },
       { ...valid, batch: { ...valid.batch, orders: [{ type: 'hold', playerId: 'cyan-2' }] } },
       {
@@ -124,7 +138,7 @@ describe('shared model protocol', () => {
     const pending = decideTogether(
       state,
       controllers,
-      { coral: 'secret coral', cyan: 'secret cyan' },
+      { coral: memory('coral', 'prior coral plan'), cyan: memory('cyan', 'prior cyan plan') },
       record,
       new AbortController().signal,
     );
@@ -139,6 +153,10 @@ describe('shared model protocol', () => {
     expect(calls.cyan[0]!.observation).toBe(calls.cyan[1]!.observation);
     expect(calls.cyan[1]!.feedback).toContain('Invalid response');
     expect(result.fallback).toEqual([]);
+    expect(result.decisions.map((decision) => decision.memory)).toEqual([
+      memory('coral'),
+      memory('cyan'),
+    ]);
     expect(record.requests.map((receipt) => receipt.status)).toEqual([
       'accepted',
       'rejected',
@@ -154,13 +172,14 @@ describe('shared model protocol', () => {
     const result = await decideTogether(
       createMatch(),
       controllers,
-      { coral: '', cyan: '' },
+      { coral: memory('coral'), cyan: null },
       record,
       new AbortController().signal,
     );
     expect(record.requests).toHaveLength(4);
     expect(result.fallback).toEqual(['coral', 'cyan']);
     expect(result.decisions.every((decision) => decision.batch.orders.length === 0)).toBe(true);
+    expect(result.decisions.map((decision) => decision.memory)).toEqual([memory('coral'), null]);
   });
 
   it('reserves the entire paired boundary and retries before issuing any paid request', async () => {
@@ -182,20 +201,53 @@ describe('shared model protocol', () => {
     expect(verifyRecording(recording).tick).toBe(0);
   });
 
-  it('checkpoints and replay-verifies a bounded run, never labelling the cap full time', async () => {
-    const controller = mockController(response);
+  it('carries only each team’s accepted memory through repairs and fallbacks in a replayable bounded run', async () => {
+    const requests: Record<Team, ControllerRequest[]> = { coral: [], cyan: [] };
+    const controller = mockController((request) => {
+      const observation = JSON.parse(request.observation) as ReturnType<typeof observe>;
+      const { team, decisionId } = observation.responseIdentity;
+      requests[team].push(request);
+      const reply = { ...response(request), memory: memory(team, `${team} plan ${decisionId}`) };
+      if (decisionId === 1 && (team === 'cyan' || !request.feedback))
+        return {
+          ...reply,
+          memory: { ...reply.memory, ballPlayerId: team === 'coral' ? 'cyan-7' : 'coral-7' },
+        };
+      return reply;
+    });
     const recording = await generateMatch({
       matchId: 'bounded-run',
       controllers: { coral: controller, cyan: controller },
-      limits: { ...DEFAULT_LIMITS, maximumDecisions: 2 },
+      limits: { ...DEFAULT_LIMITS, maximumDecisions: 3 },
     });
-    expect(recording.decisions).toHaveLength(2);
+    expect(recording.decisions).toHaveLength(3);
     expect(recording.generation).toMatchObject({
       status: 'incomplete',
       stopReason: 'decision_limit',
     });
-    expect(recording.decisions[0]!.observations?.coral).toContain('privateMemory');
-    expect(verifyRecording(recording).phase.type).toBe('restart_ready');
+    for (const team of ['coral', 'cyan'] as const) {
+      const observations = requests[team].map(
+        (request) => JSON.parse(request.observation) as ReturnType<typeof observe>,
+      );
+      expect(observations.map((observation) => observation.privateMemory?.plan ?? null)).toEqual([
+        null,
+        `${team} plan 0`,
+        `${team} plan 0`,
+        `${team} plan ${team === 'coral' ? 1 : 0}`,
+      ]);
+      expect(requests[team][1]!.observation).toBe(requests[team][2]!.observation);
+      expect(
+        requests[team].every(
+          (request) => !request.observation.includes(`${team === 'coral' ? 'cyan' : 'coral'} plan`),
+        ),
+      ).toBe(true);
+    }
+    expect(recording.decisions[1]!.fallback).toEqual(['cyan']);
+    expect(recording.decisions[1]!.notes?.coral.memory).toEqual(memory('coral', 'coral plan 1'));
+    expect(recording.decisions[1]!.notes?.cyan.memory).toEqual(memory('cyan', 'cyan plan 0'));
+    const imported = parseRecording(JSON.parse(JSON.stringify(recording)));
+    expect(imported.decisions[1]!.notes).toEqual(recording.decisions[1]!.notes);
+    expect(verifyRecording(imported).phase.type).toBe('restart_ready');
     expect(recording.generation!.estimatedUsd).toBeGreaterThan(0);
   });
 

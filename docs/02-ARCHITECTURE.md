@@ -25,10 +25,12 @@ A scheduled decision is due after one simulated second. Phase changes interrupt 
 
 The observation stream shown to spectators follows these recorded boundaries. It is not a WebSocket or a claim of live model token streaming. Partial JSON never becomes a committed action.
 
+Each team starts with null tactical memory. A valid response replaces its own memory with a bounded object containing the plan, ball player, optional pass, off-ball assignments, opponent threats and previous-attempt review. The next observation carries a clone of that team's object. A rejected reply cannot overwrite accepted memory; an exhausted repair preserves the previous object while recording empty orders. Memory references are validated against active players on the appropriate side. The simulation does not read or execute memory. The inspector can show both recorded plans after the fact, but generation never sends one team's plan or pending orders to the other.
+
 ## Four clocks
 
 1. **Simulation:** integer ticks at 60 Hz, including setup and halftime.
-2. **Playing time:** 7,200 eligible ticks per half, defined once in the current ruleset. Restart setup/ready and halftime pause this clock. Ends swap after the interval.
+2. **Playing time:** 1,800 eligible ticks per half, defined once in football-0.5. Restart setup/ready and halftime pause this clock. Ends swap after the interval. Thirty seconds per half is the current development duration.
 3. **Generation wall time:** provider latency, validation, retries and checkpoint writes. It cannot alter physics through response arrival order.
 4. **Presentation:** the recorded simulation timeline, sampled/interpolated at the browser's frame rate. The spectator can pause, seek and change speed; a hidden tab pauses instead of catching up.
 
@@ -39,6 +41,8 @@ Goal huddles use a presentation copy of pre-goal poses during the recorded stopp
 Positions are metres on a 105×68 field: x along its length, y across its width, z upward. Speeds are metres per second. IDs and jersey numbers persist through halftime and dismissal. Attack direction derives from team and half.
 
 A movement order steers toward one fixed target with bounded acceleration and braking. It does not chase, mark or choose a passing lane. Possession follows a carrier's foot; loose-ball control, guarding catches, deflections and swept goal-frame/boundary contacts have explicit rules. The model chooses kick direction, speed and loft. The referee alone awards goals, restarts, offside and contact sanctions. [The current rules](04-FOOTBALL-RULES.md) and [decision 004](decisions/004-CONTACT-REFEREE.md) describe deliberate simplifications.
+
+All public player positions and velocities are already present in both observations. Nearest-teammate and nearest-opponent facts summarize current geometry; neither chooses a movement target. Distinct supporting positions, pressing assignments and inferences about opponent intentions remain controller decisions. Repetitive `block` events are omitted from the bounded observation history so other incidents remain useful when reviewing a plan; the full recording still retains them.
 
 ## Canonical replay and viewer samples
 

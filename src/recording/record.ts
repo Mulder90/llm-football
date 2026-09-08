@@ -3,10 +3,19 @@ import { applyDecision } from '../sim/orders.ts';
 import { ENGINE_VERSION, TICK_RATE } from '../sim/rules.ts';
 import { cloneState, clonePhase } from '../sim/state.ts';
 import { step } from '../sim/step.ts';
-import type { Decision, MatchEvent, MatchState, Team, Vec2, Vec3 } from '../sim/types.ts';
+import type { Batch, MatchEvent, MatchState, Team, Vec2, Vec3 } from '../sim/types.ts';
+import type { TacticalMemory } from '../protocol/schema.ts';
 import type { GenerationProvenance } from './provenance.ts';
 
 export const SAMPLE_INTERVAL_TICKS = 3;
+
+export type RecordedDecision = {
+  tick: number;
+  batches: [Batch, Batch];
+  fallback: Team[];
+  notes?: Record<Team, { intent: string; memory: TacticalMemory | null }>;
+  observations?: Record<Team, string>;
+};
 
 /** Named fields remain readable in exported JSON. Compression can be added later. */
 export type PlayerFrame = {
@@ -42,7 +51,7 @@ export type Recording = {
   description: string;
   teams: Record<Team, { name: string; controller: string }>;
   initial: MatchState;
-  decisions: Decision[];
+  decisions: RecordedDecision[];
   frames: Frame[];
   events: MatchEvent[];
   finalHash: string;

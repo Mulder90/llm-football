@@ -10,7 +10,7 @@ import type { MatchState, Team } from '../sim/types.ts';
 import { observe } from '../protocol/observation.ts';
 import { rulebook } from '../protocol/rulebook.ts';
 import { parseModelDecision, RESPONSE_JSON_SCHEMA, responseSchemaFor } from '../protocol/schema.ts';
-import type { ModelDecision } from '../protocol/schema.ts';
+import type { ModelDecision, TacticalMemory } from '../protocol/schema.ts';
 import { ProviderError } from './providers.ts';
 import type { ControllerRequest, TeamController } from './providers.ts';
 
@@ -62,7 +62,7 @@ function requestEstimate(
 export async function decideTogether(
   state: MatchState,
   controllers: Record<Team, TeamController>,
-  memories: Record<Team, string>,
+  memories: Record<Team, TacticalMemory | null>,
   provenance: GenerationProvenance,
   signal: AbortSignal,
   previousDecisionTick = 0,
@@ -242,7 +242,7 @@ export async function generateMatch(options: GenerationOptions): Promise<Recordi
     durationTicks: 0,
     generation: provenance,
   };
-  const memories: Record<Team, string> = { coral: '', cyan: '' };
+  const memories: Record<Team, TacticalMemory | null> = { coral: null, cyan: null };
   let previousPhase = '';
   let observedOwner = state.ball.owner;
   let lastDecisionTick = -limits.decisionIntervalTicks;

@@ -2,10 +2,10 @@
   "version": 1,
   "matches": [
     {
-      "id": "coordination-possession-002",
-      "file": "coordination-possession-002.json.gz",
+      "id": "tactical-memory-match-001",
+      "file": "tactical-memory-match-001.json.gz",
       "title": "The first meeting",
-      "complete": false
+      "complete": true
     }
   ]
 }

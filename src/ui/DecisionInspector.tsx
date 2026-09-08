@@ -7,6 +7,7 @@ import { rulebook } from '../protocol/rulebook.ts';
 import { RESPONSE_JSON_SCHEMA } from '../protocol/schema.ts';
 import { userPrompt } from '../protocol/prompt.ts';
 import type { MatchListing } from './useRecordings.ts';
+import { TacticalPlan } from './TacticalPlan.tsx';
 
 export type InspectorTab = 'decisions' | 'observations' | 'prompt' | 'match';
 function formatTarget(target: Vec2): string {
@@ -171,6 +172,7 @@ export function DecisionInspector({
                     <span className="order-count">{batch?.orders.length ?? 0} orders</span>
                   </header>
                   {note?.intent && <p className="tactical-note">{note.intent}</p>}
+                  {note?.memory ? <TacticalPlan memory={note.memory} /> : null}
                   {decision?.fallback.includes(side) && (
                     <p className="fallback-note">
                       No accepted reply. Existing orders continue until expiry.

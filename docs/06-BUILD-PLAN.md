@@ -2,7 +2,7 @@
 
 The destination is a complete LLM-controlled football game. Small slices are implementation steps, not a change of product scope. Each must establish a rules invariant and a visible result.
 
-The list below is the original roadmap. Completed implementation slices and actual verification are tracked in [PROGRESS.md](PROGRESS.md) and `docs/slices/`; their numbering differs because related foundation mechanics were delivered together. The active objective remains the first complete, beautiful model-played match. A public deployment and later roadmap features are separate work.
+The list below is the original roadmap. Completed implementation slices and actual verification are tracked in [PROGRESS.md](PROGRESS.md) and `docs/slices/`; their numbering differs because related foundation mechanics were delivered together. The active objective is clearer, more entertaining model football through structured tactical memory and 30-second development halves. A public deployment and later roadmap features are separate work.
 
 ## 0 — review
 
