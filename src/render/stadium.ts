@@ -2,6 +2,7 @@ import { PITCH_LAYOUT, STADIUM_SIZE } from './layout.ts';
 import { drawPixelRect } from './pixels.ts';
 import {
   decorationNoise,
+  drawCornerFlagPoles,
   drawStadiumAtmosphere,
   drawSupporterStands,
   drawTreeBases,
@@ -149,17 +150,7 @@ function drawPitch(context: CanvasRenderingContext2D): void {
     3,
     '#e3e7be',
   );
-  for (const [cornerX, cornerY] of [
-    [pitchLeft, pitchTop],
-    [pitchLeft + pitchWidth, pitchTop],
-    [pitchLeft, pitchTop + pitchHeight],
-    [pitchLeft + pitchWidth, pitchTop + pitchHeight],
-  ]) {
-    const flagX = cornerX!,
-      flagY = cornerY!;
-    drawPixelRect(context, flagX, flagY - 8, 1, 9, '#e4e8c9');
-    drawPixelRect(context, flagX + 1, flagY - 8, 5, 4, '#f9c24b');
-  }
+  drawCornerFlagPoles(context);
 }
 
 function drawDugoutsAndLights(context: CanvasRenderingContext2D): void {

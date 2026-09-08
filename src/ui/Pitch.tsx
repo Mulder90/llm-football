@@ -12,6 +12,7 @@ import { TICK_RATE } from '../sim/rules.ts';
 import { recordingSecondsAt } from '../render/presentation-time.ts';
 import type { PresentationTimeline } from '../render/presentation-time.ts';
 import type { PlaybackAudio } from '../audio/playback-audio.ts';
+import { cameraAt } from '../render/camera.ts';
 
 const PRESENTATION_TIMING = {
   millisecondsPerSecond: 1000,
@@ -26,6 +27,8 @@ type PitchProps = {
   isPlaying: boolean;
   speed: number;
   showPlayerNumbers: boolean;
+  wholePitch: boolean;
+  reducedMotion: boolean;
   selectedPlayer: string | null;
   seekRevision: number;
   onAdvance: (seconds: number, ended: boolean) => void;
@@ -39,6 +42,8 @@ export function Pitch({
   isPlaying,
   speed,
   showPlayerNumbers,
+  wholePitch,
+  reducedMotion,
   selectedPlayer,
   seekRevision,
   onAdvance,
@@ -53,7 +58,6 @@ export function Pitch({
     const context = canvas.getContext('2d')!;
     backgroundRef.current ??= createStadium();
     const background = backgroundRef.current;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const { durationSeconds } = timeline;
     context.imageSmoothingEnabled = false;
 
@@ -71,6 +75,11 @@ export function Pitch({
       previousTimestamp = timestamp;
 
       const frame = sample(recording, recordingSecondsAt(timeline, playhead.current));
+      const camera = cameraAt(recording, frame, wholePitch, reducedMotion);
+      context.save();
+      context.translate(STADIUM_SIZE.width / 2, STADIUM_SIZE.height / 2);
+      context.scale(camera.zoom, camera.zoom);
+      context.translate(-camera.x, -camera.y);
       context.drawImage(background, 0, 0);
       drawCrowd(context, frame, recording, reducedMotion, playhead.current * TICK_RATE);
       drawReferee(context, frame, refereeTrack, reducedMotion);
@@ -84,6 +93,7 @@ export function Pitch({
       );
       drawGoalEffects(context, frame, recording, reducedMotion);
       drawDecisionFocus(context, presentedFrame, recording, selectedPlayer);
+      context.restore();
       audio.current?.advance(
         recording.events,
         frame.tick,
@@ -133,6 +143,8 @@ export function Pitch({
     isPlaying,
     speed,
     showPlayerNumbers,
+    wholePitch,
+    reducedMotion,
     selectedPlayer,
     seekRevision,
     onAdvance,

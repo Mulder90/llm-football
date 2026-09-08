@@ -6,7 +6,7 @@ import { Pitch } from './Pitch.tsx';
 import { PlaybackControls } from './PlaybackControls.tsx';
 import { Scoreboard } from './Scoreboard.tsx';
 import { usePlayback } from './usePlayback.ts';
-import { formatTime } from './format.ts';
+import { formatTime, recordingLabel } from './format.ts';
 import { MatchMoment } from './MatchMoment.tsx';
 import { useRecordings } from './useRecordings.ts';
 import { useSound } from './useSound.ts';
@@ -25,6 +25,10 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
   const broadcastRef = useRef<HTMLElement>(null);
   const inspectorTrigger = useRef<HTMLButtonElement>(null);
   const [showPlayerNumbers, setShowPlayerNumbers] = useState(false);
+  const [wholePitch, setWholePitch] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
   const [panel, setPanel] = useState<InspectorTab | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -33,6 +37,12 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
     inspectorTrigger.current?.focus();
   }
 
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updateMotion = () => setReducedMotion(preference.matches);
+    preference.addEventListener('change', updateMotion);
+    return () => preference.removeEventListener('change', updateMotion);
+  }, []);
   useEffect(() => {
     const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener('fullscreenchange', onFullscreenChange);
@@ -66,6 +76,8 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
             isPlaying={playback.isPlaying}
             speed={playback.speed}
             showPlayerNumbers={showPlayerNumbers}
+            wholePitch={wholePitch}
+            reducedMotion={reducedMotion}
             selectedPlayer={panel === 'decisions' ? selectedPlayer : null}
             seekRevision={playback.seekRevision}
             onAdvance={playback.onAdvance}
@@ -92,8 +104,7 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
               <span>
                 {library.loading ? 'Getting the match ready…' : 'Watch the match'}
                 <small>
-                  {formatTime(playback.durationSeconds)} ·{' '}
-                  {recording.kind === 'llm' ? 'Recorded match' : 'Scripted practice match'}
+                  {formatTime(playback.durationSeconds)} · {recordingLabel(recording)}
                 </small>
               </span>
             </button>
@@ -122,6 +133,9 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
           <PlaybackControls
             playback={playback}
             showPlayerNumbers={showPlayerNumbers}
+            wholePitch={wholePitch || reducedMotion}
+            reducedMotion={reducedMotion}
+            onToggleWholePitch={() => setWholePitch((visible) => !visible)}
             isFullscreen={isFullscreen}
             onToggleNumbers={() => setShowPlayerNumbers((visible) => !visible)}
             onToggleFullscreen={() => void toggleFullscreen()}

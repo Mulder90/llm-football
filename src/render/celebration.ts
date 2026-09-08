@@ -12,8 +12,69 @@ export const GOAL_PRESENTATION = {
   bannerArrivalTicks: 0.16 * TICK_RATE,
   bannerDepartureTicks: 0.25 * TICK_RATE,
   teammates: 5,
-  huddleRadius: 2.6,
+  huddleRadius: 4,
 } as const;
+
+export type CelebrationGesture = {
+  phase: 'windup' | 'jump' | 'landing' | 'salute' | 'support';
+  jump: number;
+  crouch: number;
+  facingAway: boolean;
+  armPose: 'raised' | 'wide' | 'pump';
+  footSpread: number;
+  landingPulse: number;
+};
+
+/** One scorer-led jump and broad landing, timed inside the existing six-watch-second vignette. */
+export function celebrationGesture(
+  ageTicks: number,
+  scorer: boolean,
+  playerNumber: number,
+): CelebrationGesture {
+  const settledAge = ageTicks - GOAL_PRESENTATION.gatheringTicks;
+  const windupTicks = 9;
+  const flightTicks = 19;
+  const landingTicks = 9;
+  const flight = clamp((settledAge - windupTicks) / flightTicks, 0, 1);
+  const landingAge = settledAge - windupTicks - flightTicks;
+  if (!scorer) {
+    const reply = Math.max(0, landingAge - (playerNumber % 3) * 2);
+    return {
+      phase: 'support',
+      jump: reply > 0 && reply < 12 ? Math.sin((reply / 12) * Math.PI) * 4 : 0,
+      crouch: 0,
+      facingAway: false,
+      armPose: playerNumber % 2 === 0 ? 'raised' : 'pump',
+      footSpread: 0,
+      landingPulse: 0,
+    };
+  }
+  const phase =
+    settledAge < windupTicks
+      ? 'windup'
+      : flight < 1
+        ? 'jump'
+        : landingAge < landingTicks
+          ? 'landing'
+          : 'salute';
+  return {
+    phase,
+    jump: phase === 'jump' ? Math.sin(flight * Math.PI) * 18 : 0,
+    crouch: phase === 'windup' ? 3 : phase === 'landing' ? 3 * (1 - landingAge / landingTicks) : 0,
+    facingAway: phase === 'jump' && flight < 0.55,
+    armPose: phase === 'jump' ? 'raised' : 'wide',
+    footSpread: phase === 'landing' || phase === 'salute' ? 3 : phase === 'jump' ? -1 : 0,
+    landingPulse: phase === 'landing' ? 1 - landingAge / landingTicks : 0,
+  };
+}
+
+export type CelebrationFrame = {
+  frame: Frame;
+  playerIds: Set<string>;
+  scorerId: string | null;
+  ageTicks: number;
+  focus: Vec2 | null;
+};
 
 /** A goal becomes visible only after its physical step has updated the score. */
 export function activeGoal(record: Recording, frame: Frame) {
@@ -61,10 +122,11 @@ export function celebrationFrame(
   record: Recording,
   frame: Frame,
   reducedMotion: boolean,
-): { frame: Frame; playerIds: Set<string> } {
+): CelebrationFrame {
   const playerIds = new Set<string>();
+  const unchanged = { frame, playerIds, scorerId: null, ageTicks: 0, focus: null };
   const moment = activeGoal(record, frame);
-  if (!moment || reducedMotion) return { frame, playerIds };
+  if (!moment || reducedMotion) return unchanged;
 
   const { event: goal, ageTicks } = moment;
   const beforeGoal = sample(record, Math.max(0, goal.tick - 1) / TICK_RATE);
@@ -86,7 +148,7 @@ export function celebrationFrame(
       distanceBetween(second.pose.position, beforeGoal.ball),
   )[0];
   const leader = scorer ?? nearestToGoal;
-  if (!leader) return { frame, playerIds };
+  if (!leader) return unchanged;
 
   const center = {
     x: clamp(
@@ -95,9 +157,9 @@ export function celebrationFrame(
       FIELD.length - GOAL_PRESENTATION.huddleRadius,
     ),
     y: clamp(
-      leader.pose.position.y,
-      GOAL_PRESENTATION.huddleRadius,
-      FIELD.width - GOAL_PRESENTATION.huddleRadius,
+      leader.pose.position.y + 3,
+      GOAL_PRESENTATION.huddleRadius + 3,
+      FIELD.width - GOAL_PRESENTATION.huddleRadius - 3,
     ),
   };
   const teammates = [
@@ -120,7 +182,8 @@ export function celebrationFrame(
   );
 
   teammates.forEach(({ player, index, pose }, huddleIndex) => {
-    const angle = ((huddleIndex - 1) * Math.PI * 2) / Math.max(1, teammates.length - 1);
+    // Teammates form a semicircle behind the scorer, leaving the landing and face readable.
+    const angle = Math.PI + ((huddleIndex - 0.5) * Math.PI) / Math.max(1, teammates.length - 1);
     const target =
       huddleIndex === 0
         ? center
@@ -145,7 +208,16 @@ export function celebrationFrame(
       );
     } else {
       players[index] = gathered;
-      if (gathering >= 1) playerIds.add(player.id);
+      if (gathering >= 1) {
+        playerIds.add(player.id);
+        players[index] = {
+          ...gathered,
+          facing:
+            huddleIndex === 0
+              ? { x: 0, y: 1 }
+              : unitVector({ x: center.x - target.x, y: center.y - target.y }),
+        };
+      }
     }
   });
 
@@ -161,5 +233,8 @@ export function celebrationFrame(
       owner: null,
     },
     playerIds,
+    scorerId,
+    ageTicks,
+    focus: center,
   };
 }

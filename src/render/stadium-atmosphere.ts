@@ -1,7 +1,7 @@
 import type { Frame, Recording } from '../recording/record.ts';
 import type { MatchEvent, Team, Vec2 } from '../sim/types.ts';
 import { TICK_RATE } from '../sim/rules.ts';
-import { worldToScreen } from './layout.ts';
+import { PITCH_LAYOUT, worldToScreen } from './layout.ts';
 import { drawPixelRect } from './pixels.ts';
 
 const SUPPORTERS = {
@@ -30,6 +30,23 @@ const FLAGS = [
   { x: 887, y: 204, direction: 1, team: 'cyan' },
   { x: 887, y: 466, direction: 1, team: 'cyan' },
 ] as const;
+const CORNER_FLAGS = [
+  { x: PITCH_LAYOUT.left, y: PITCH_LAYOUT.top, direction: -1 },
+  { x: PITCH_LAYOUT.left + PITCH_LAYOUT.width, y: PITCH_LAYOUT.top, direction: 1 },
+  { x: PITCH_LAYOUT.left, y: PITCH_LAYOUT.top + PITCH_LAYOUT.height, direction: -1 },
+  {
+    x: PITCH_LAYOUT.left + PITCH_LAYOUT.width,
+    y: PITCH_LAYOUT.top + PITCH_LAYOUT.height,
+    direction: 1,
+  },
+] as const;
+const FLAG_WIND = {
+  wavePeriodTicks: 1.9 * TICK_RATE,
+  gustPeriodTicks: 6.4 * TICK_RATE,
+  edgeLiftPixels: 3,
+  cornerPoleHeight: 10,
+  cornerClothWidth: 8,
+} as const;
 const REACTION_TICKS = { goal: 3 * TICK_RATE, save: 1.4 * TICK_RATE, shot: 0.9 * TICK_RATE };
 const TREES = [
   { x: 40, y: 42 },
@@ -192,6 +209,42 @@ function drawBanner(context: CanvasRenderingContext2D, x: number, y: number, tea
   context.fillText(team === 'coral' ? 'CORAL TOGETHER' : 'COME ON CYAN', x + 60, y + 2);
 }
 
+function flagRipple(tick: number, phase: number, freeEdge: number, energy = 0): number {
+  const fullTurn = Math.PI * 2;
+  const gust = (1 + Math.sin((tick / FLAG_WIND.gustPeriodTicks) * fullTurn + phase)) / 2;
+  const wave = (tick / FLAG_WIND.wavePeriodTicks) * fullTurn;
+  return (
+    Math.sin(wave + phase - freeEdge * 2.6) * freeEdge * (FLAG_WIND.edgeLiftPixels + gust + energy)
+  );
+}
+
+/** Only the fixed poles enter the cached pitch; their cloth is redrawn after every restore. */
+export function drawCornerFlagPoles(context: CanvasRenderingContext2D): void {
+  for (const flag of CORNER_FLAGS)
+    drawPixelRect(
+      context,
+      flag.x,
+      flag.y - FLAG_WIND.cornerPoleHeight,
+      1,
+      FLAG_WIND.cornerPoleHeight + 1,
+      '#e4e8c9',
+    );
+}
+
+function drawCornerFlags(context: CanvasRenderingContext2D, tick: number): void {
+  for (const flag of CORNER_FLAGS) {
+    const phase = decorationNoise(flag.x, flag.y, 47) * Math.PI * 2;
+    for (let column = 0; column < FLAG_WIND.cornerClothWidth; column++) {
+      const freeEdge = column / (FLAG_WIND.cornerClothWidth - 1);
+      const ripple = Math.round(flagRipple(tick, phase, freeEdge) * 0.55);
+      const x = flag.x + flag.direction * (column + 1);
+      const y = flag.y - FLAG_WIND.cornerPoleHeight + ripple;
+      drawPixelRect(context, x, y, 1, 5, column % 3 === 0 ? '#ffe28b' : '#f9c24b');
+      drawPixelRect(context, x, y + 4, 1, 1, '#c18c36');
+    }
+  }
+}
+
 function drawFlags(
   context: CanvasRenderingContext2D,
   tick: number,
@@ -200,13 +253,13 @@ function drawFlags(
   for (const flag of FLAGS) {
     const colors = SUPPORTERS[flag.team];
     const energy = celebratingTeam === flag.team ? 1 : 0;
-    const phase = tick / (16 - energy * 5) + decorationNoise(flag.x, flag.y) * Math.PI * 2;
+    const phase = decorationNoise(flag.x, flag.y) * Math.PI * 2;
     drawPixelRect(context, flag.x, flag.y - 24, 1, 25, '#8a9d98');
-    for (let strip = 0; strip < 7; strip++) {
-      const ripple = Math.round((Math.sin(phase - strip * 0.6) * strip) / 4);
+    for (let strip = 0; strip < 9; strip++) {
+      const ripple = Math.round(flagRipple(tick, phase, strip / 8, energy));
       const x = flag.x + flag.direction * (1 + strip * 2) - (flag.direction < 0 ? 1 : 0);
       const y = flag.y - 24 + ripple;
-      drawPixelRect(context, x, y, 2, 9, strip % 3 === 0 ? colors.bright : colors.shirt);
+      drawPixelRect(context, x, y, 2, 11, strip % 3 === 0 ? colors.bright : colors.shirt);
       drawPixelRect(context, x, y + 4, 2, 2, '#e9dfc3');
     }
   }
@@ -278,8 +331,9 @@ export function drawCrowd(
   reducedMotion: boolean,
   animationTick = frame.tick,
 ): void {
-  // Pitch restores the canopy-free stadium painting before each call, including paused redraws.
+  // Pitch restores a painting with no canopy or flag cloth, including paused redraws.
   drawTreeCanopies(context, animationTick, reducedMotion);
+  drawCornerFlags(context, reducedMotion ? 0 : animationTick);
   if (reducedMotion) {
     drawFlags(context, 0, null);
     return;

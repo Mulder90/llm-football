@@ -123,8 +123,11 @@ describe('broadcast presentation time', () => {
       const controls = PlaybackControls({
         playback,
         showPlayerNumbers: false,
+        wholePitch: false,
+        reducedMotion: false,
         isFullscreen: false,
         onToggleNumbers: vi.fn(),
+        onToggleWholePitch: vi.fn(),
         onToggleFullscreen: vi.fn(),
         sound: {
           audio: { current: null },

@@ -1,3 +1,10 @@
+import type { Recording } from '../recording/record.ts';
+
+export function recordingLabel(recording: Recording): string {
+  if (recording.kind === 'fixture') return 'Scripted practice';
+  return recording.generation?.status === 'complete' ? 'Recorded match' : 'Unfinished match';
+}
+
 export function formatTime(seconds: number): string {
   const secondsPerMinute = 60;
   const minutes = Math.floor(seconds / secondsPerMinute)

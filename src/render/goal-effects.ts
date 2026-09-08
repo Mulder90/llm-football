@@ -1,6 +1,11 @@
 import type { Frame, Recording } from '../recording/record.ts';
 import { FIELD, TICK_RATE } from '../sim/rules.ts';
-import { activeGoal, GOAL_PRESENTATION } from './celebration.ts';
+import {
+  activeGoal,
+  celebrationFrame,
+  celebrationGesture,
+  GOAL_PRESENTATION,
+} from './celebration.ts';
 import { PITCH_LAYOUT, worldToScreen } from './layout.ts';
 import { drawPixelRect } from './pixels.ts';
 
@@ -59,6 +64,24 @@ export function drawGoalEffects(
     const y = goalCenter.y + side * (halfGoalPixels + 7 + travel * 0.5) - arc;
     const color = piece % 3 === 0 ? '#fff0bd' : teamColor;
     drawPixelRect(context, x, y, piece % 2 === 0 ? 3 : 2, piece % 3 === 0 ? 2 : 4, color);
+  }
+  const celebration = celebrationFrame(record, frame, false);
+  if (
+    celebration.scorerId &&
+    celebration.focus &&
+    celebration.playerIds.has(celebration.scorerId)
+  ) {
+    const gesture = celebrationGesture(ageTicks, true, 0);
+    if (gesture.landingPulse > 0) {
+      const landing = worldToScreen(celebration.focus);
+      const spread = 9 + (1 - gesture.landingPulse) * 11;
+      context.globalAlpha = gesture.landingPulse * 0.7;
+      for (const side of [-1, 1]) {
+        drawPixelRect(context, landing.x + side * spread, landing.y + 2, 3, 1, '#fff0bd');
+        drawPixelRect(context, landing.x + side * (spread + 4), landing.y, 2, 2, teamColor);
+        drawPixelRect(context, landing.x + side * (spread - 3), landing.y + 5, 2, 1, '#fff0bd');
+      }
+    }
   }
   context.restore();
 }

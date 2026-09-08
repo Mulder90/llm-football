@@ -9,6 +9,9 @@ const PLAYBACK_SPEEDS = [0.5, 1, 1.5, 2, 4];
 type ControlsProps = {
   playback: Playback;
   showPlayerNumbers: boolean;
+  wholePitch: boolean;
+  reducedMotion: boolean;
+  onToggleWholePitch: () => void;
   isFullscreen: boolean;
   onToggleNumbers: () => void;
   onToggleFullscreen: () => void;
@@ -18,6 +21,9 @@ type ControlsProps = {
 export function PlaybackControls({
   playback,
   showPlayerNumbers,
+  wholePitch,
+  reducedMotion,
+  onToggleWholePitch,
   isFullscreen,
   onToggleNumbers,
   onToggleFullscreen,
@@ -77,6 +83,19 @@ export function PlaybackControls({
           <details className="viewing-options">
             <summary aria-label="Viewing options">•••</summary>
             <div className="viewing-options-panel">
+              <button
+                className={`text-button ${wholePitch ? 'selected' : ''}`}
+                onClick={onToggleWholePitch}
+                aria-pressed={wholePitch}
+                disabled={reducedMotion}
+              >
+                Whole pitch <span>{wholePitch ? 'On' : 'Off'}</span>
+              </button>
+              {reducedMotion ? (
+                <p className="viewing-option-note">
+                  Camera motion is off with your device's reduced-motion setting.
+                </p>
+              ) : null}
               <label className="speed-label">
                 Playback speed
                 <select
