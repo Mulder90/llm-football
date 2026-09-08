@@ -4,6 +4,7 @@ import {
   createSoundSamples,
   crossedDrumBeats,
   eventSoundCues,
+  momentSoundCues,
   SOUND_DURATIONS,
 } from '../src/audio/stadium-sounds.ts';
 import { createFullMatchFixture } from '../src/fixtures/full-match.ts';
@@ -14,9 +15,25 @@ import { awardRestart, prepareRestartDelivery } from '../src/sim/restarts.ts';
 import { REFEREE } from '../src/sim/rules.ts';
 import { createMatch } from '../src/sim/state.ts';
 import { step } from '../src/sim/step.ts';
+import type { FootballMoment, MatchAtmosphere } from '../src/render/match-atmosphere.ts';
 
 function event(type: MatchEvent['type'], tick: number, id = tick, detail = ''): MatchEvent {
   return { id, type, tick, playerId: null, detail };
+}
+
+function atmosphere(type: FootballMoment['type'], tick: number): MatchAtmosphere {
+  return {
+    attack: null,
+    moment: {
+      id: `${type}-${tick}`,
+      tick,
+      type,
+      team: 'cyan',
+      playerId: 'cyan-1',
+      otherPlayerId: null,
+      position: { x: 100, y: 34 },
+    },
+  };
 }
 
 describe('stadium sound timing and design', () => {
@@ -113,6 +130,38 @@ describe('stadium sound timing and design', () => {
       expect(peak).toBeLessThan(1);
     }
   });
+
+  it('builds attack density and accents without changing tempo or losing headroom', () => {
+    const phrase = (intensity: number) => {
+      const cues = [];
+      for (let tick = 1; tick <= 221; tick++)
+        cues.push(...crossedDrumBeats(tick - 1, tick, 1, { team: 'coral', intensity }));
+      return cues;
+    };
+    const calm = phrase(0);
+    const attack = phrase(0.5);
+    const pressure = phrase(1);
+    expect(attack.length).toBeGreaterThan(calm.length);
+    expect(pressure.length).toBeGreaterThan(attack.length);
+    expect(Math.max(...pressure.map((cue) => cue.gain))).toBeLessThan(0.5);
+    expect(pressure.every((cue) => cue.group === 'drum' && cue.pan === -0.25)).toBe(true);
+    expect(crossedDrumBeats(27.69, 27.7, 1, { team: 'cyan', intensity: 1 })[0]!.pan).toBe(0.25);
+    expect(crossedDrumBeats(27.69, 27.7, 4, { team: 'cyan', intensity: 1 })).toEqual([]);
+  });
+
+  it('gives a defender save, near miss and goal distinct short percussion responses', () => {
+    const save = momentSoundCues(atmosphere('save', 11).moment!);
+    const miss = momentSoundCues(atmosphere('near-miss', 11).moment!);
+    const goal = momentSoundCues(atmosphere('goal', 11).moment!);
+    expect(
+      new Set([save, miss, goal].map((cues) => cues.map((cue) => cue.sound).join(','))).size,
+    ).toBe(3);
+    expect(save.every((cue) => cue.pan === 0.25 && cue.group === 'accent')).toBe(true);
+    expect(momentSoundCues(atmosphere('good-pass', 11).moment!)).toEqual([]);
+    expect(
+      [...save, ...miss, ...goal].every((cue) => cue.delay < 0.6 && cue.sound.startsWith('drum-')),
+    ).toBe(true);
+  });
 });
 
 class TestGain {
@@ -144,10 +193,18 @@ class TestSource {
     this.stops.push(time);
   }
 }
+class TestPanner {
+  pan = { value: 0 };
+  connect(target: unknown) {
+    return target;
+  }
+  disconnect() {}
+}
 class TestContext {
   currentTime = 0;
   destination = {};
   sources: TestSource[] = [];
+  panners: TestPanner[] = [];
   createGain() {
     return new TestGain();
   }
@@ -159,6 +216,11 @@ class TestContext {
     const source = new TestSource();
     this.sources.push(source);
     return source;
+  }
+  createStereoPanner() {
+    const panner = new TestPanner();
+    this.panners.push(panner);
+    return panner;
   }
   async resume() {}
   async close() {}
@@ -244,6 +306,43 @@ describe('browser playback audio lifecycle', () => {
     audio.advance(events, 21, true, 1, 0, 'restart_setup');
     expect(context.sources.at(-1)!.buffer).toEqual({ recorded: true });
     expect(context.sources.at(-1)!.playbackRate.value).toBe(1);
+    audio.dispose();
+  });
+
+  it.each([
+    ['save', 3],
+    ['near-miss', 1],
+    ['goal', 4],
+  ] as const)(
+    'sounds a %s once at its visible boundary, with no replay on a held moment or seek',
+    async (type, voices) => {
+      const audio = new PlaybackAudio();
+      await audio.setEnabled(true);
+      const state = atmosphere(type, 11);
+      audio.advance([], 9, true, 1, 0, 'open_play', state);
+      audio.advance([], 10.99, true, 1, 0, 'open_play', state);
+      expect(context.sources).toHaveLength(0);
+      audio.advance([], 11, true, 1, 0, 'open_play', state);
+      expect(context.sources).toHaveLength(voices);
+      expect(context.panners.every((panner) => panner.pan.value === 0.25)).toBe(true);
+      audio.advance([], 27.7, true, 1, 0, 'open_play', state);
+      expect(context.sources).toHaveLength(voices); // The outcome briefly clears the drum bed.
+      audio.advance([], 50, true, 1, 1, 'open_play', state);
+      expect(context.sources).toHaveLength(voices);
+      expect(context.sources.every((source) => source.stops.length === 1)).toBe(true);
+      audio.dispose();
+    },
+  );
+
+  it('keeps dense attack percussion within the overall voice cap', async () => {
+    const audio = new PlaybackAudio();
+    await audio.setEnabled(true);
+    const state: MatchAtmosphere = { attack: { team: 'coral', intensity: 1 }, moment: null };
+    audio.advance([], 0, true, 1, 0, 'open_play', state);
+    // This fake context never ends a clip, exercising the hard cap under sustained pressure.
+    for (let tick = 1; tick <= 2000; tick++)
+      audio.advance([], tick, true, 1, 0, 'open_play', state);
+    expect(context.sources).toHaveLength(18);
     audio.dispose();
   });
 });

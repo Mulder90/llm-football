@@ -71,7 +71,7 @@ export function drawGoalEffects(
     celebration.focus &&
     celebration.playerIds.has(celebration.scorerId)
   ) {
-    const gesture = celebrationGesture(ageTicks, true, 0);
+    const gesture = celebrationGesture(ageTicks, true, 0, goal.team!);
     if (gesture.landingPulse > 0) {
       const landing = worldToScreen(celebration.focus);
       const spread = 9 + (1 - gesture.landingPulse) * 11;

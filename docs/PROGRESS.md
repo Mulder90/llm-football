@@ -30,13 +30,15 @@ At the user's request, `coordination-match-001` was stopped after 129.3667 playi
 
 - Slice 11: controller names under teams, Whole pitch on by default with an optional closer camera, individual robot mannerisms, scorer jump/turn/wide-arm landing, receiver/event reactions and fluttering corner/stand flags. All 116 tests pass. A fixed-situation evaluation supports testing GPT-5 mini against Gemini 3.8 Flash; their fresh match was stopped on user request after 25.95 playing seconds, 0–0, with a conservative $1.3133 estimate. It remains explicitly unfinished in Matches as Finding their feet; the earlier complete match remains the default. Both the generation and its lower-budget guard exited. See [handoff](slices/11-CHARACTER-AND-CONTROLLERS.md).
 
+- Slice 12: shared recorded moments synchronize attacking percussion, supporter buildup and opposing crowd reactions. Cyan retains the turning leap; Coral has two compact hops, with actual saves, near misses and completed passes driving brief robot gestures. Future observations include seven positional briefs and receiver-arrival guidance. Offline verification and limitations are in the [handoff](slices/12-ANTICIPATION-AND-ROLES.md); no paid generation was started.
+
 ## Code quality agreement
 
 Use descriptive names, explicit units for physics constants, named replay fields, focused functions and components, and Prettier. The user explicitly permits necessary dependencies but wants simple, maintainable code without excessive defensive checks or premature architecture. External JSON remains untrusted and must be validated.
 
 ## Next slice
 
-Proposed: positional role briefs plus receiver arrival timing. The engine currently distinguishes keeper/outfield, while models would benefit from clear defender, full-back, midfield, wing and striker responsibilities alongside their changing tactical assignments. The controlled comparison improved with stronger models, but matching pass/run coordinates still does not ensure that ball and receiver arrive together. No further paid generation is scheduled; the user explicitly stopped the latest run.
+Proposed: evaluate defensive recovery and receiver arrival on frozen situations before another model match, once a paid evaluation budget is agreed. Positional briefs now explain stable starting responsibilities alongside temporary tactical jobs. They do not add automatic positioning or prove improved play. No further paid generation is scheduled; the user explicitly stopped the latest run.
 
 ## Limitations
 

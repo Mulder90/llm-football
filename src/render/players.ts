@@ -9,6 +9,7 @@ import type { CelebrationGesture } from './celebration.ts';
 import { robotReactions, robotStyle } from './robot-character.ts';
 import type { RobotReaction } from './robot-character.ts';
 import { drawBall, drawBallTrail } from './ball.ts';
+import type { FootballMoment } from './match-atmosphere.ts';
 
 type KitPalette = { highlight: string; shirt: string; shade: string; boots: string };
 const TEAM_KITS: Record<Team, KitPalette> = {
@@ -55,6 +56,9 @@ function drawRobot(
   const preparing = reaction?.gesture === 'prepare-kick' && !celebrating;
   const receiving = reaction?.gesture === 'receive' && !celebrating;
   const shrugging = reaction?.gesture === 'shrug' && !celebrating;
+  const pumping = reaction?.gesture === 'save-pump' && !celebrating;
+  const frustrated = reaction?.gesture === 'frustrated' && !celebrating;
+  const acknowledging = reaction?.gesture === 'acknowledge' && !celebrating;
   const conceded = reaction?.gesture === 'conceded';
   const facing =
     preparing && reaction.target
@@ -75,7 +79,7 @@ function drawRobot(
   const ticksSinceTackle = tick - frame.lastTackleTick;
   const isTackling = ticksSinceTackle >= 0 && ticksSinceTackle < ANIMATION.tackleDurationTicks;
   const ticksSinceSave = tick - frame.lastSaveTick;
-  const isSaving = ticksSinceSave >= 0 && ticksSinceSave < ANIMATION.saveDurationTicks;
+  const isSaving = ticksSinceSave >= 0 && ticksSinceSave < ANIMATION.saveDurationTicks && !pumping;
   const facingSide = celebrating
     ? 0
     : Math.abs(facing.x) > ANIMATION.horizontalFacingThreshold
@@ -91,7 +95,7 @@ function drawRobot(
     headBob +
     tackleCrouch +
     Math.round(celebration?.crouch ?? 0) +
-    (conceded ? 2 : preparing ? 1 : 0);
+    (conceded || frustrated ? 2 : preparing ? 1 : 0);
   const headX = lean + facingSide;
   const kit = player.role === 'keeper' ? KEEPER_KITS[player.team] : TEAM_KITS[player.team];
 
@@ -143,15 +147,31 @@ function drawRobot(
 
   // Individual arm swings, receiver signals and scorer salutes share the same small sprite.
   for (const side of [-1, 1]) {
+    const favouredSide = side === (player.number % 2 === 0 ? -1 : 1);
     const raised =
       celebration?.armPose === 'raised' ||
-      (celebration?.armPose === 'pump' && side === (player.number % 2 === 0 ? -1 : 1));
+      ((celebration?.armPose === 'pump' || pumping) && favouredSide);
     const wide = celebration?.armPose === 'wide' || shrugging;
-    const asking = receiving && side === (player.number % 2 === 0 ? -1 : 1);
-    const armLift = raised ? 17 : isSaving ? 11 : asking ? 12 : frame.guarding ? 2 : 0;
+    const asking = receiving && favouredSide;
+    const waving = acknowledging && favouredSide;
+    const handMotion =
+      !reducedMotion && reaction && (waving || (pumping && raised))
+        ? Math.round(Math.sin(reaction.ageTicks / 5) * 2)
+        : 0;
+    const armLift = raised
+      ? 17
+      : isSaving || frustrated
+        ? 11
+        : asking
+          ? 12
+          : waving
+            ? 9
+            : frame.guarding
+              ? 2
+              : 0;
     const spread = wide
       ? 5
-      : raised || isSaving || frame.guarding || asking
+      : raised || isSaving || frame.guarding || asking || frustrated || waving
         ? 2
         : isKicking || preparing
           ? 1
@@ -159,7 +179,7 @@ function drawRobot(
     const handX = lean + side * (7 + spread);
     const handY = wide
       ? -4 + bodyY - (shrugging ? 5 : 0)
-      : -6 + bodyY - Math.round(side * stride * style.armSwing) - armLift;
+      : -6 + bodyY - Math.round(side * stride * style.armSwing) - armLift + handMotion;
     if (wide) {
       for (let segment = 0; segment < 3; segment++) {
         const armX = lean + side * (6 + segment * 2);
@@ -168,12 +188,12 @@ function drawRobot(
         pixel(armX, armY + 1, 2, 2, side < 0 ? kit.shade : kit.shirt);
       }
     } else {
-      const armTop = raised || isSaving || asking ? handY : handY - 4;
-      const armHeight = raised || isSaving || asking ? -8 + bodyY - handY : 6;
+      const lifted = raised || isSaving || asking || frustrated || waving;
+      const armTop = lifted ? handY : handY - 4;
+      const armHeight = lifted ? -8 + bodyY - handY : 6;
       pixel(handX - 1, armTop, 3, armHeight, OUTLINE);
       pixel(handX, armTop + 1, 2, armHeight - 2, side < 0 ? kit.shade : kit.shirt);
-      if (raised || isSaving || asking)
-        pixel(lean + (side < 0 ? -8 : 6), -11 + bodyY, 3, 3, kit.shirt);
+      if (lifted) pixel(lean + (side < 0 ? -8 : 6), -11 + bodyY, 3, 3, kit.shirt);
     }
     pixel(
       handX - 1,
@@ -218,13 +238,14 @@ function drawRobot(
         ANIMATION.blinkPeriodTicks <
         ANIMATION.blinkDurationTicks;
     for (const eyeX of [-2, 2]) {
-      const eyeHeight = blinking || conceded ? 1 : reaction?.gesture === 'control' ? 3 : 2;
+      const eyeHeight =
+        blinking || conceded || frustrated ? 1 : reaction?.gesture === 'control' ? 3 : 2;
       headPixel(eyeX + facingSide, -16 + (shrugging && eyeX < 0 ? -1 : 0), 2, eyeHeight, EYES);
       if (celebrating) headPixel(eyeX + facingSide - 1, -15, 1, 1, EYES);
     }
     if (celebrating) headPixel(-1 + facingSide, -13, 3, 1, kit.highlight);
     else if (isKicking || isTackling || preparing) headPixel(-2 + facingSide, -18, 6, 1, kit.shade);
-    else if (conceded) headPixel(-1 + facingSide, -13, 3, 1, kit.shade);
+    else if (conceded || frustrated) headPixel(-1 + facingSide, -13, 3, 1, kit.shade);
   }
   const antennaSway = !reducedMotion && isMoving ? Math.sign(stride) : 0;
   const antenna = antennaSway + style.antennaOffset;
@@ -254,9 +275,10 @@ export function drawPlayers(
   showNumbers: boolean,
   reducedMotion: boolean,
   animationTick = frame.tick,
+  moments: readonly FootballMoment[] = [],
 ): Frame {
   const celebration = celebrationFrame(record, frame, reducedMotion);
-  const reactions = robotReactions(record, frame);
+  const reactions = robotReactions(record, frame, moments);
   frame = celebration.frame;
   const ballMoving = drawBallTrail(context, frame, record, reducedMotion);
   const drawingOrder = record.initial.players
@@ -278,6 +300,7 @@ export function drawPlayers(
             celebration.ageTicks,
             celebration.scorerId === entry.player.id,
             entry.player.number,
+            entry.player.team,
           )
         : null,
       reactions.get(entry.player.id),

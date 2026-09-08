@@ -1,8 +1,11 @@
 import type { MatchEvent, MatchPhase } from '../sim/types.ts';
+import type { MatchAtmosphere } from '../render/match-atmosphere.ts';
+import { TICK_RATE } from '../sim/rules.ts';
 import {
   createSoundSamples,
   crossedDrumBeats,
   eventSoundCues,
+  momentSoundCues,
   SOUND_DURATIONS,
 } from './stadium-sounds.ts';
 import type { SoundCue, SynthesizedSound } from './stadium-sounds.ts';
@@ -10,6 +13,7 @@ import type { SoundCue, SynthesizedSound } from './stadium-sounds.ts';
 const MAXIMUM_VOICES = 18;
 const MAXIMUM_EVENTS_PER_FRAME = 5;
 const SOUND_SAMPLE_RATE = 24_000;
+const MOMENT_DRUM_BREAK_TICKS = 0.65 * TICK_RATE;
 const SIGNIFICANT_EVENTS = new Set([
   'goal',
   'restart_ready',
@@ -56,6 +60,7 @@ export function crossedAudioEvents(
 type Voice = {
   source: AudioBufferSourceNode;
   envelope: GainNode;
+  panner: StereoPannerNode | null;
   group: SoundCue['group'];
   terminal: boolean;
 };
@@ -74,6 +79,7 @@ export class PlaybackAudio {
   private volume = 0.45;
   private currentGain = 0;
   private previousSpeed = 1;
+  private drumResumeTick = -Infinity;
 
   constructor() {
     this.master.gain.value = 0;
@@ -137,13 +143,23 @@ export class PlaybackAudio {
     source.playbackRate.value = recordedCheer ? 1 : 1 + ((variation % 7) - 3) * 0.006;
     const envelope = this.context.createGain();
     envelope.gain.value = cue.gain;
-    source.connect(envelope).connect(this.master);
-    const voice: Voice = { source, envelope, group: cue.group, terminal: cue.terminal ?? false };
+    const panner = cue.pan === undefined ? null : this.context.createStereoPanner();
+    if (panner) panner.pan.value = cue.pan!;
+    source.connect(envelope).connect(panner ?? this.master);
+    panner?.connect(this.master);
+    const voice: Voice = {
+      source,
+      envelope,
+      panner,
+      group: cue.group,
+      terminal: cue.terminal ?? false,
+    };
     this.voices.add(voice);
     source.onended = () => {
       this.voices.delete(voice);
       source.disconnect();
       envelope.disconnect();
+      panner?.disconnect();
     };
     source.start(this.context.currentTime + cue.delay);
   }
@@ -161,6 +177,7 @@ export class PlaybackAudio {
     speed: number,
     seekRevision: number,
     phase: MatchPhase['type'] = 'open_play',
+    atmosphere: MatchAtmosphere | null = null,
   ): void {
     const interrupted = !this.enabled || document.hidden;
     const seeking = this.revision !== seekRevision || (this.cursor !== null && tick < this.cursor);
@@ -171,8 +188,10 @@ export class PlaybackAudio {
       this.stopVoices();
       this.cursor = tick;
       this.revision = seekRevision;
+      this.drumResumeTick = -Infinity;
       return;
     }
+    if (speed !== this.previousSpeed) this.stopVoices('accent');
     if (speed !== this.previousSpeed || phase !== 'open_play') this.stopVoices('drum');
     this.previousSpeed = speed;
     if (playing) {
@@ -184,8 +203,18 @@ export class PlaybackAudio {
         phase === 'full_time' ? tick : undefined,
       ))
         this.playEvent(event);
-      if (phase === 'open_play')
-        for (const beat of crossedDrumBeats(this.cursor, tick, speed))
+      const moment = atmosphere?.moment;
+      if (moment && moment.tick > this.cursor && moment.tick <= tick && speed <= 2) {
+        const cues = momentSoundCues(moment);
+        if (cues.length > 0) {
+          this.stopVoices('drum');
+          this.stopVoices('accent');
+          this.drumResumeTick = moment.tick + MOMENT_DRUM_BREAK_TICKS;
+          for (const cue of cues) this.playSound(cue, Math.floor(moment.tick));
+        }
+      }
+      if (phase === 'open_play' && tick >= this.drumResumeTick)
+        for (const beat of crossedDrumBeats(this.cursor, tick, speed, atmosphere?.attack ?? null))
           this.playSound(beat, Math.floor(tick));
     }
     this.cursor = tick;

@@ -1,12 +1,20 @@
 import { BALL_CONTROL, FIELD, TACKLE, TICK_RATE, MATCH_TIMING } from '../sim/rules.ts';
 import { distanceBetween } from '../sim/math.ts';
 import { attackDirection, cloneOrder, clonePhase } from '../sim/state.ts';
-import type { MatchState, Player, Team, Vec2 } from '../sim/types.ts';
+import type { MatchState, Order, Player, Team, Vec2 } from '../sim/types.ts';
 import { PROTOCOL_LIMITS } from './schema.ts';
 import type { TacticalMemory } from './schema.ts';
+import { POSITION_BRIEFS, startingPosition } from './positions.ts';
 
 const round = (value: number) => Math.round(value * 100) / 100;
 const position = (point: Vec2) => ({ x: round(point.x), y: round(point.y) });
+
+function observedOrder(order: Order): Order {
+  const copy = cloneOrder(order);
+  // Accepted orders stay exact; their copied targets follow observation geometry precision.
+  if ('target' in copy) copy.target = position(copy.target);
+  return copy;
+}
 
 /** Public geometry and mechanical preconditions, never a chosen receiver, marker or run. */
 function actionContext(state: MatchState, player: Player) {
@@ -112,6 +120,12 @@ export function observe(
       team,
       ownGoal: { x: direction === 1 ? 0 : FIELD.length, y: FIELD.width / 2 },
       opponentGoal: { x: direction === 1 ? FIELD.length : 0, y: FIELD.width / 2 },
+      positioning: {
+        startingShape: '4-3-3',
+        leftTouchlineY: direction === 1 ? 0 : FIELD.width,
+        rightTouchlineY: direction === 1 ? FIELD.width : 0,
+        briefs: { ...POSITION_BRIEFS },
+      },
       possession: carrier ? (carrier.team === team ? 'ours' : 'theirs') : 'loose',
       ballCarrierId: carrier?.id ?? null,
       teammateIds: state.players
@@ -141,9 +155,10 @@ export function observe(
       facing: position(player.facing),
       ...(player.team === team
         ? {
+            startingPosition: startingPosition(player.number),
             currentOrder: player.active
               ? {
-                  order: cloneOrder(player.active.order),
+                  order: observedOrder(player.active.order),
                   remainingTicks: Math.max(0, player.active.expires - state.tick),
                 }
               : null,

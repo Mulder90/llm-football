@@ -13,6 +13,7 @@ import { recordingSecondsAt } from '../render/presentation-time.ts';
 import type { PresentationTimeline } from '../render/presentation-time.ts';
 import type { PlaybackAudio } from '../audio/playback-audio.ts';
 import { cameraAt } from '../render/camera.ts';
+import { atmosphereAt, createFootballMoments } from '../render/match-atmosphere.ts';
 
 const PRESENTATION_TIMING = {
   millisecondsPerSecond: 1000,
@@ -52,6 +53,7 @@ export function Pitch({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const backgroundRef = useRef<HTMLCanvasElement | null>(null);
   const refereeTrack = useMemo(() => createRefereeTrack(recording), [recording]);
+  const footballMoments = useMemo(() => createFootballMoments(recording), [recording]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -76,12 +78,13 @@ export function Pitch({
 
       const frame = sample(recording, recordingSecondsAt(timeline, playhead.current));
       const camera = cameraAt(recording, frame, wholePitch, reducedMotion);
+      const atmosphere = atmosphereAt(recording, frame, footballMoments);
       context.save();
       context.translate(STADIUM_SIZE.width / 2, STADIUM_SIZE.height / 2);
       context.scale(camera.zoom, camera.zoom);
       context.translate(-camera.x, -camera.y);
       context.drawImage(background, 0, 0);
-      drawCrowd(context, frame, recording, reducedMotion, playhead.current * TICK_RATE);
+      drawCrowd(context, frame, reducedMotion, playhead.current * TICK_RATE, atmosphere);
       drawReferee(context, frame, refereeTrack, reducedMotion);
       const presentedFrame = drawPlayers(
         context,
@@ -90,6 +93,7 @@ export function Pitch({
         showPlayerNumbers,
         reducedMotion,
         playhead.current * TICK_RATE,
+        footballMoments,
       );
       drawGoalEffects(context, frame, recording, reducedMotion);
       drawDecisionFocus(context, presentedFrame, recording, selectedPlayer);
@@ -101,6 +105,7 @@ export function Pitch({
         speed,
         seekRevision,
         frame.phase.type,
+        atmosphere,
       );
 
       const hasEnded = playhead.current === durationSeconds;
@@ -139,6 +144,7 @@ export function Pitch({
     recording,
     timeline,
     refereeTrack,
+    footballMoments,
     playhead,
     isPlaying,
     speed,

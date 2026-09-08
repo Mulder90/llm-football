@@ -2,7 +2,7 @@ import { sample } from '../recording/record.ts';
 import type { Frame, PlayerFrame, Recording } from '../recording/record.ts';
 import { FIELD, TICK_RATE } from '../sim/rules.ts';
 import { clamp, distanceBetween, unitVector } from '../sim/math.ts';
-import type { Vec2 } from '../sim/types.ts';
+import type { Team, Vec2 } from '../sim/types.ts';
 
 export const GOAL_PRESENTATION = {
   durationTicks: 1.85 * TICK_RATE,
@@ -25,11 +25,34 @@ export type CelebrationGesture = {
   landingPulse: number;
 };
 
-/** One scorer-led jump and broad landing, timed inside the existing six-watch-second vignette. */
+function powerUpGesture(settledAge: number): CelebrationGesture {
+  const chargeTicks = 8;
+  const hopTicks = 12;
+  const restTicks = 7;
+  const firstHop = settledAge - chargeTicks;
+  const secondHop = firstHop - hopTicks - restTicks;
+  const hopAge = secondHop >= 0 ? secondHop : firstHop;
+  const jumping = hopAge >= 0 && hopAge < hopTicks;
+  const landingAge = hopAge - hopTicks;
+  const landingTicks = 6;
+  const landing = landingAge >= 0 && landingAge < landingTicks;
+  return {
+    phase: settledAge < chargeTicks ? 'windup' : jumping ? 'jump' : landing ? 'landing' : 'salute',
+    jump: jumping ? Math.sin((hopAge / hopTicks) * Math.PI) * 8 : 0,
+    crouch: settledAge < chargeTicks ? 2 : landing ? 2 * (1 - landingAge / landingTicks) : 0,
+    facingAway: false,
+    armPose: 'pump',
+    footSpread: 1,
+    landingPulse: landing ? (1 - landingAge / landingTicks) * 0.65 : 0,
+  };
+}
+
+/** Cyan turns and lands wide; Coral powers up with two small, fist-raised hops. */
 export function celebrationGesture(
   ageTicks: number,
   scorer: boolean,
   playerNumber: number,
+  team: Team,
 ): CelebrationGesture {
   const settledAge = ageTicks - GOAL_PRESENTATION.gatheringTicks;
   const windupTicks = 9;
@@ -38,17 +61,22 @@ export function celebrationGesture(
   const flight = clamp((settledAge - windupTicks) / flightTicks, 0, 1);
   const landingAge = settledAge - windupTicks - flightTicks;
   if (!scorer) {
-    const reply = Math.max(0, landingAge - (playerNumber % 3) * 2);
+    const reply = Math.max(
+      0,
+      (team === 'coral' ? settledAge - 8 : landingAge) - (playerNumber % 3) * 2,
+    );
     return {
       phase: 'support',
-      jump: reply > 0 && reply < 12 ? Math.sin((reply / 12) * Math.PI) * 4 : 0,
+      jump:
+        reply > 0 && reply < 12 ? Math.sin((reply / 12) * Math.PI) * (team === 'coral' ? 2 : 4) : 0,
       crouch: 0,
       facingAway: false,
-      armPose: playerNumber % 2 === 0 ? 'raised' : 'pump',
+      armPose: team === 'coral' ? 'pump' : playerNumber % 2 === 0 ? 'raised' : 'pump',
       footSpread: 0,
       landingPulse: 0,
     };
   }
+  if (team === 'coral') return powerUpGesture(settledAge);
   const phase =
     settledAge < windupTicks
       ? 'windup'

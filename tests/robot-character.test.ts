@@ -10,6 +10,7 @@ import {
 import { drawPlayers } from '../src/render/players.ts';
 import { robotReactions, robotStyle } from '../src/render/robot-character.ts';
 import { ORDER_LIFETIME, TICK_RATE } from '../src/sim/rules.ts';
+import type { FootballMoment } from '../src/render/match-atmosphere.ts';
 
 describe('recorded robot character', () => {
   it('only prepares after an accepted kick boundary, and reactions wait for the completed step', () => {
@@ -63,21 +64,24 @@ describe('recorded robot character', () => {
 
   it('gives the scorer one turn in the air and a settled wide-arm landing, with teammates behind', () => {
     const start = GOAL_PRESENTATION.gatheringTicks;
-    expect(celebrationGesture(start + 4, true, 7)).toMatchObject({ phase: 'windup', jump: 0 });
-    expect(celebrationGesture(start + 15, true, 7)).toMatchObject({
+    expect(celebrationGesture(start + 4, true, 7, 'cyan')).toMatchObject({
+      phase: 'windup',
+      jump: 0,
+    });
+    expect(celebrationGesture(start + 15, true, 7, 'cyan')).toMatchObject({
       phase: 'jump',
       facingAway: true,
     });
-    expect(celebrationGesture(start + 23, true, 7)).toMatchObject({
+    expect(celebrationGesture(start + 23, true, 7, 'cyan')).toMatchObject({
       phase: 'jump',
       facingAway: false,
     });
-    expect(celebrationGesture(start + 32, true, 7)).toMatchObject({
+    expect(celebrationGesture(start + 32, true, 7, 'cyan')).toMatchObject({
       phase: 'landing',
       jump: 0,
       armPose: 'wide',
     });
-    expect(celebrationGesture(start + 45, true, 7)).toMatchObject({
+    expect(celebrationGesture(start + 45, true, 7, 'cyan')).toMatchObject({
       phase: 'salute',
       jump: 0,
       crouch: 0,
@@ -101,6 +105,91 @@ describe('recorded robot character', () => {
     }
     expect(celebrationFrame(record, frame, true).frame).toBe(frame);
     expect(JSON.stringify(record)).toBe(before);
+  });
+
+  it('gives Coral two compact fist-raised hops while Cyan retains the turning leap', () => {
+    const settled = GOAL_PRESENTATION.gatheringTicks;
+    const firstHop = celebrationGesture(settled + 14, true, 7, 'coral');
+    const betweenHops = celebrationGesture(settled + 24, true, 7, 'coral');
+    const secondHop = celebrationGesture(settled + 33, true, 7, 'coral');
+    expect(firstHop).toMatchObject({ phase: 'jump', facingAway: false, armPose: 'pump' });
+    expect(firstHop.jump).toBeGreaterThan(0);
+    expect(betweenHops.jump).toBe(0);
+    expect(secondHop).toMatchObject({ phase: 'jump', facingAway: false, armPose: 'pump' });
+    expect(secondHop.jump).toBeGreaterThan(0);
+    const cyan = celebrationGesture(settled + 14, true, 7, 'cyan');
+    expect(cyan.facingAway).toBe(true);
+    expect(cyan.jump).toBeGreaterThan(firstHop.jump);
+    expect(celebrationGesture(settled + 48, true, 7, 'coral').jump).toBe(0);
+  });
+
+  it('uses only visible classified moments and cancels stale reactions when possession changes', () => {
+    const record = createPassingFixture();
+    record.decisions = [];
+    record.events = [];
+    const initial = record.frames[0]!;
+    const moment: FootballMoment = {
+      id: 'save:10',
+      tick: 10,
+      type: 'save',
+      team: 'coral',
+      playerId: 'coral-1',
+      otherPlayerId: 'cyan-7',
+      position: { x: 5, y: 34 },
+    };
+    const afterSave = { ...initial, tick: 20, owner: 'coral-1' };
+    expect(robotReactions(record, { ...afterSave, tick: 9.99 }, [moment]).size).toBe(0);
+    expect(robotReactions(record, { ...afterSave, tick: 10 }, [moment]).size).toBe(0);
+    expect(robotReactions(record, afterSave, [moment]).get('coral-1')?.gesture).toBe('save-pump');
+    expect(robotReactions(record, { ...afterSave, owner: null }, [moment]).size).toBe(0);
+    expect(robotReactions(record, { ...afterSave, tick: 60 }, [moment]).size).toBe(0);
+    const miss: FootballMoment = {
+      ...moment,
+      id: 'miss:10',
+      type: 'near-miss',
+      playerId: 'coral-7',
+      otherPlayerId: null,
+    };
+    const afterMiss = { ...initial, tick: 10, owner: null };
+    expect(robotReactions(record, { ...afterMiss, tick: 9.99 }, [miss]).size).toBe(0);
+    expect(robotReactions(record, afterMiss, [miss]).get('coral-7')?.gesture).toBe('frustrated');
+    expect(robotReactions(record, { ...afterMiss, owner: 'coral-7' }, [miss]).size).toBe(0);
+    expect(robotReactions(record, afterMiss, []).size).toBe(0);
+    const fullTime = {
+      ...afterMiss,
+      phase: { type: 'full_time' as const, reason: 'completed' as const, sinceTick: 10 },
+    };
+    expect(robotReactions(record, fullTime, [miss]).size).toBe(0);
+  });
+
+  it('acknowledges both ends of a good pass briefly, without asking a current carrier for the ball', () => {
+    const record = createPassingFixture();
+    record.decisions = [];
+    record.events = [];
+    const frame = { ...record.frames[0]!, tick: 10, owner: 'coral-9' };
+    const pass: FootballMoment = {
+      id: 'pass:10',
+      tick: 10,
+      type: 'good-pass',
+      team: 'coral',
+      playerId: 'coral-9',
+      otherPlayerId: 'coral-7',
+      position: { x: 60, y: 34 },
+    };
+    const before = JSON.stringify({ record, frame, pass });
+    const reactions = robotReactions(record, frame, [pass]);
+    expect(reactions.get('coral-9')?.gesture).toBe('acknowledge');
+    expect(reactions.get('coral-7')?.gesture).toBe('acknowledge');
+    expect(robotReactions(record, { ...frame, tick: 9.99 }, [pass]).size).toBe(0);
+    expect(robotReactions(record, { ...frame, tick: 34 }, [pass]).size).toBe(0);
+    for (const owner of [null, 'coral-7', 'cyan-9'])
+      expect(robotReactions(record, { ...frame, owner }, [pass]).size).toBe(0);
+    const nextKick = structuredClone(frame);
+    nextKick.players[
+      record.initial.players.findIndex((player) => player.id === 'coral-9')
+    ]!.lastKickTick = 10;
+    expect(robotReactions(record, nextKick, [pass]).size).toBe(0);
+    expect(JSON.stringify({ record, frame, pass })).toBe(before);
   });
 
   it('repeats expressive rendering after seeks and makes reduced-motion poses independent of decorative time', () => {

@@ -1,8 +1,10 @@
-import type { Frame, Recording } from '../recording/record.ts';
-import type { MatchEvent, Team, Vec2 } from '../sim/types.ts';
+import type { Frame } from '../recording/record.ts';
+import type { Team } from '../sim/types.ts';
 import { TICK_RATE } from '../sim/rules.ts';
 import { PITCH_LAYOUT, worldToScreen } from './layout.ts';
 import { drawPixelRect } from './pixels.ts';
+import { MOMENT_DURATION_TICKS } from './match-atmosphere.ts';
+import type { MatchAtmosphere } from './match-atmosphere.ts';
 
 const SUPPORTERS = {
   coral: { shirt: '#cc6559', bright: '#f7a184', dark: '#773e43', banner: '#963f42' },
@@ -47,7 +49,6 @@ const FLAG_WIND = {
   cornerPoleHeight: 10,
   cornerClothWidth: 8,
 } as const;
-const REACTION_TICKS = { goal: 3 * TICK_RATE, save: 1.4 * TICK_RATE, shot: 0.9 * TICK_RATE };
 const TREES = [
   { x: 40, y: 42 },
   { x: 910, y: 42 },
@@ -112,8 +113,31 @@ function drawTreeCanopies(
   }
 }
 
-type Spectator = { x: number; y: number; team: Team; shirt: string; skin: string; variety: number };
-const spectators: Spectator[] = STANDS.flatMap((stand) => {
+type Spectator = {
+  x: number;
+  y: number;
+  team: Team;
+  shirt: string;
+  skin: string;
+  variety: number;
+  section: number;
+};
+type SupporterMood = 'idle' | 'urge' | 'tense' | 'cheer' | 'disbelief' | 'relief' | 'acknowledge';
+
+/** Supporters keep their allegiance when teams swap ends. A save belongs to the keeper's side. */
+export function supporterMood(team: Team, atmosphere: MatchAtmosphere): SupporterMood {
+  const { moment, attack } = atmosphere;
+  if (moment) {
+    const supporting = moment.team === team;
+    if (moment.type === 'goal') return supporting ? 'cheer' : 'disbelief';
+    if (moment.type === 'save') return supporting ? 'relief' : 'disbelief';
+    if (moment.type === 'near-miss') return supporting ? 'disbelief' : 'relief';
+    if (moment.type === 'good-pass' && supporting) return 'acknowledge';
+  }
+  return attack ? (attack.team === team ? 'urge' : 'tense') : 'idle';
+}
+
+const spectators: Spectator[] = STANDS.flatMap((stand, section) => {
   const seats: Spectator[] = [];
   for (let row = 0; row < stand.height - 5; row += ROW_HEIGHT) {
     for (let column = 5, seat = 0; column < stand.width - 5; column += SEAT_SPACING, seat++) {
@@ -129,6 +153,7 @@ const spectators: Spectator[] = STANDS.flatMap((stand) => {
         y,
         team,
         variety,
+        section,
         shirt:
           variety < 0.65
             ? SUPPORTERS[team].shirt
@@ -141,21 +166,18 @@ const spectators: Spectator[] = STANDS.flatMap((stand) => {
   }
   return seats;
 });
-// A minority of supporters animate; the rest stay in the cached stadium painting.
-const animatedSpectators = spectators.filter(
-  (spectator) => decorationNoise(spectator.x, spectator.y, 19) > 0.78,
-);
-
 function drawSpectator(
   context: CanvasRenderingContext2D,
   spectator: Spectator,
   raisedArms = false,
   bob = 0,
   scarf = false,
+  mood: SupporterMood = 'idle',
 ): void {
   const { x, y, shirt, skin, team } = spectator;
-  const headY = y - 7 - bob;
-  drawPixelRect(context, x, y - 4 - bob, 5, 4 + bob, shirt);
+  const slump = mood === 'disbelief' ? 2 : 0;
+  const headY = y - 7 - bob + slump;
+  drawPixelRect(context, x, y - 4 - bob + slump, 5, 4 + bob - slump, shirt);
   drawPixelRect(context, x + 1, headY, 3, 3, skin);
   drawPixelRect(context, x + 1, headY, 3, 1, '#353843');
   drawPixelRect(context, x, y, 2, 1, '#081823');
@@ -165,6 +187,17 @@ function drawSpectator(
     drawPixelRect(context, x + 5, y - 6, 1, 4, shirt);
     drawPixelRect(context, x - 1, y - 7, 1, 2, skin);
     drawPixelRect(context, x + 5, y - 7, 1, 2, skin);
+  }
+  if (mood === 'disbelief') {
+    // Sink into the seat with one hand to the face; clearly below the cheering silhouette.
+    drawPixelRect(context, x + 4, y - 3, 2, 2, shirt);
+    drawPixelRect(context, x + 3, y - 4, 2, 1, skin);
+  } else if (mood === 'tense') {
+    drawPixelRect(context, x, y - 4, 1, 2, skin);
+    drawPixelRect(context, x + 4, y - 4, 1, 2, skin);
+  } else if (mood === 'acknowledge') {
+    drawPixelRect(context, x + 5, y - 5, 1, 3, shirt);
+    drawPixelRect(context, x + 5, y - 6, 1, 2, skin);
   }
   if (scarf) {
     drawPixelRect(context, x - 1, y - 8, 7, 2, SUPPORTERS[team].bright);
@@ -287,49 +320,12 @@ export function drawStadiumAtmosphere(context: CanvasRenderingContext2D): void {
   for (const flag of FLAGS) drawPixelRect(context, flag.x, flag.y - 24, 1, 25, '#8a9d98');
 }
 
-type CrowdReaction = {
-  type: keyof typeof REACTION_TICKS;
-  team: Team;
-  ageTicks: number;
-  position: Vec2;
-};
-
-function recentReaction(frame: Frame, recording: Recording): CrowdReaction | null {
-  let chosen: MatchEvent | undefined;
-  let strongest = 0;
-  for (let index = recording.events.length - 1; index >= 0; index--) {
-    const event = recording.events[index]!;
-    if (event.tick >= frame.tick) continue;
-    const ageTicks = frame.tick - event.tick;
-    if (ageTicks > REACTION_TICKS.goal) break;
-    if (event.type !== 'goal' && event.type !== 'save' && event.type !== 'shot') continue;
-    const strength =
-      (event.type === 'goal' ? 3 : event.type === 'save' ? 2 : 1) *
-      Math.max(0, 1 - ageTicks / REACTION_TICKS[event.type]);
-    if (event.team && strength > strongest) {
-      chosen = event;
-      strongest = strength;
-    }
-  }
-  if (!chosen?.team) return null;
-  const eventFrame = recording.frames.findLast((candidate) => candidate.tick <= chosen.tick)!;
-  const playerIndex = recording.initial.players.findIndex(
-    (player) => player.id === chosen.playerId,
-  );
-  return {
-    type: chosen.type as CrowdReaction['type'],
-    team: chosen.team,
-    ageTicks: frame.tick - chosen.tick,
-    position: worldToScreen(eventFrame.players[playerIndex]?.position ?? eventFrame.ball),
-  };
-}
-
 export function drawCrowd(
   context: CanvasRenderingContext2D,
   frame: Frame,
-  recording: Recording,
   reducedMotion: boolean,
   animationTick = frame.tick,
+  atmosphere: MatchAtmosphere = { attack: null, moment: null },
 ): void {
   // Pitch restores a painting with no canopy or flag cloth, including paused redraws.
   drawTreeCanopies(context, animationTick, reducedMotion);
@@ -338,29 +334,48 @@ export function drawCrowd(
     drawFlags(context, 0, null);
     return;
   }
-  const reaction = recentReaction(frame, recording);
-  for (const spectator of animatedSpectators) {
+  const { moment, attack } = atmosphere;
+  const reactionPosition = moment ? worldToScreen(moment.position) : null;
+  const reactionAge = moment ? frame.tick - moment.tick : 0;
+  for (const spectator of spectators) {
+    const seed = decorationNoise(spectator.x, spectator.y, 19);
+    const idleParticipant = seed > 0.78;
+    // End stands lead the jumping; the north stand raises scarves; south responds in waves.
+    const sectionDelay = spectator.section === 1 ? 9 : spectator.section >= 2 ? 0 : 4;
+    const delay = sectionDelay + Math.floor(decorationNoise(spectator.y, spectator.x) * 12);
+    const nearby = reactionPosition
+      ? Math.max(
+          0.25,
+          1 - Math.hypot(spectator.x - reactionPosition.x, spectator.y - reactionPosition.y) / 900,
+        )
+      : 0;
+    const responding =
+      moment &&
+      reactionAge >= delay &&
+      reactionAge < MOMENT_DURATION_TICKS[moment.type] - delay &&
+      (moment.type === 'goal' || seed < 0.35 + nearby * 0.6);
+    const anticipating = attack && seed < attack.intensity * (spectator.section >= 2 ? 0.95 : 0.8);
+    if (!idleParticipant && !responding && !anticipating) continue;
+    const mood = responding
+      ? supporterMood(spectator.team, atmosphere)
+      : anticipating
+        ? supporterMood(spectator.team, { attack, moment: null })
+        : 'idle';
     const rhythm = Math.floor(animationTick / (12 + spectator.variety * 18) + spectator.x) % 12;
-    const delay = Math.floor(decorationNoise(spectator.y, spectator.x) * 18);
-    const nearby = !reaction
-      ? 0
-      : Math.max(
-          0.2,
-          1 -
-            Math.hypot(spectator.x - reaction.position.x, spectator.y - reaction.position.y) / 700,
-        );
-    const reacting =
-      reaction?.team === spectator.team &&
-      reaction.ageTicks > delay &&
-      reaction.ageTicks < REACTION_TICKS[reaction.type] - delay &&
-      (reaction.type === 'goal' || decorationNoise(spectator.x, spectator.y, 5) < nearby * 0.8);
-    const raisedArms = reacting || rhythm < 2;
-    const bob = raisedArms && Math.floor(animationTick / 9 + spectator.y) % 3 === 0 ? 1 : 0;
-    // Restore only this seat's cached footprint before drawing a different pose.
+    const urgeBeat =
+      Math.floor(animationTick / 14 + spectator.section * 2 + spectator.variety * 3) % 4 < 2;
+    const raisedArms =
+      mood === 'cheer' ||
+      mood === 'relief' ||
+      (mood === 'urge' && urgeBeat) ||
+      (mood === 'idle' && rhythm < 2);
+    const jumping = mood === 'cheer' || (mood === 'urge' && spectator.section >= 2);
+    const bob = jumping && Math.floor(animationTick / 9 + spectator.y) % 3 === 0 ? 1 : 0;
+    const scarf = raisedArms && spectator.variety > (spectator.section === 0 ? 0.6 : 0.88);
+    // All gestures fit one seat. Restore its rail too; no pose accumulates between frames.
     drawPixelRect(context, spectator.x - 1, spectator.y - 8, 8, 9, STAND_COLOR);
     drawPixelRect(context, spectator.x - 1, spectator.y, 8, 1, '#294252');
-    drawSpectator(context, spectator, raisedArms, bob, raisedArms && spectator.variety > 0.88);
+    drawSpectator(context, spectator, raisedArms, bob, scarf, mood);
   }
-  // The flags' cloth is drawn over the same static poles. Ambient wind follows replay time.
-  drawFlags(context, animationTick, reaction?.type === 'goal' ? reaction.team : null);
+  drawFlags(context, animationTick, moment?.type === 'goal' ? moment.team : null);
 }

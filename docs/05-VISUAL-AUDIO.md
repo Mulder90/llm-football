@@ -25,7 +25,7 @@ Canvas 2D renders the world at a logical 960×660 resolution, with HTML/React co
 
 World metres are independent of pixels. Round at drawing boundaries, not in physics. Stable foot anchors and layered drawing prevent sliding and overlap errors. An aerial ball separates from its ground shadow. Keep it visible near players. Tactical overlays are opt-in.
 
-The static pitch/stadium is cached on a canvas: supporter sections, scarves, banners, rails and aisles. A subset of spectators animate with varied decorative rhythms; team-aware goal, save and shot reactions use recorded events. Flag cloth is drawn separately from the cache to avoid ghosting and becomes static under reduced motion. Actors and crowd details animate from recorded samples. React receives control updates at roughly 10 Hz; each sprite frame is drawn independently. Selecting an order adds a team-coloured player ring, number and target line without affecting the match.
+The static pitch/stadium is cached on a canvas: supporter sections, scarves, banners, rails and aisles. A minority of spectators animate at rest; participation rises during attacks. End stands lead jumping, the north favours scarves and the south follows later. Actual goals, saves, nearby shot exits and completed passes produce different responses from the two clubs' supporters. Flag cloth is drawn separately from the cache to avoid ghosting and becomes static under reduced motion. Actors and crowd details animate from recorded samples. React receives control updates at roughly 10 Hz; each sprite frame is drawn independently. Selecting an order adds a team-coloured player ring, number and target line without affecting the match.
 
 ## Animation
 
@@ -39,6 +39,8 @@ The referee has its own cream-shell/lime-kit sprite, movement-driven run cycle, 
 
 Goal presentation uses the first frame containing the updated score. A compact banner leaves the huddle visible, with a local net ripple and team-coloured confetti outside the pitch. Five scoring-side players gather, celebrate and return during the existing stopped-clock setup. A presentation timeline extends that vignette to six watch seconds at 1×, with a longer settled huddle and an accurately extended slider duration. The canonical frames and outcome never change; reduced motion retains their original positions. See [decision 007](decisions/007-BROADCAST-TIME.md).
 
+Cyan scorers keep the turning leap and wide landing; Coral scorers make two smaller fist-raised hops. Actual saves, nearby shot exits and completed passes trigger short keeper, shooter and teammate gestures. Possession and phase checks cancel stale reactions; no invented thoughts are displayed. The same precomputed moment list synchronizes sound and crowd responses.
+
 The ball's drawn altitude uses 12 pixels per metre for legibility while its ground shadow remains at the physical x/y. The shadow broadens/fades with height and the ball rolls during a carry. This deliberate visual exaggeration never changes contact or flight physics.
 
 The earlier running GIF was a rough experiment with shape drift and is intentionally not included as a production reference. The selected overhead viewpoint needs its own aligned assets.
@@ -48,6 +50,8 @@ The earlier running GIF was a rough experiment with shape drift and is intention
 Use stadium percussion, ball/contact sounds, restrained crowd reactions and recognizable referee signals. The user rejected continuous filtered-noise ambience and harmonic synthetic crowd voices; neither belongs in the mix. They approved the revised whistle and asked for deeper, more epic drums. Use original synthesis or properly licensed assets. No inference is needed for playback audio.
 
 Trigger effects from stable events crossed by the forward playhead. Scrubbing must not replay all historical goals/whistles; reset event handling on seek. Pause percussion during stoppages, define non-1x behaviour, limit overlapping effects and provide mute/volume. Sound defaults to enabled and starts with the user's play gesture; a prior mute choice is respected. Clock-transition whistles align with their recorded frame, including the full-time endpoint; physical incident cues follow the completed step. The final whistle may finish after automatic playback completion, while explicit pause/seek/hidden-tab actions silence audio. Crowd reactions cannot reveal future outcomes.
+
+Attacking buildup uses current/public recent play to add tom subdivisions and small accents to the existing 130 BPM rhythm. Save, near-miss and goal percussion responses interrupt the bed briefly. Subtle stereo placement follows the fixed Coral/Cyan supporter sides. The approved whistle and licensed goal cheer remain unchanged.
 
 ## Acceptance
 

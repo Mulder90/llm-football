@@ -1,5 +1,7 @@
 import type { MatchEvent } from '../sim/types.ts';
 import { TICK_RATE } from '../sim/rules.ts';
+import type { Team } from '../sim/types.ts';
+import type { FootballMoment, MatchAtmosphere } from '../render/match-atmosphere.ts';
 
 export const SOUND_DURATIONS = {
   'drum-low': 0.62,
@@ -14,8 +16,9 @@ export type SoundCue = {
   sound: SynthesizedSound | 'goal-cheer';
   gain: number;
   delay: number;
-  group: 'drum' | 'contact' | 'crowd' | 'whistle';
+  group: 'drum' | 'accent' | 'contact' | 'crowd' | 'whistle';
   terminal?: boolean;
+  pan?: number;
 };
 
 const cue = (
@@ -23,12 +26,42 @@ const cue = (
   gain: number,
   group: SoundCue['group'],
   delay = 0,
+  pan?: number,
 ): SoundCue => ({
   sound,
   gain,
   group,
   delay,
+  ...(pan === undefined ? {} : { pan }),
 });
+
+const supporterPan = (team: Team) => (team === 'coral' ? -0.25 : 0.25);
+
+/** Short percussion responses; the recorded goal cheer and referee remain separate. */
+export function momentSoundCues(moment: FootballMoment): SoundCue[] {
+  const pan = supporterPan(moment.team);
+  const accent = (sound: SynthesizedSound, gain: number, delay = 0) =>
+    cue(sound, gain, 'accent', delay, pan);
+  switch (moment.type) {
+    case 'save':
+      return [
+        accent('drum-high', 0.24),
+        accent('drum-high', 0.19, 0.12),
+        accent('drum-low', 0.23, 0.28),
+      ];
+    case 'near-miss':
+      return [accent('drum-low', 0.17)];
+    case 'goal':
+      return [
+        accent('drum-low', 0.3),
+        accent('drum-high', 0.23, 0.16),
+        accent('drum-high', 0.25, 0.28),
+        accent('drum-low', 0.32, 0.48),
+      ];
+    default:
+      return [];
+  }
+}
 
 /** Short, distinct referee patterns; only the final whistle survives automatic playback end. */
 export function eventSoundCues(event: MatchEvent): SoundCue[] {
@@ -74,21 +107,42 @@ const DRUM_PATTERN: Readonly<Record<number, { sound: SynthesizedSound; gain: num
   20: { sound: 'drum-low', gain: 0.24 },
   24: { sound: 'drum-high', gain: 0.27 },
 };
+const ATTACK_SUBDIVISIONS: Readonly<Record<number, number>> = {
+  6: 0.7,
+  12: 0.35,
+  14: 0.7,
+  22: 0.7,
+  28: 0.35,
+  30: 0.7,
+};
 
-export function crossedDrumBeats(previousTick: number, tick: number, speed: number): SoundCue[] {
+export function crossedDrumBeats(
+  previousTick: number,
+  tick: number,
+  speed: number,
+  attack: MatchAtmosphere['attack'] = null,
+): SoundCue[] {
   if (tick <= previousTick || speed !== 1) return [];
   const step = Math.floor(tick / DRUM_STEP_TICKS);
   if (step <= Math.floor(previousTick / DRUM_STEP_TICKS)) return [];
   // Never burst through a backlog: only the newest crossed step can make a drum hit.
   const position = step % DRUM_PHRASE_STEPS;
   const phrase = Math.floor(step / DRUM_PHRASE_STEPS) % 4;
+  const intensity = Math.max(0, Math.min(1, attack?.intensity ?? 0));
+  // Keep the same equal-power path in calm play, so entering an attack cannot change routing gain.
+  const pan = attack ? supporterPan(attack.team) : 0;
+  const hit = (sound: SynthesizedSound, gain: number) =>
+    cue(sound, gain * (1 + intensity * 0.18), 'drum', 0, pan);
   // A short rolling fill leads back to the accented bass hit every fourth phrase.
   if (phrase === 3 && [26, 28, 29, 30, 31].includes(position))
-    return [cue('drum-high', 0.13 + (position - 26) * 0.025, 'drum')];
+    return [hit('drum-high', 0.13 + (position - 26) * 0.025)];
   if (phrase === 2 && position === 20) return []; // Leave air before the next backbeat.
   const beat = DRUM_PATTERN[position];
-  if (!beat) return [];
-  return [cue(beat.sound, beat.gain * (phrase % 2 === 0 ? 1 : 0.92), 'drum')];
+  if (beat) return [hit(beat.sound, beat.gain * (phrase % 2 === 0 ? 1 : 0.92))];
+  const threshold = ATTACK_SUBDIVISIONS[position];
+  return threshold !== undefined && intensity >= threshold
+    ? [hit('drum-high', 0.11 + intensity * 0.06)]
+    : [];
 }
 
 /** Original percussion and whistles. No synthetic voices or continuously running crowd noise. */

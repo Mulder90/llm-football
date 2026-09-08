@@ -10,15 +10,15 @@ The shared rulebook describes our actual simulation: coordinates, current rulese
 
 - `responseIdentity`: match, team, decision ID and integer tick to copy into the batch.
 - `phase`, `phaseInstruction`, `half`, playing time, half duration/time remaining, match time remaining and score. The current half duration is 30 playing seconds.
-- `teamContext`: own/opponent goal centres for this half, possession, carrier ID and active teammate/opponent IDs.
-- `players`: all 22 public players with position, velocity, facing, role and discipline. Own players additionally expose their current order/lifetime and action context.
+- `teamContext`: own/opponent goal centres for this half, possession, carrier ID, active teammate/opponent IDs and shared positional briefs with half-relative flank coordinates.
+- `players`: all 22 public players with position, velocity, facing, role and discipline. Own players additionally expose their current order/lifetime, action context and stable starting position/side.
 - `actionContext`: `canKickNow`, reachable opposing carrier ID or null, tackle cooldown, distance to ball, and nearest teammate/opponent IDs and distances. The nearest teammate excludes the player itself and dismissed teammates. Exact geometry is checked before display rounding; these facts do not guarantee success or rule out a foul.
 - `ball`: position, velocity, owner and last touch; `offside`: the public current snapshot.
 - `recentEvents`: latest 12 public events excluding repetitive `block` contacts; `orderFeedback`: latest 12 own failed orders/restart violations since the previous shared decision. The complete recording retains every event.
 - `previousDecisionTick`: boundary against which to distinguish a new incident from retained history.
 - `privateMemory`: the team's prior structured tactical plan, or null at the first decision. It is never supplied to the opponent.
 
-Players' public coordinates are rounded to centimetres for observation only. Opponent orders, opponent memory, seed and pending responses are never exposed. Both models already receive the entire opposing roster's public positions, velocities and facing. A model can infer possible runs or pressure from those facts, but its inference is not privileged access to an opponent's intended action. Nearest-player summaries do not replace the full rosters.
+Public coordinates and copied current-order targets are rounded to centimetres for observation only; the accepted orders and simulation retain their exact values. Opponent orders, opponent memory, seed and pending responses are never exposed. Both models already receive the entire opposing roster's public positions, velocities and facing. A model can infer possible runs or pressure from those facts, but its inference is not privileged access to an opponent's intended action. Nearest-player summaries do not replace the full rosters.
 
 ## Structured tactical memory
 
@@ -37,6 +37,12 @@ A new match starts with null memory. Each accepted response replaces that team's
 
 Memory is not an action queue or engine-certified result. The model must translate retained assignments and pass plans into actual orders. It should review events and current ownership, use event ticks to avoid treating old incidents as new, and say unresolved when evidence is inconclusive. A confident `review` does not prove that a pass succeeded. The spectator inspector labels this field as a model assessment and can reveal both plans from the recording; the opposing controller never receives them.
 
+## Positional responsibilities
+
+Starting positions follow the existing 4–3–3 roster: #1 keeper, #2/#5 fullbacks, #3/#4 centre backs, #7 holding midfielder, #6/#8 central midfielders, #9/#11 wingers and #10 striker. Seven shared short briefs cover possession, defending and recovery. Stable starting roles can coexist with temporary memory assignments; interchanges need explicit cover. Half-relative goals and left/right touchlines keep the same identities meaningful after ends swap.
+
+The model chooses when to advance, who presses and who recovers. Centre backs and the holding midfielder should maintain cover, with staggered fullback advances and goal-side recovery after losing possession. These are instructions, not movement constraints, abilities or automatic formation assistance. See [decision 008](decisions/008-POSITIONAL-BRIEFS.md). Existing recordings retain their original inputs.
+
 ## Coordinated action batches
 
 Return `{ batch, intent, memory }`. A batch copies the exact identity and adds `orders`. Action shapes are generated from the strict schema in `src/protocol/schema.ts`; targets are metre coordinates on the pitch.
@@ -52,7 +58,7 @@ Return `{ batch, intent, memory }`. A batch copies the exact identity and adds `
 
 The prompt asks for one purposeful order per active teammate, including the keeper. The validator still permits omitted players: their existing orders continue until normal expiry, with no invented tactical fallback. A tactical note saying “others support” cannot execute those movements.
 
-The model must coordinate a carrier's pass with its receiver's movement and consider arrival time, opposing players and supporting angles. It must also choose defensive cover, divide pressing/marking work and keep a goalkeeper protecting the current own goal. The model chooses every target. There is no automatic receiver selection, pass correction, supporting run, man-marking or ball-chasing in the engine.
+The model must coordinate a carrier's pass with its receiver's movement and consider arrival time, opposing players and supporting angles. Matching targets alone does not synchronize arrival: compare ball speed with receiver travel time, velocity, pace and acceleration; choose a reachable meeting point, slower delivery or wait/carry when needed. It must also choose defensive cover, divide pressing/marking work and keep a goalkeeper protecting the current own goal. The model chooses every target. There is no automatic receiver selection, pass correction, supporting run, man-marking or ball-chasing in the engine.
 
 The spacing guidance names one ball player and gives the pass meeting point to one receiver. Other players need distinct targets, width, different depths and defensive cover. It asks the model to compare friendly movement targets before submitting, to prefer at least six metres between supporting players where space allows, and to retain useful current destinations across decisions. Close challenges and runs can be exceptions. Six metres is prompt guidance, not a collision radius, hard validation rule or hidden movement correction.
 
