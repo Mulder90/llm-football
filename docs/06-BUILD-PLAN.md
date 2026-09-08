@@ -8,7 +8,7 @@ The project already generates and replays real two-model football. The user want
 
 The short tests made 48 requests at an estimated $0.2836075, with no repairs or fallbacks. The paired clips show catches, distribution, receptions, carrying and a shot. A keeper pass is intercepted; that is a model outcome, not an engine defect. The specific drill criteria remain recorded without treating them as universal match-readiness gates.
 
-The complete local review is **Playing to win**: Cyan wins 3–1 across **two 30-second playing halves**, with nine shots, sixteen completed passes and two keeper catches. All 210 replies were accepted first try, with no repairs/fallbacks; one reply omitted a player order. Independent replay verifies `8eed7d0a`. Generation took 22m 39s and cost $1.26326275 estimated, within the $1.50 combined / $0.50 OpenAI / $1 Gemini caps and 30-minute deadline. Watch the actual football and preserve every result. The existing Cloudflare release stays unchanged while this local slice is reviewed.
+The complete review is **Playing to win**: Cyan wins 3–1 across **two 30-second playing halves**, with nine shots, sixteen completed passes and two keeper catches. All 210 replies were accepted first try, with no repairs/fallbacks; one reply omitted a player order. Independent replay verifies `8eed7d0a`. Generation took 22m 39s and cost $1.26326275 estimated, within the $1.50 combined / $0.50 OpenAI / $1 Gemini caps and 30-minute deadline. At the user's request, this verified version is now live on Cloudflare with this match alone. Watch the actual football and preserve every result.
 
 ## 2. Final match: one minute per half
 
