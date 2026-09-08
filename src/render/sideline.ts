@@ -221,7 +221,7 @@ function drawDrummer(
     drawPixelRect(context, x + dx, FOOT_Y + dy, w, h, color);
   const playing =
     !reducedMotion && frame.phase.type === 'open_play' && mood !== 'disbelief' && mood !== 'tense';
-  // The bed uses recording time, including at faster playback; these are alternate accents.
+  // Decorative gestures use recording time; the audio mix no longer includes percussion.
   const beat = playing && Math.sin((frame.tick * Math.PI * 2) / DRUM_TWO_BEAT_TICKS) > 0;
   rect(-8, 1, 16, 2, '#17292d');
   rect(-5, -2, 4, 4, BOOTS);

@@ -124,8 +124,6 @@ export function Pitch({
         speed,
         seekRevision,
         frame.phase.type,
-        atmosphere,
-        presentation,
       );
 
       const hasEnded = playhead.current === durationSeconds;

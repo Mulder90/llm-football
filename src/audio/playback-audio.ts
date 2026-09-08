@@ -1,22 +1,13 @@
 import type { MatchEvent, MatchPhase } from '../sim/types.ts';
-import type { MatchAtmosphere } from '../render/match-atmosphere.ts';
-import { celebrationGesture } from '../render/celebration.ts';
-import type { CelebrationFrame } from '../render/celebration.ts';
 import { TICK_RATE } from '../sim/rules.ts';
-import {
-  createSoundSamples,
-  celebrationLandingCues,
-  crossedDrumBeats,
-  eventSoundCues,
-  momentSoundCues,
-  SOUND_DURATIONS,
-} from './stadium-sounds.ts';
+import { createSoundSamples, eventSoundCues, SOUND_DURATIONS } from './stadium-sounds.ts';
 import type { SoundCue, SynthesizedSound } from './stadium-sounds.ts';
 
 const MAXIMUM_VOICES = 18;
 const MAXIMUM_EVENTS_PER_FRAME = 5;
 const SOUND_SAMPLE_RATE = 24_000;
-const MOMENT_DRUM_BREAK_TICKS = 0.65 * TICK_RATE;
+const AMBIENCE_GAIN = 0.045;
+type RecordedSound = 'goal-cheer' | 'stadium-ambience';
 const SIGNIFICANT_EVENTS = new Set([
   'goal',
   'restart_ready',
@@ -64,16 +55,16 @@ type Voice = {
   source: AudioBufferSourceNode;
   envelope: GainNode;
   panner: StereoPannerNode | null;
-  group: SoundCue['group'];
+  group: SoundCue['group'] | 'ambience';
   terminal: boolean;
 };
 
 export class PlaybackAudio {
   private context = new AudioContext();
   private master = this.context.createGain();
-  private buffers = new Map<SynthesizedSound, AudioBuffer>();
-  private goalCheer: AudioBuffer | null = null;
-  private goalCheerLoad: Promise<void> | null = null;
+  private buffers = new Map<SynthesizedSound | RecordedSound, AudioBuffer>();
+  private recordingsLoad: Promise<void[]> | null = null;
+  private ambience: Voice | null = null;
   private assetAbort = new AbortController();
   private voices = new Set<Voice>();
   private cursor: number | null = null;
@@ -83,7 +74,6 @@ export class PlaybackAudio {
   private audible = false;
   private currentGain = 0;
   private previousSpeed = 1;
-  private drumResumeTick = -Infinity;
 
   constructor() {
     this.master.gain.value = 0;
@@ -102,7 +92,10 @@ export class PlaybackAudio {
         this.buffers.set(sound, buffer);
       }
       await resumed;
-      this.goalCheerLoad ??= this.loadGoalCheer();
+      this.recordingsLoad ??= Promise.all([
+        this.loadRecording('goal-cheer', 'goal-roar.m4a'),
+        this.loadRecording('stadium-ambience', 'stadium-ambience.m4a'),
+      ]);
     } else {
       this.audible = false;
       this.stopVoices();
@@ -114,16 +107,16 @@ export class PlaybackAudio {
     // The final whistle may be playing after Canvas has stopped drawing.
     if (this.audible) this.setGain(this.volume);
   }
-  private async loadGoalCheer(): Promise<void> {
+  private async loadRecording(sound: RecordedSound, filename: string): Promise<void> {
     try {
-      const response = await fetch(`${import.meta.env.BASE_URL}audio/goal-roar.m4a`, {
+      const response = await fetch(`${import.meta.env.BASE_URL}audio/${filename}`, {
         signal: this.assetAbort.signal,
       });
       if (!response.ok) return;
       const buffer = await this.context.decodeAudioData(await response.arrayBuffer());
-      if (!this.assetAbort.signal.aborted) this.goalCheer = buffer;
+      if (!this.assetAbort.signal.aborted) this.buffers.set(sound, buffer);
     } catch {
-      // Goals retain their whistle when the local cheer is unavailable.
+      // Missing recordings stay silent; never replace the crowd with synthesized noise.
     }
   }
   private setGain(value: number): void {
@@ -131,17 +124,49 @@ export class PlaybackAudio {
     this.master.gain.setTargetAtTime(value, this.context.currentTime, 0.02);
     this.currentGain = value;
   }
-  private stopVoices(group?: SoundCue['group'], keepTerminal = false): void {
+  private stopVoices(group?: Voice['group'], keepTerminal = false): void {
     for (const voice of this.voices) {
       if (group && voice.group !== group) continue;
       if (keepTerminal && voice.terminal) continue;
       voice.envelope.gain.setTargetAtTime(0, this.context.currentTime, 0.006);
       voice.source.stop(this.context.currentTime + 0.03);
       this.voices.delete(voice);
+      if (this.ambience === voice) this.ambience = null;
     }
   }
+  private registerVoice(voice: Voice): void {
+    this.voices.add(voice);
+    voice.source.onended = () => {
+      this.voices.delete(voice);
+      if (this.ambience === voice) this.ambience = null;
+      voice.source.disconnect();
+      voice.envelope.disconnect();
+      voice.panner?.disconnect();
+    };
+  }
+  private startAmbience(tick: number, speed: number, phase: MatchPhase['type']): void {
+    if (speed !== 1 || phase === 'full_time') {
+      this.stopVoices('ambience');
+      return;
+    }
+    const buffer = this.buffers.get('stadium-ambience');
+    if (this.ambience || !buffer) return;
+    if (this.voices.size >= MAXIMUM_VOICES) this.stopVoices('contact');
+    if (this.voices.size >= MAXIMUM_VOICES) return;
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    const envelope = this.context.createGain();
+    envelope.gain.value = 0;
+    envelope.gain.setTargetAtTime(AMBIENCE_GAIN, this.context.currentTime, 0.6);
+    source.connect(envelope).connect(this.master);
+    this.ambience = { source, envelope, panner: null, group: 'ambience', terminal: false };
+    this.registerVoice(this.ambience);
+    // A baked overlap smooths the join; seeks choose their own place at natural pitch.
+    source.start(this.context.currentTime, (tick / TICK_RATE) % buffer.duration);
+  }
   private playSound(cue: SoundCue, variation: number, speed = 1): void {
-    const buffer = cue.sound === 'goal-cheer' ? this.goalCheer : this.buffers.get(cue.sound);
+    const buffer = this.buffers.get(cue.sound);
     if (!buffer) return;
     if (this.voices.size >= MAXIMUM_VOICES) this.stopVoices('contact');
     if (this.voices.size >= MAXIMUM_VOICES) return;
@@ -162,13 +187,7 @@ export class PlaybackAudio {
       group: cue.group,
       terminal: cue.terminal ?? false,
     };
-    this.voices.add(voice);
-    source.onended = () => {
-      this.voices.delete(voice);
-      source.disconnect();
-      envelope.disconnect();
-      panner?.disconnect();
-    };
+    this.registerVoice(voice);
     const startsAt = this.context.currentTime + cue.delay;
     if (recordedCheer) {
       // Preserve real voices' pitch, but release the roar before a faster replay restarts play.
@@ -193,8 +212,6 @@ export class PlaybackAudio {
     speed: number,
     seekRevision: number,
     phase: MatchPhase['type'] = 'open_play',
-    atmosphere: MatchAtmosphere | null = null,
-    celebration: CelebrationFrame | null = null,
   ): void {
     const interrupted = !this.enabled || document.hidden;
     const seeking = this.revision !== seekRevision || (this.cursor !== null && tick < this.cursor);
@@ -207,14 +224,12 @@ export class PlaybackAudio {
       this.stopVoices();
       this.cursor = tick;
       this.revision = seekRevision;
-      this.drumResumeTick = -Infinity;
       return;
     }
     if (speed !== this.previousSpeed) {
-      this.stopVoices('accent');
       this.stopVoices('crowd');
+      this.stopVoices('ambience');
     }
-    if (speed !== this.previousSpeed || phase !== 'open_play') this.stopVoices('drum');
     this.previousSpeed = speed;
     if (playing) {
       for (const event of crossedAudioEvents(
@@ -225,29 +240,7 @@ export class PlaybackAudio {
         phase === 'full_time' ? tick : undefined,
       ))
         this.playEvent(event, speed);
-      const moment = atmosphere?.moment;
-      if (moment && moment.tick > this.cursor && moment.tick <= tick && speed <= 2) {
-        const cues = momentSoundCues(moment);
-        if (cues.length > 0) {
-          this.stopVoices('drum');
-          this.stopVoices('accent');
-          this.drumResumeTick = moment.tick + MOMENT_DRUM_BREAK_TICKS;
-          for (const cue of cues) this.playSound(cue, Math.floor(moment.tick));
-        }
-      }
-      if (phase === 'open_play' && tick >= this.drumResumeTick)
-        for (const beat of crossedDrumBeats(this.cursor, tick, speed, atmosphere?.attack ?? null))
-          this.playSound(beat, Math.floor(tick));
-      const scorerAge = celebration?.scorerId
-        ? celebration.gestureAges.get(celebration.scorerId)
-        : undefined;
-      if (scorerAge !== undefined && celebration?.goal?.team && speed <= 2 && tick > this.cursor) {
-        const team = celebration.goal.team;
-        const previous = celebrationGesture(scorerAge - (tick - this.cursor), true, 0, team);
-        const current = celebrationGesture(scorerAge, true, 0, team);
-        if (current.phase === 'landing' && previous.phase !== 'landing')
-          for (const cue of celebrationLandingCues(team)) this.playSound(cue, celebration.goal.id);
-      }
+      this.startAmbience(tick, speed, phase);
     }
     this.cursor = tick;
   }
