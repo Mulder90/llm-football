@@ -1,6 +1,6 @@
 import { capture, SAMPLE_INTERVAL_TICKS, stateHash } from '../recording/record.ts';
 import type { Recording } from '../recording/record.ts';
-import type { GenerationProvenance, RequestReceipt } from '../recording/provenance.ts';
+import type { GenerationProvenance, ProviderUsd, RequestReceipt } from '../recording/provenance.ts';
 import { applyDecision, emptyBatch } from '../sim/orders.ts';
 import { awardRestart } from '../sim/restarts.ts';
 import { ENGINE_VERSION, FIELD, TICK_RATE } from '../sim/rules.ts';
@@ -13,6 +13,12 @@ import { parseModelDecision, RESPONSE_JSON_SCHEMA, responseSchemaFor } from '../
 import type { ModelDecision, TacticalMemory } from '../protocol/schema.ts';
 import { ProviderError } from './providers.ts';
 import type { ControllerRequest, TeamController } from './providers.ts';
+import {
+  budgetStopReason,
+  estimateRequestUsd,
+  generationProviderUsd,
+  reserveProviderUsd,
+} from './budget.ts';
 
 export const DEFAULT_LIMITS: GenerationProvenance['limits'] = {
   maximumDecisions: 10,
@@ -43,21 +49,10 @@ type GenerationOptions = {
     phase: string;
     requests: number;
     estimatedUsd: number;
+    estimatedUsdByProvider: ProviderUsd;
     fallbacks: Team[];
   }) => void;
 };
-
-function requestEstimate(
-  controller: TeamController,
-  inputTokens: number,
-  outputTokens: number,
-): number {
-  return (
-    (inputTokens * controller.config.inputUsdPerMillion +
-      outputTokens * controller.config.outputUsdPerMillion) /
-    1_000_000
-  );
-}
 
 export async function decideTogether(
   state: MatchState,
@@ -99,8 +94,8 @@ export async function decideTogether(
         attempt++
       ) {
         const started = performance.now();
-        const reservedUsd = requestEstimate(
-          controller,
+        const reservedUsd = estimateRequestUsd(
+          controller.config,
           provenance.limits.maximumInputBytes,
           provenance.limits.maximumOutputTokens,
         );
@@ -138,8 +133,8 @@ export async function decideTogether(
           receipt.resolvedModel = reply.resolvedModel;
           receipt.usage = reply.usage;
           if (reply.usage)
-            receipt.estimatedUsd = requestEstimate(
-              controller,
+            receipt.estimatedUsd = estimateRequestUsd(
+              controller.config,
               reply.usage.inputTokens,
               reply.usage.outputTokens,
             );
@@ -248,12 +243,11 @@ export async function generateMatch(options: GenerationOptions): Promise<Recordi
   let lastDecisionTick = -limits.decisionIntervalTicks;
   let stopReason = 'match_tick_limit';
   const requestsPerBoundary = TEAMS.length * (1 + limits.maximumRetries);
-  const boundaryReservation = TEAMS.reduce(
-    (sum, team) =>
-      sum +
-      requestEstimate(controllers[team], limits.maximumInputBytes, limits.maximumOutputTokens) *
-        (1 + limits.maximumRetries),
-    0,
+  const boundaryReservation = reserveProviderUsd(
+    TEAMS.map((team) => controllers[team].config),
+    limits.maximumInputBytes,
+    limits.maximumOutputTokens,
+    1 + limits.maximumRetries,
   );
 
   function checkpoint(): void {
@@ -284,8 +278,14 @@ export async function generateMatch(options: GenerationOptions): Promise<Recordi
         stopReason = 'request_limit';
         break;
       }
-      if (provenance.estimatedUsd + boundaryReservation > limits.maximumEstimatedUsd) {
-        stopReason = 'estimated_cost_limit';
+      const budgetFailure = budgetStopReason(
+        generationProviderUsd(provenance),
+        boundaryReservation,
+        limits.maximumEstimatedUsd,
+        limits.maximumEstimatedUsdByProvider,
+      );
+      if (budgetFailure) {
+        stopReason = budgetFailure;
         break;
       }
       let resolution: Awaited<ReturnType<typeof decideTogether>>;
@@ -327,6 +327,7 @@ export async function generateMatch(options: GenerationOptions): Promise<Recordi
         phase: state.phase.type,
         requests: provenance.requests.length,
         estimatedUsd: provenance.estimatedUsd,
+        estimatedUsdByProvider: generationProviderUsd(provenance),
         fallbacks: resolution.fallback,
       });
       // Save after execution of this boundary's first tick, so replay consumes every logged decision.

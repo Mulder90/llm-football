@@ -46,6 +46,67 @@ describe('controller comparisons', () => {
     expect(report.estimatedUsd).toBe(0);
   });
 
+  it.each(['openai', 'gemini'] as const)(
+    'sums all concurrent %s model reservations under one provider cap',
+    async (provider) => {
+      const request = vi.fn(async (request: ControllerRequest) => validReply(request));
+      const first = controller(request);
+      first.config = { ...first.config, provider };
+      const second = { ...first, config: { ...first.config, model: 'another-model' } };
+      const other = controller(request);
+      other.config = {
+        ...other.config,
+        provider: provider === 'openai' ? 'gemini' : 'openai',
+      };
+      const report = await evaluateControllers({
+        controllers: [first, second, other],
+        repetitions: 1,
+        maximumEstimatedUsd: 1,
+        // Each model needs $0.0065536 including repair: one fits, both do not.
+        maximumEstimatedUsdByProvider: { [provider]: 0.008 },
+        signal: signal(),
+      });
+      expect(request).not.toHaveBeenCalled();
+      expect(report.stopReason).toBe(`${provider}_estimated_cost_limit`);
+      expect(report.estimatedUsdByProvider).toEqual({ openai: 0, gemini: 0 });
+      expect(report.results).toHaveLength(0);
+    },
+  );
+
+  it('stops the next comparison after one provider exhausts its cap, retaining repair costs', async () => {
+    const request = vi.fn(async (request: ControllerRequest) => {
+      const reply = validReply(request);
+      return { ...reply, usage: null };
+    });
+    const openai = controller(request);
+    const gemini = controller(async (request) => {
+      const reply = validReply(request);
+      return { ...reply, text: request.feedback ? reply.text : '{}', usage: null };
+    });
+    gemini.config = { ...gemini.config, provider: 'gemini' };
+    const checkpoints: string[] = [];
+    const report = await evaluateControllers({
+      controllers: [openai, gemini],
+      scenarios: createControllerScenarios().slice(0, 1),
+      repetitions: 2,
+      maximumEstimatedUsd: 1,
+      maximumEstimatedUsdByProvider: { openai: 0.1, gemini: 0.0066 },
+      signal: signal(),
+      async onCheckpoint(report) {
+        checkpoints.push(report.status);
+      },
+    });
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(report.status).toBe('incomplete');
+    expect(report.stopReason).toBe('gemini_estimated_cost_limit');
+    expect(report.results).toHaveLength(2);
+    expect(report.results.map((result) => result.receipts.length)).toEqual([1, 2]);
+    expect(report.estimatedUsdByProvider.openai).toBeCloseTo(0.0032768, 10);
+    expect(report.estimatedUsdByProvider.gemini).toBeCloseTo(0.0065536, 10);
+    expect(report.estimatedUsd).toBeCloseTo(0.0098304);
+    expect(checkpoints.at(-1)).toBe('incomplete');
+  });
+
   it('compares identical observations, repairs privately and never mutates the scenario', async () => {
     const scenarios = createControllerScenarios().slice(0, 1);
     const initialHash = stateHash(scenarios[0]!.state);

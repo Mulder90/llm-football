@@ -10,6 +10,8 @@ const { values } = parseArgs({
   options: {
     name: { type: 'string' },
     usd: { type: 'string', default: '1' },
+    'openai-usd': { type: 'string' },
+    'gemini-usd': { type: 'string' },
     repetitions: { type: 'string', default: '2' },
   },
 });
@@ -19,6 +21,13 @@ const name = z
   .parse(values.name ?? `evaluation-${new Date().toISOString().replaceAll(/[^0-9]/g, '')}`);
 const repetitions = z.coerce.number().int().min(1).max(3).parse(values.repetitions);
 const maximumEstimatedUsd = z.coerce.number().positive().max(3).parse(values.usd);
+const providerLimit = z.coerce.number().nonnegative().max(3).optional();
+const openaiUsd = providerLimit.parse(values['openai-usd']);
+const geminiUsd = providerLimit.parse(values['gemini-usd']);
+const maximumEstimatedUsdByProvider = {
+  ...(openaiUsd !== undefined && { openai: openaiUsd }),
+  ...(geminiUsd !== undefined && { gemini: geminiUsd }),
+};
 if (!process.env.OPENAI_API_KEY || !process.env.GEMINI_API_KEY)
   throw new Error('Set both provider keys in local .env; never use VITE_ prefixes');
 const controllers = [
@@ -43,12 +52,14 @@ try {
       controllers: controllers.map((controller) => controller.config),
       repetitions,
       maximumEstimatedUsd,
+      maximumEstimatedUsdByProvider,
     }),
   );
   const report = await evaluateControllers({
     controllers,
     repetitions,
     maximumEstimatedUsd,
+    maximumEstimatedUsdByProvider,
     signal: AbortSignal.any([abort.signal, AbortSignal.timeout(15 * 60 * 1000)]),
     async onCheckpoint(report) {
       await writeFile(`${folder}/report.tmp`, JSON.stringify(report));
@@ -59,6 +70,7 @@ try {
           cases: report.results.length,
           requests: report.results.reduce((n, result) => n + result.receipts.length, 0),
           estimatedUsd: report.estimatedUsd,
+          estimatedUsdByProvider: report.estimatedUsdByProvider,
           lastScenario: report.results.at(-1)?.scenarioId,
         }),
       );
@@ -69,6 +81,8 @@ try {
       file: `${folder}/report.json`,
       status: report.status,
       stopReason: report.stopReason,
+      estimatedUsd: report.estimatedUsd,
+      estimatedUsdByProvider: report.estimatedUsdByProvider,
       unavailableModels: report.unavailableModels,
     }),
   );

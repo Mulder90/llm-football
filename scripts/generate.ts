@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util';
 import { z } from 'zod';
 import { DEFAULT_LIMITS, generateMatch } from '../src/generation/run.ts';
 import { geminiController, openaiController } from '../src/generation/providers.ts';
+import { generationProviderUsd } from '../src/generation/budget.ts';
 import { verifyRecording } from '../src/recording/record.ts';
 import type { Recording } from '../src/recording/record.ts';
 
@@ -13,6 +14,8 @@ const { values } = parseArgs({
     smoke: { type: 'boolean', default: false },
     decisions: { type: 'string' },
     usd: { type: 'string' },
+    'openai-usd': { type: 'string' },
+    'gemini-usd': { type: 'string' },
     name: { type: 'string' },
     'wall-seconds': { type: 'string' },
   },
@@ -47,11 +50,23 @@ const maximumRetries = values.smoke
       .min(0)
       .max(1)
       .parse(process.env.GENERATION_MAX_RETRIES_PER_TEAM_DECISION ?? DEFAULT_LIMITS.maximumRetries);
+const providerLimit = z.coerce.number().nonnegative().max(20).optional();
+const openaiUsd = providerLimit.parse(
+  values['openai-usd'] ?? process.env.GENERATION_MAX_OPENAI_USD,
+);
+const geminiUsd = providerLimit.parse(
+  values['gemini-usd'] ?? process.env.GENERATION_MAX_GEMINI_USD,
+);
+const maximumEstimatedUsdByProvider = {
+  ...(openaiUsd !== undefined && { openai: openaiUsd }),
+  ...(geminiUsd !== undefined && { gemini: geminiUsd }),
+};
 const limits = {
   ...DEFAULT_LIMITS,
   maximumDecisions,
   maximumRetries,
   maximumRequests: maximumDecisions * 2 * (maximumRetries + 1),
+  maximumEstimatedUsdByProvider,
   maximumEstimatedUsd: z.coerce
     .number()
     .positive()
@@ -115,6 +130,7 @@ try {
       hash: recording.finalHash,
       requests: recording.generation!.requests.length,
       estimatedUsd: recording.generation!.estimatedUsd,
+      estimatedUsdByProvider: generationProviderUsd(recording.generation!),
     }),
   );
 } finally {

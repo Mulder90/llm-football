@@ -7,11 +7,12 @@ import { observe } from '../protocol/observation.ts';
 import { rulebook } from '../protocol/rulebook.ts';
 import { parseModelDecision, responseSchemaFor } from '../protocol/schema.ts';
 import type { ModelDecision } from '../protocol/schema.ts';
-import type { ControllerConfig, RequestReceipt } from '../recording/provenance.ts';
+import type { ControllerConfig, ProviderUsd, RequestReceipt } from '../recording/provenance.ts';
 import { emptyBatch } from '../sim/orders.ts';
 import { DEFAULT_LIMITS } from './run.ts';
 import { ProviderError } from './providers.ts';
 import type { ControllerRequest, TeamController } from './providers.ts';
+import { budgetStopReason, estimateRequestUsd, reserveProviderUsd } from './budget.ts';
 
 export type ScenarioResult = {
   scenarioId: string;
@@ -28,7 +29,9 @@ export type ControllerEvaluation = {
   rules: string;
   repetitions: number;
   maximumEstimatedUsd: number;
+  maximumEstimatedUsdByProvider?: Partial<ProviderUsd>;
   estimatedUsd: number;
+  estimatedUsdByProvider: ProviderUsd;
   status: 'running' | 'complete' | 'incomplete';
   stopReason: string | null;
   unavailableModels: string[];
@@ -38,14 +41,6 @@ export type ControllerEvaluation = {
 
 const MAXIMUM_ATTEMPTS = 2;
 const REQUEST_TIMEOUT_MS = 45_000;
-
-function estimate(controller: TeamController, input: number, output: number) {
-  return (
-    (input * controller.config.inputUsdPerMillion +
-      output * controller.config.outputUsdPerMillion) /
-    1_000_000
-  );
-}
 
 /** Each model receives identical bytes; only its own rejected reply can add repair feedback. */
 async function evaluateOne(
@@ -82,8 +77,8 @@ async function evaluateOne(
       responseId: null,
       resolvedModel: null,
       usage: null,
-      estimatedUsd: estimate(
-        controller,
+      estimatedUsd: estimateRequestUsd(
+        controller.config,
         DEFAULT_LIMITS.maximumInputBytes,
         DEFAULT_LIMITS.maximumOutputTokens,
       ),
@@ -105,8 +100,8 @@ async function evaluateOne(
       receipt.responseText = reply.text.slice(0, 16384);
       receipt.usage = reply.usage;
       if (reply.usage)
-        receipt.estimatedUsd = estimate(
-          controller,
+        receipt.estimatedUsd = estimateRequestUsd(
+          controller.config,
           reply.usage.inputTokens,
           reply.usage.outputTokens,
         );
@@ -139,6 +134,7 @@ export async function evaluateControllers(options: {
   controllers: TeamController[];
   repetitions: number;
   maximumEstimatedUsd: number;
+  maximumEstimatedUsdByProvider?: Partial<ProviderUsd>;
   signal: AbortSignal;
   scenarios?: ControllerScenario[];
   onCheckpoint?: (report: ControllerEvaluation) => Promise<void>;
@@ -149,7 +145,11 @@ export async function evaluateControllers(options: {
     rules: rulebook(),
     repetitions: options.repetitions,
     maximumEstimatedUsd: options.maximumEstimatedUsd,
+    ...(options.maximumEstimatedUsdByProvider && {
+      maximumEstimatedUsdByProvider: { ...options.maximumEstimatedUsdByProvider },
+    }),
     estimatedUsd: 0,
+    estimatedUsdByProvider: { openai: 0, gemini: 0 },
     status: 'running',
     stopReason: null,
     unavailableModels: [],
@@ -184,19 +184,20 @@ export async function evaluateControllers(options: {
       const controllers = options.controllers.filter(
         (controller) => !report.unavailableModels.includes(controller.config.model),
       );
-      const reservation = controllers.reduce(
-        (total, controller) =>
-          total +
-          MAXIMUM_ATTEMPTS *
-            estimate(
-              controller,
-              DEFAULT_LIMITS.maximumInputBytes,
-              DEFAULT_LIMITS.maximumOutputTokens,
-            ),
-        0,
+      const reservation = reserveProviderUsd(
+        controllers.map((controller) => controller.config),
+        DEFAULT_LIMITS.maximumInputBytes,
+        DEFAULT_LIMITS.maximumOutputTokens,
+        MAXIMUM_ATTEMPTS,
       );
-      if (report.estimatedUsd + reservation > options.maximumEstimatedUsd) {
-        report.stopReason = 'estimated_cost_limit';
+      const budgetFailure = budgetStopReason(
+        report.estimatedUsdByProvider,
+        reservation,
+        report.maximumEstimatedUsd,
+        report.maximumEstimatedUsdByProvider,
+      );
+      if (budgetFailure) {
+        report.stopReason = budgetFailure;
         break evaluation;
       }
       const results = await Promise.all(
@@ -206,10 +207,12 @@ export async function evaluateControllers(options: {
       );
       for (const { result, unavailable } of results) {
         report.results.push(result);
-        report.estimatedUsd += result.receipts.reduce(
+        const estimatedUsd = result.receipts.reduce(
           (total, receipt) => total + receipt.estimatedUsd,
           0,
         );
+        report.estimatedUsd += estimatedUsd;
+        report.estimatedUsdByProvider[result.controller.provider] += estimatedUsd;
         if (unavailable) report.unavailableModels.push(result.controller.model);
       }
       await options.onCheckpoint?.(report);

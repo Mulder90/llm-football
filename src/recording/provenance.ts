@@ -13,6 +13,7 @@ export type ControllerConfig = {
   inputUsdPerMillion: number;
   outputUsdPerMillion: number;
 };
+export type ProviderUsd = Record<ControllerConfig['provider'], number>;
 export type RequestReceipt = {
   decisionId: number;
   tick: number;
@@ -40,6 +41,7 @@ export type GenerationProvenance = {
     maximumOutputTokens: number;
     maximumInputBytes: number;
     maximumEstimatedUsd: number;
+    maximumEstimatedUsdByProvider?: Partial<ProviderUsd>;
     maximumWallSeconds: number;
     decisionIntervalTicks: number;
   };

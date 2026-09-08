@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decideTogether, DEFAULT_LIMITS, generateMatch } from '../src/generation/run.ts';
+import { generationProviderUsd } from '../src/generation/budget.ts';
 import { ProviderError, openaiController, geminiController } from '../src/generation/providers.ts';
 import type { TeamController, ControllerRequest } from '../src/generation/providers.ts';
 import type { GenerationProvenance } from '../src/recording/provenance.ts';
@@ -198,6 +199,120 @@ describe('shared model protocol', () => {
       status: 'incomplete',
       stopReason: 'estimated_cost_limit',
     });
+    expect(verifyRecording(recording).tick).toBe(0);
+  });
+
+  it.each(['openai', 'gemini'] as const)(
+    'starts neither team when %s cannot fund its repair allowance',
+    async (provider) => {
+      let calls = 0;
+      const controller = mockController((request) => {
+        calls++;
+        return response(request);
+      });
+      const recording = await generateMatch({
+        matchId: 'provider-budget',
+        controllers: {
+          coral: controller,
+          cyan: { ...controller, config: { ...controller.config, provider: 'gemini' } },
+        },
+        limits: {
+          ...DEFAULT_LIMITS,
+          maximumEstimatedUsd: 1,
+          // One request costs $0.0032768 at this mock's rates: enough for it, not its repair.
+          maximumEstimatedUsdByProvider: { [provider]: 0.004 },
+        },
+      });
+      expect(calls).toBe(0);
+      expect(recording.generation!.stopReason).toBe(`${provider}_estimated_cost_limit`);
+      expect(generationProviderUsd(recording.generation!)).toEqual({ openai: 0, gemini: 0 });
+      expect(verifyRecording(recording).tick).toBe(0);
+    },
+  );
+
+  it('charges unreported repairs to their providers, then checkpoints before an unaffordable pair', async () => {
+    const calls: Record<Team, number> = { coral: 0, cyan: 0 };
+    const controller = mockController((request) => {
+      const { team } = JSON.parse(request.observation).responseIdentity as { team: Team };
+      calls[team]++;
+      return request.feedback ? response(request) : { invalid: true };
+    });
+    const unreported: TeamController = {
+      ...controller,
+      async request(request, signal) {
+        return { ...(await controller.request(request, signal)), usage: null };
+      },
+    };
+    const checkpoints: { status: string; decisions: number; usd: number }[] = [];
+    const recording = await generateMatch({
+      matchId: 'spent-provider-budget',
+      controllers: {
+        coral: unreported,
+        cyan: { ...unreported, config: { ...unreported.config, provider: 'gemini' } },
+      },
+      limits: {
+        ...DEFAULT_LIMITS,
+        maximumEstimatedUsd: 1,
+        maximumEstimatedUsdByProvider: { openai: 1, gemini: 0.0066 },
+      },
+      async onCheckpoint(recording) {
+        checkpoints.push({
+          status: recording.generation!.status,
+          decisions: recording.decisions.length,
+          usd: generationProviderUsd(recording.generation!).gemini,
+        });
+      },
+    });
+    expect(calls).toEqual({ coral: 2, cyan: 2 });
+    expect(recording.decisions).toHaveLength(1);
+    expect(recording.generation!.stopReason).toBe('gemini_estimated_cost_limit');
+    const spent = generationProviderUsd(recording.generation!);
+    expect(spent.openai).toBeCloseTo(0.0065536, 10);
+    expect(spent.gemini).toBeCloseTo(0.0065536, 10);
+    expect(checkpoints.at(-1)).toMatchObject({ status: 'incomplete', decisions: 1 });
+    expect(checkpoints.at(-1)!.usd).toBeCloseTo(0.0065536, 10);
+    const imported = parseRecording(JSON.parse(JSON.stringify(recording)));
+    expect(imported.generation!.limits.maximumEstimatedUsdByProvider).toEqual({
+      openai: 1,
+      gemini: 0.0066,
+    });
+    expect(verifyRecording(imported).tick).toBeGreaterThan(0);
+    for (const invalid of [-1, Infinity, NaN]) {
+      const corrupt = structuredClone(recording);
+      corrupt.generation!.limits.maximumEstimatedUsdByProvider!.gemini = invalid;
+      expect(() => parseRecording(corrupt)).toThrow();
+    }
+  });
+
+  it('retains each cancelled in-flight request reservation without committing either team', async () => {
+    const abort = new AbortController();
+    let calls = 0;
+    const controller = mockController(() => ({}));
+    const cancelled: TeamController = {
+      ...controller,
+      async request(_request, signal) {
+        calls++;
+        await Promise.resolve(); // Both teams must be in flight before cancellation.
+        abort.abort();
+        signal.throwIfAborted();
+        throw new Error('unreachable');
+      },
+    };
+    const recording = await generateMatch({
+      matchId: 'cancelled-budget',
+      controllers: {
+        coral: cancelled,
+        cyan: { ...cancelled, config: { ...cancelled.config, provider: 'gemini' } },
+      },
+      limits: { ...DEFAULT_LIMITS },
+      signal: abort.signal,
+    });
+    expect(calls).toBe(2);
+    expect(recording.decisions).toHaveLength(0);
+    expect(recording.generation!.stopReason).toBe('cancelled_or_wall_time_limit');
+    const spent = generationProviderUsd(recording.generation!);
+    expect(spent.openai).toBeCloseTo(0.0032768, 10);
+    expect(spent.gemini).toBeCloseTo(0.0032768, 10);
     expect(verifyRecording(recording).tick).toBe(0);
   });
 

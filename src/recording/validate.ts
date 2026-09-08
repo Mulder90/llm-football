@@ -193,6 +193,12 @@ const provenance = z.strictObject({
     maximumOutputTokens: tokens,
     maximumInputBytes: tokens,
     maximumEstimatedUsd: z.number().nonnegative(),
+    maximumEstimatedUsdByProvider: z
+      .strictObject({
+        openai: z.number().nonnegative().optional(),
+        gemini: z.number().nonnegative().optional(),
+      })
+      .optional(),
     maximumWallSeconds: tokens,
     decisionIntervalTicks: tokens,
   }),
