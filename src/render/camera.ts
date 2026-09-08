@@ -3,7 +3,8 @@ import type { Frame, Recording } from '../recording/record.ts';
 import { clamp } from '../sim/math.ts';
 import { TICK_RATE } from '../sim/rules.ts';
 import type { Vec2 } from '../sim/types.ts';
-import { activeGoal, celebrationFrame, GOAL_PRESENTATION } from './celebration.ts';
+import { celebrationFrame, GOAL_PRESENTATION } from './celebration.ts';
+import type { CelebrationFrame } from './celebration.ts';
 import { PITCH_LAYOUT, STADIUM_SIZE } from './layout.ts';
 
 /** View centre in logical stadium pixels; zoom keeps the pitch flat and orthographic. */
@@ -37,6 +38,7 @@ export function cameraAt(
   frame: Frame,
   wholePitch: boolean,
   reducedMotion: boolean,
+  celebration: CelebrationFrame = celebrationFrame(recording, frame, reducedMotion),
 ): Camera {
   const wide = { x: STADIUM_SIZE.width / 2, y: STADIUM_SIZE.height / 2, zoom: 1 };
   if (
@@ -61,19 +63,11 @@ export function cameraAt(
     { x: PITCH_LAYOUT.left, y: PITCH_LAYOUT.top },
     { x: PITCH_LAYOUT.left + PITCH_LAYOUT.width, y: PITCH_LAYOUT.top + PITCH_LAYOUT.height },
   ];
-  const goal = activeGoal(recording, frame);
-  if (goal) {
-    const previousPlay = sample(recording, Math.max(0, goal.event.tick - 1) / TICK_RATE);
-    const celebration = celebrationFrame(recording, frame, false);
+  if (celebration.goal && !celebration.canonical) {
+    const previousPlay = sample(recording, Math.max(0, celebration.goal.tick - 1) / TICK_RATE);
     const goalPoint = screenPoint(previousPlay.ball);
     const huddle = screenPoint(celebration.focus ?? previousPlay.ball);
-    const envelope = smooth(
-      Math.min(
-        goal.ageTicks / GOAL_PRESENTATION.gatheringTicks,
-        (GOAL_PRESENTATION.durationTicks - goal.ageTicks) /
-          (GOAL_PRESENTATION.durationTicks - GOAL_PRESENTATION.returnStartsTicks),
-      ),
-    );
+    const envelope = smooth(celebration.watchAgeSeconds / GOAL_PRESENTATION.gatheringEndSeconds);
     const destination = { x: (goalPoint.x + huddle.x) / 2, y: (goalPoint.y + huddle.y) / 2 };
     focus = {
       x: focus.x + (destination.x - focus.x) * envelope,
@@ -81,12 +75,16 @@ export function cameraAt(
     };
     zoom += (CAMERA.goalZoom - CAMERA.playZoom) * envelope;
     follow += (CAMERA.goalFollowFraction - CAMERA.followFraction) * envelope;
-    const huddleRadius = GOAL_PRESENTATION.huddleRadius * PITCH_LAYOUT.pixelsPerMetre;
     required = [
       goalPoint,
-      { x: huddle.x - huddleRadius, y: huddle.y - huddleRadius },
-      { x: huddle.x + huddleRadius, y: huddle.y + huddleRadius },
+      huddle,
       screenPoint(celebration.frame.ball),
+      screenPoint(celebration.corner ?? previousPlay.ball),
+      ...recording.initial.players.flatMap((player, index) =>
+        celebration.participantIds.has(player.id)
+          ? [screenPoint(celebration.frame.players[index]!.position)]
+          : [],
+      ),
     ];
   }
   const margin = CAMERA.frameMarginPixels;

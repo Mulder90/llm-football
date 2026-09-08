@@ -1,5 +1,7 @@
 # Top-down visual and audio direction
 
+The current broadcast uses comic paper/ink score tiles and short sampled announcements. Goals occupy nine watch seconds: impact, an edited approach to the attacked corner flag, signature celebration and a readable restart transition. All other active players remain visible, with losing-side disappointment; the airborne scorer draws above the group. Supporter sections erupt in staggered waves. The sound is now an edited, credited football-stadium goal recording with a shaped tail; the approved whistle remains. See [slice 14](slices/14-COMIC-MATCHDAY.md) and [sound credits](SOUND-CREDITS.md).
+
 ![Selected reference](references/top-down-football.png)
 
 ## Camera

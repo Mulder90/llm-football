@@ -8,11 +8,17 @@ import {
   SOUND_DURATIONS,
 } from '../src/audio/stadium-sounds.ts';
 import { createFullMatchFixture } from '../src/fixtures/full-match.ts';
+import { sample } from '../src/recording/record.ts';
+import {
+  celebrationFrame,
+  celebrationGesture,
+  GOAL_PRESENTATION,
+} from '../src/render/celebration.ts';
 import type { MatchEvent } from '../src/sim/types.ts';
 import type { SynthesizedSound } from '../src/audio/stadium-sounds.ts';
 import { applyDecision, emptyBatch } from '../src/sim/orders.ts';
 import { awardRestart, prepareRestartDelivery } from '../src/sim/restarts.ts';
-import { REFEREE } from '../src/sim/rules.ts';
+import { REFEREE, TICK_RATE } from '../src/sim/rules.ts';
 import { createMatch } from '../src/sim/state.ts';
 import { step } from '../src/sim/step.ts';
 import type { FootballMoment, MatchAtmosphere } from '../src/render/match-atmosphere.ts';
@@ -170,6 +176,8 @@ class TestGain {
     setTargetAtTime: (value: number) => {
       this.gain.value = value;
     },
+    setValueAtTime: vi.fn(),
+    linearRampToValueAtTime: vi.fn(),
   };
   connect(target: unknown) {
     return target;
@@ -181,13 +189,15 @@ class TestSource {
   playbackRate = { value: 1 };
   onended: (() => void) | null = null;
   starts: number[] = [];
+  durations: (number | undefined)[] = [];
   stops: number[] = [];
   connect(target: TestGain) {
     return target;
   }
   disconnect() {}
-  start(time: number) {
+  start(time: number, _offset?: number, duration?: number) {
     this.starts.push(time);
+    this.durations.push(duration);
   }
   stop(time: number) {
     this.stops.push(time);
@@ -204,9 +214,12 @@ class TestContext {
   currentTime = 0;
   destination = {};
   sources: TestSource[] = [];
+  gains: TestGain[] = [];
   panners: TestPanner[] = [];
   createGain() {
-    return new TestGain();
+    const gain = new TestGain();
+    this.gains.push(gain);
+    return gain;
   }
   createBuffer(_channels: number, length: number) {
     const samples = new Float32Array(length);
@@ -224,7 +237,7 @@ class TestContext {
   }
   async resume() {}
   async close() {}
-  decodeAudioData = vi.fn(async (_bytes: ArrayBuffer) => ({ recorded: true }));
+  decodeAudioData = vi.fn(async (_bytes: ArrayBuffer) => ({ recorded: true, duration: 7.1 }));
 }
 
 describe('browser playback audio lifecycle', () => {
@@ -282,8 +295,12 @@ describe('browser playback audio lifecycle', () => {
     expect(context.sources).toHaveLength(3);
     audio.advance(events, 100, false, 1, 0, 'full_time');
     expect(context.sources.every((source) => source.stops.length === 0)).toBe(true);
+    audio.setVolume(0.2);
+    expect(context.gains[0]!.gain.value).toBe(0.2); // No animation frame is needed after playback ends.
     await audio.setEnabled(false);
     expect(context.sources.every((source) => source.stops.length === 1)).toBe(true);
+    audio.setVolume(0.8);
+    expect(context.gains[0]!.gain.value).toBe(0);
     audio.dispose();
   });
 
@@ -304,8 +321,84 @@ describe('browser playback audio lifecycle', () => {
     audio.advance(events, 5, true, 1, 0, 'restart_setup');
     expect(context.sources).toHaveLength(0); // Saves do not add synthetic claps or crowd voices.
     audio.advance(events, 21, true, 1, 0, 'restart_setup');
-    expect(context.sources.at(-1)!.buffer).toEqual({ recorded: true });
+    expect(context.sources.at(-1)!.buffer).toEqual({ recorded: true, duration: 7.1 });
     expect(context.sources.at(-1)!.playbackRate.value).toBe(1);
+    audio.dispose();
+  });
+
+  it('fades a faster replay roar before kickoff, keeps natural pitch and cancels it on a speed change', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    );
+    const audio = new PlaybackAudio();
+    await audio.setEnabled(true);
+    await vi.waitFor(() => expect(context.decodeAudioData).toHaveBeenCalledOnce());
+    const goal = { ...event('goal', 10), team: 'cyan' as const };
+    audio.advance([goal], 9, true, 2, 0);
+    audio.advance([goal], 11, true, 2, 0, 'restart_setup');
+    const roar = context.sources.at(-1)!;
+    expect(roar.playbackRate.value).toBe(1);
+    expect(roar.durations).toEqual([3.55]);
+    expect(context.panners.at(-1)!.pan.value).toBe(0.25);
+    expect(context.gains.at(-1)!.gain.linearRampToValueAtTime).toHaveBeenCalledWith(0, 3.61);
+    audio.advance([goal], 12, true, 1, 0, 'restart_setup');
+    expect(roar.stops).toHaveLength(1);
+    audio.dispose();
+  });
+
+  it('keeps only terminal whistles when a final-tick goal reaches automatic pause', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(8),
+      }),
+    );
+    const audio = new PlaybackAudio();
+    await audio.setEnabled(true);
+    await vi.waitFor(() => expect(context.decodeAudioData).toHaveBeenCalledOnce());
+    const events = [event('goal', 99, 1), event('full_time', 100, 2)];
+    audio.advance(events, 99, true, 1, 0);
+    audio.advance(events, 100, true, 1, 0, 'full_time');
+    expect(context.sources).toHaveLength(5);
+    const roar = context.sources[1]!;
+    const finalWhistles = context.sources.slice(2);
+    expect(roar.stops).toHaveLength(0);
+    audio.advance(events, 100, false, 1, 0, 'full_time');
+    expect(roar.stops).toHaveLength(1);
+    expect(finalWhistles.every((voice) => voice.stops.length === 0)).toBe(true);
+    audio.dispose();
+  });
+
+  it('accents the visible scorer landing once and does not sound a seek into that pose', async () => {
+    const recording = createFullMatchFixture();
+    const goal = recording.events.find((event) => event.type === 'goal')!;
+    let landingAge = 0;
+    while (
+      landingAge < GOAL_PRESENTATION.durationTicks &&
+      celebrationGesture(landingAge, true, 0, goal.team!).phase !== 'landing'
+    )
+      landingAge += 0.25;
+    const at = (age: number) => {
+      const frame = sample(recording, (goal.tick + 1 + age) / TICK_RATE);
+      return { frame, celebration: celebrationFrame(recording, frame, false) };
+    };
+    const before = at(landingAge - 0.5);
+    const landed = at(landingAge + 0.25);
+    expect(landed.celebration.playerIds.has(landed.celebration.scorerId!)).toBe(true);
+    const audio = new PlaybackAudio();
+    await audio.setEnabled(true);
+    audio.advance([], before.frame.tick, true, 1, 0, 'restart_setup', null, before.celebration);
+    audio.advance([], landed.frame.tick, true, 1, 0, 'restart_setup', null, landed.celebration);
+    expect(context.sources).toHaveLength(2);
+    audio.advance([], landed.frame.tick, true, 1, 0, 'restart_setup', null, landed.celebration);
+    audio.advance([], landed.frame.tick, true, 1, 1, 'restart_setup', null, landed.celebration);
+    expect(context.sources).toHaveLength(2);
+    expect(context.sources.every((source) => source.stops.length === 1)).toBe(true);
     audio.dispose();
   });
 

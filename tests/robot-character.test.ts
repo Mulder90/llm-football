@@ -7,6 +7,7 @@ import {
   celebrationGesture,
   GOAL_PRESENTATION,
 } from '../src/render/celebration.ts';
+import { worldToScreen } from '../src/render/layout.ts';
 import { drawPlayers } from '../src/render/players.ts';
 import { robotReactions, robotStyle } from '../src/render/robot-character.ts';
 import { ORDER_LIFETIME, TICK_RATE } from '../src/sim/rules.ts';
@@ -101,7 +102,9 @@ describe('recorded robot character', () => {
       if (id === huddle.scorerId) continue;
       const teammate =
         huddle.frame.players[record.initial.players.findIndex((player) => player.id === id)]!;
-      expect(teammate.position.y).toBeLessThan(scorer.position.y);
+      // The support fans toward the pitch interior at either top or bottom corner.
+      const inwardY = huddle.corner!.y === 0 ? 1 : -1;
+      expect((teammate.position.y - scorer.position.y) * inwardY).toBeGreaterThan(-0.2);
     }
     expect(celebrationFrame(record, frame, true).frame).toBe(frame);
     expect(JSON.stringify(record)).toBe(before);
@@ -190,6 +193,31 @@ describe('recorded robot character', () => {
     ]!.lastKickTick = 10;
     expect(robotReactions(record, nextKick, [pass]).size).toBe(0);
     expect(JSON.stringify({ record, frame, pass })).toBe(before);
+  });
+
+  it('keeps every active robot visible and paints the airborne scorer above the group', () => {
+    const record = createFullMatchFixture();
+    const goal = record.events.find((event) => event.type === 'goal')!;
+    const frame = sample(
+      record,
+      (goal.tick + 1 + GOAL_PRESENTATION.gatheringTicks + 15) / TICK_RATE,
+    );
+    const celebration = celebrationFrame(record, frame, false);
+    expect(celebrationGesture(celebration.ageTicks, true, 1, goal.team!).jump).toBeGreaterThan(0);
+    const labels: Array<[string, number, number]> = [];
+    const context = {
+      save() {},
+      restore() {},
+      fillRect() {},
+      fillText: (text: string, x: number, y: number) => labels.push([text, x, y]),
+    } as unknown as CanvasRenderingContext2D;
+    drawPlayers(context, frame, record, true, false, frame.tick, [], celebration);
+    const active = celebration.frame.players.filter((pose) => !pose.dismissed);
+    expect(labels).toHaveLength(active.length * 2);
+    const scorer = record.initial.players.find((player) => player.id === celebration.scorerId)!;
+    const pose = celebration.frame.players[record.initial.players.indexOf(scorer)]!;
+    const ground = worldToScreen(pose.position);
+    expect(labels.at(-1)).toEqual([String(scorer.number), ground.x, ground.y + 14]);
   });
 
   it('repeats expressive rendering after seeks and makes reduced-motion poses independent of decorative time', () => {

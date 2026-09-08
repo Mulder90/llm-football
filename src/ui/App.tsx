@@ -7,7 +7,6 @@ import { PlaybackControls } from './PlaybackControls.tsx';
 import { Scoreboard } from './Scoreboard.tsx';
 import { usePlayback } from './usePlayback.ts';
 import { formatTime, recordingLabel } from './format.ts';
-import { MatchMoment } from './MatchMoment.tsx';
 import { useRecordings } from './useRecordings.ts';
 import { useSound } from './useSound.ts';
 import { useControlsVisibility } from './useControlsVisibility.ts';
@@ -95,7 +94,6 @@ function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> 
           >
             <span aria-hidden="true">☷</span> Inside the match
           </button>
-          <MatchMoment recording={recording} frame={frame} />
           {!playback.isPlaying && playback.seconds === 0 && (
             <button
               className="start-overlay"

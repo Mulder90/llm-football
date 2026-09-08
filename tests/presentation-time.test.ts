@@ -88,7 +88,7 @@ describe('broadcast presentation time', () => {
     const goalTimeline = createPresentationTimeline(boundaryGoal);
     expect(goalTimeline.celebrations).toHaveLength(1);
     const window = goalTimeline.celebrations[0]!;
-    expect(window.watchEnd - window.watchStart).toBeCloseTo(6);
+    expect(window.watchEnd - window.watchStart).toBeCloseTo(9);
     expect(
       sample(boundaryGoal, recordingSecondsAt(goalTimeline, window.watchStart - 1 / TICK_RATE))
         .score.coral,
@@ -157,12 +157,12 @@ describe('broadcast presentation time', () => {
     }
   });
 
-  it('gives each goal six watch seconds, with a held celebration and unchanged playing clock', () => {
+  it('gives each goal nine watch seconds, with a held celebration and unchanged playing clock', () => {
     expect(timeline.celebrations).toHaveLength(6);
     for (const window of timeline.celebrations) {
-      expect(window.watchEnd - window.watchStart).toBeCloseTo(6);
+      expect(window.watchEnd - window.watchStart).toBeCloseTo(9);
       const first = sample(recording, window.recordingStart);
-      for (const secondsIntoCelebration of [2, 3, 4]) {
+      for (const secondsIntoCelebration of [4, 5, 6]) {
         const frame = sample(
           recording,
           recordingSecondsAt(timeline, window.watchStart + secondsIntoCelebration),

@@ -278,6 +278,25 @@ export function DecisionInspector({
                 )}
               </pre>
             </details>
+            <p className="sound-credit">
+              Stadium recording by{' '}
+              <a
+                href="https://freesound.org/people/paulw2k/sounds/196461/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                paulw2k
+              </a>{' '}
+              ·{' '}
+              <a
+                href="https://creativecommons.org/licenses/by/4.0/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                CC BY 4.0
+              </a>{' '}
+              · edited excerpt
+            </p>
           </>
         )}
         {tab === 'match' && (

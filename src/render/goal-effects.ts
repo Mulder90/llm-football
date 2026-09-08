@@ -1,18 +1,15 @@
 import type { Frame, Recording } from '../recording/record.ts';
-import { FIELD, TICK_RATE } from '../sim/rules.ts';
-import {
-  activeGoal,
-  celebrationFrame,
-  celebrationGesture,
-  GOAL_PRESENTATION,
-} from './celebration.ts';
+import { FIELD } from '../sim/rules.ts';
+import { celebrationFrame, celebrationGesture, GOAL_PRESENTATION } from './celebration.ts';
+import type { CelebrationFrame } from './celebration.ts';
 import { PITCH_LAYOUT, worldToScreen } from './layout.ts';
 import { drawPixelRect } from './pixels.ts';
 
 const GOAL_EFFECTS = {
   netDepthPixels: 18,
   netGridPixels: 5,
-  rippleDurationTicks: 0.85 * TICK_RATE,
+  rippleDurationSeconds: 0.65,
+  confettiDurationSeconds: 3.1,
   confettiPieces: 28,
   confettiReachPixels: 48,
 } as const;
@@ -35,21 +32,22 @@ export function drawGoalEffects(
   frame: Frame,
   record: Recording,
   reducedMotion: boolean,
+  celebration: CelebrationFrame = celebrationFrame(record, frame, reducedMotion),
 ): void {
-  const moment = activeGoal(record, frame);
-  if (!moment || reducedMotion) return;
-  const { event: goal, ageTicks } = moment;
+  if (!celebration.goal || reducedMotion || celebration.canonical) return;
+  const { goal, ageTicks, watchAgeSeconds } = celebration;
   const firstHalfDirection = goal.team === 'coral' ? 1 : -1;
   const direction = frame.half === 1 ? firstHalfDirection : -firstHalfDirection;
   const goalCenter = worldToScreen({ x: direction === 1 ? FIELD.length : 0, y: FIELD.width / 2 });
   const halfGoalPixels = (FIELD.goalWidth * PITCH_LAYOUT.pixelsPerMetre) / 2;
   const teamColor = goal.team === 'coral' ? '#ff917f' : '#91ebe3';
-  const progress = ageTicks / GOAL_PRESENTATION.durationTicks;
+  const confettiAge = watchAgeSeconds - GOAL_PRESENTATION.gatheringEndSeconds;
+  const progress = Math.max(0, Math.min(1, confettiAge / GOAL_EFFECTS.confettiDurationSeconds));
   const fade = Math.max(0, 1 - progress);
 
   context.save();
-  if (ageTicks < GOAL_EFFECTS.rippleDurationTicks) {
-    const ripple = ageTicks / GOAL_EFFECTS.rippleDurationTicks;
+  if (watchAgeSeconds < GOAL_EFFECTS.rippleDurationSeconds) {
+    const ripple = watchAgeSeconds / GOAL_EFFECTS.rippleDurationSeconds;
     context.globalAlpha = (1 - ripple) * 0.7;
     for (let row = -halfGoalPixels + 3; row < halfGoalPixels; row += GOAL_EFFECTS.netGridPixels) {
       const displacement = Math.sin(ripple * Math.PI * 4 + row / 9) * (1 - ripple) * 3;
@@ -66,26 +64,27 @@ export function drawGoalEffects(
     }
   }
 
-  context.globalAlpha = fade * 0.85;
+  const corner = celebration.corner ? worldToScreen(celebration.corner) : goalCenter;
+  const verticalDirection = celebration.corner?.y === 0 ? -1 : 1;
+  context.globalAlpha = confettiAge >= 0 ? fade * 0.85 : 0;
   for (let piece = 0; piece < GOAL_EFFECTS.confettiPieces; piece++) {
     const side = piece % 2 === 0 ? -1 : 1;
     const spread = piece / GOAL_EFFECTS.confettiPieces;
     const travel = GOAL_EFFECTS.confettiReachPixels * (0.4 + spread) * progress;
     const arc = Math.sin(progress * Math.PI) * (12 + (piece % 5) * 3);
-    const x = goalCenter.x + direction * (8 + travel);
-    const y = goalCenter.y + side * (halfGoalPixels + 7 + travel * 0.5) - arc;
+    const x = corner.x + direction * (5 + travel * (side > 0 ? 0.75 : 0.25));
+    const y = corner.y + verticalDirection * (5 + travel * 0.45) - arc * 0.2;
     const color = piece % 3 === 0 ? '#fff0bd' : teamColor;
     if (piece % 7 === 0) drawCelebrationStar(context, x, y, color);
     else {
       drawPixelRect(context, x, y, piece % 2 === 0 ? 3 : 2, piece % 3 === 0 ? 2 : 4, color);
       if (piece % 5 === 0) {
-        // Short stepped streamers stay beside the net, outside the field of play.
+        // Short stepped streamers burst into the corner concourse, outside live play.
         drawPixelRect(context, x + direction * 2, y - 3, 2, 4, color);
         drawPixelRect(context, x + direction * 4, y - 5, 2, 3, color);
       }
     }
   }
-  const celebration = celebrationFrame(record, frame, false);
   if (
     celebration.scorerId &&
     celebration.focus &&

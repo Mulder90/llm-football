@@ -63,8 +63,9 @@ describe('top-down broadcast camera', () => {
         const camera = cameraAt(match, frame, false, false);
         expectVisible(camera, beforeGoal.ball);
         expectVisible(camera, celebration.frame.ball);
-        expectVisible(camera, celebration.focus!);
-        for (const playerId of celebration.playerIds) {
+        if (celebration.focus) expectVisible(camera, celebration.focus);
+        if (celebration.corner) expectVisible(camera, celebration.corner);
+        for (const playerId of celebration.participantIds) {
           const index = match.initial.players.findIndex((player) => player.id === playerId);
           expectVisible(camera, celebration.frame.players[index]!.position);
         }

@@ -5,7 +5,7 @@ import type { Frame, PlayerFrame, Recording } from '../recording/record.ts';
 import { worldToScreen } from './layout.ts';
 import { drawPixelRect } from './pixels.ts';
 import { celebrationFrame, celebrationGesture } from './celebration.ts';
-import type { CelebrationGesture } from './celebration.ts';
+import type { CelebrationFrame, CelebrationGesture } from './celebration.ts';
 import { idleRobotPose, robotExpression, robotReactions, robotStyle } from './robot-character.ts';
 import type { RobotReaction } from './robot-character.ts';
 import { drawBall, drawBallTrail } from './ball.ts';
@@ -61,6 +61,7 @@ function drawRobot(
   const frustrated = reaction?.gesture === 'frustrated' && !celebrating;
   const acknowledging = reaction?.gesture === 'acknowledge' && !celebrating;
   const conceded = reaction?.gesture === 'conceded';
+  const handsOnHead = conceded && player.number % 3 !== 2;
   const facing =
     preparing && reaction.target
       ? unitVector({
@@ -181,7 +182,7 @@ function drawRobot(
         : 0;
     const armLift = raised
       ? 17
-      : isSaving || frustrated
+      : isSaving || frustrated || handsOnHead
         ? 11
         : asking
           ? 12
@@ -192,7 +193,7 @@ function drawRobot(
               : 0;
     const spread = wide
       ? 5
-      : raised || isSaving || frame.guarding || asking || frustrated || waving
+      : raised || isSaving || frame.guarding || asking || frustrated || handsOnHead || waving
         ? 2
         : isKicking || preparing
           ? 1
@@ -209,7 +210,7 @@ function drawRobot(
         pixel(armX, armY + 1, 2, 2, side < 0 ? kit.shade : kit.shirt);
       }
     } else {
-      const lifted = raised || isSaving || asking || frustrated || waving;
+      const lifted = raised || isSaving || asking || frustrated || handsOnHead || waving;
       const armTop = lifted ? handY : handY - 4;
       const armHeight = lifted ? -8 + bodyY - handY : 6;
       pixel(handX - 1, armTop, 3, armHeight, OUTLINE);
@@ -326,6 +327,13 @@ function drawRobot(
     }
   }
 
+  if (handsOnHead) {
+    for (const side of player.number % 3 === 0 ? [-1, 1] : [1]) {
+      headPixel(side * 8 - 1, -25, 4, 4, OUTLINE);
+      headPixel(side * 8, -25, 3, 3, player.role === 'keeper' ? '#f5efd2' : kit.highlight);
+    }
+  }
+
   if (player.role === 'keeper') pixel(-5 + lean, -5 + bodyY, 2, 2, TEAM_KITS[player.team].shirt);
   if (frame.yellowCards > 0) pixel(17, -23, 3, 5, '#ffe493');
   if (showNumbers) {
@@ -346,19 +354,43 @@ export function drawPlayers(
   reducedMotion: boolean,
   animationTick = frame.tick,
   moments: readonly FootballMoment[] = [],
-): Frame {
-  const reactions = robotReactions(record, frame, moments);
-  const celebration = celebrationFrame(
+  celebration: CelebrationFrame = celebrationFrame(
     record,
     kickoffFrame(record, frame, reducedMotion),
     reducedMotion,
-  );
+  ),
+): Frame {
+  const reactions = robotReactions(record, frame, moments);
+  if (celebration.goal) {
+    for (const player of record.initial.players)
+      if (player.team !== celebration.goal.team)
+        reactions.set(player.id, {
+          gesture: 'conceded',
+          target: null,
+          ageTicks: celebration.ageTicks,
+        });
+  }
   frame = celebration.frame;
   const ballMoving = drawBallTrail(context, frame, record, reducedMotion);
   const drawingOrder = record.initial.players
-    .map((player, index) => ({ player, frame: frame.players[index]! }))
+    .map((player, index) => {
+      const gesture = celebration.playerIds.has(player.id)
+        ? celebrationGesture(
+            celebration.gestureAges.get(player.id) ?? celebration.ageTicks,
+            celebration.scorerId === player.id,
+            player.number,
+            player.team,
+          )
+        : null;
+      const layer =
+        gesture && player.id === celebration.scorerId ? 2 : gesture && gesture.jump > 0 ? 1 : 0;
+      return { player, frame: frame.players[index]!, gesture, layer };
+    })
     .filter((entry) => !entry.frame.dismissed)
-    .sort((first, second) => first.frame.position.y - second.frame.position.y);
+    .sort(
+      (first, second) =>
+        first.layer - second.layer || first.frame.position.y - second.frame.position.y,
+    );
 
   for (const entry of drawingOrder) {
     drawRobot(
@@ -369,14 +401,7 @@ export function drawPlayers(
       frame.owner === entry.player.id,
       showNumbers,
       reducedMotion,
-      celebration.playerIds.has(entry.player.id)
-        ? celebrationGesture(
-            celebration.ageTicks,
-            celebration.scorerId === entry.player.id,
-            entry.player.number,
-            entry.player.team,
-          )
-        : null,
+      entry.gesture,
       reactions.get(entry.player.id),
       animationTick,
     );

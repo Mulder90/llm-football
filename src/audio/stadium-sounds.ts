@@ -37,6 +37,13 @@ const cue = (
 
 const supporterPan = (team: Team) => (team === 'coral' ? -0.25 : 0.25);
 
+export function celebrationLandingCues(team: Team): SoundCue[] {
+  return [
+    cue('drum-low', 0.26, 'accent', 0, supporterPan(team)),
+    cue('drum-high', 0.16, 'accent', 0.12, supporterPan(team)),
+  ];
+}
+
 /** Short percussion responses; the recorded goal cheer and referee remain separate. */
 export function momentSoundCues(moment: FootballMoment): SoundCue[] {
   const pan = supporterPan(moment.team);
@@ -81,7 +88,10 @@ export function eventSoundCues(event: MatchEvent): SoundCue[] {
     case 'restart_ready':
       return event.detail === 'kickoff' ? [cue('whistle-long', 0.22, 'whistle')] : [];
     case 'goal':
-      return [cue('whistle-short', 0.18, 'whistle'), cue('goal-cheer', 0.24, 'crowd', 0.06)];
+      return [
+        cue('whistle-short', 0.18, 'whistle'),
+        cue('goal-cheer', 0.34, 'crowd', 0.06, event.team ? supporterPan(event.team) : 0),
+      ];
     case 'halftime':
       return [cue('whistle-short', 0.21, 'whistle'), cue('whistle-long', 0.21, 'whistle', 0.36)];
     case 'full_time':

@@ -1,19 +1,57 @@
 import { sample } from '../recording/record.ts';
 import type { Frame, PlayerFrame, Recording } from '../recording/record.ts';
-import { FIELD, TICK_RATE } from '../sim/rules.ts';
+import { BALL_CONTROL, FIELD, TICK_RATE } from '../sim/rules.ts';
 import { clamp, distanceBetween, unitVector } from '../sim/math.ts';
-import type { Team, Vec2 } from '../sim/types.ts';
+import type { MatchEvent, Team, Vec2 } from '../sim/types.ts';
+
+const GOAL_RECORDING_TICKS = 1.85 * TICK_RATE;
+const GOAL_WATCH_SECONDS = 9;
+const GATHERING_END_SECONDS = 3.25;
 
 export const GOAL_PRESENTATION = {
-  durationTicks: 1.85 * TICK_RATE,
-  watchDurationSeconds: 6,
-  gatheringTicks: 0.45 * TICK_RATE,
-  returnStartsTicks: 1.4 * TICK_RATE,
+  durationTicks: GOAL_RECORDING_TICKS,
+  watchDurationSeconds: GOAL_WATCH_SECONDS,
+  impactEndSeconds: 0.45,
+  approachStartSeconds: 0.85,
+  gatheringEndSeconds: GATHERING_END_SECONDS,
+  transitionStartSeconds: 7.1,
+  transitionMiddleSeconds: 8,
+  transitionEndSeconds: 8.9,
+  gatheringTicks: (GATHERING_END_SECONDS / GOAL_WATCH_SECONDS) * GOAL_RECORDING_TICKS,
   bannerArrivalTicks: 0.16 * TICK_RATE,
   bannerDepartureTicks: 0.25 * TICK_RATE,
   teammates: 5,
-  huddleRadius: 4,
+  huddleRadius: 6,
+  cornerInsetMetres: 3,
+  approachLengthMetres: 16,
+  teammateDelaySeconds: 0.14,
 } as const;
+
+export function goalWatchSeconds(ageTicks: number): number {
+  return (ageTicks / GOAL_PRESENTATION.durationTicks) * GOAL_PRESENTATION.watchDurationSeconds;
+}
+
+/** The covered midpoint is a TV cut, never a fast run back across the pitch. */
+export function goalTransitionOpacity(watchAgeSeconds: number): number {
+  const cover = (start: number, middle: number, end: number, holdSeconds: number) => {
+    return easedProgress(
+      Math.min(
+        (watchAgeSeconds - start) / (middle - start - holdSeconds),
+        (end - watchAgeSeconds) / (end - middle - holdSeconds),
+      ),
+    );
+  };
+  return Math.max(
+    // The HUD refreshes at 10 Hz while the pitch draws every frame; cover both sides of the cut.
+    cover(GOAL_PRESENTATION.impactEndSeconds, 0.65, GOAL_PRESENTATION.approachStartSeconds, 0.12),
+    cover(
+      GOAL_PRESENTATION.transitionStartSeconds,
+      GOAL_PRESENTATION.transitionMiddleSeconds,
+      GOAL_PRESENTATION.transitionEndSeconds,
+      0.3,
+    ),
+  );
+}
 
 export type CelebrationGesture = {
   phase: 'windup' | 'jump' | 'landing' | 'salute' | 'support';
@@ -99,9 +137,16 @@ export function celebrationGesture(
 export type CelebrationFrame = {
   frame: Frame;
   playerIds: Set<string>;
+  participantIds: ReadonlySet<string>;
   scorerId: string | null;
   ageTicks: number;
   focus: Vec2 | null;
+  corner: Vec2 | null;
+  goal: MatchEvent | null;
+  watchAgeSeconds: number;
+  transitionOpacity: number;
+  canonical: boolean;
+  gestureAges: ReadonlyMap<string, number>;
 };
 
 /** A goal becomes visible only after its physical step has updated the score. */
@@ -124,17 +169,17 @@ function between(start: Vec2, end: Vec2, progress: number): Vec2 {
   return { x: start.x + (end.x - start.x) * progress, y: start.y + (end.y - start.y) * progress };
 }
 
-/** Pose interpolation also supplies distance/velocity so the sprite runs along its visual path. */
+/** Cosmetic velocity is measured in watch seconds so the approach has a readable running gait. */
 function movingPose(
   pose: PlayerFrame,
   start: Vec2,
   end: Vec2,
   progress: number,
-  durationTicks: number,
+  durationSeconds: number,
 ): PlayerFrame {
   const bounded = clamp(progress, 0, 1);
   const eased = easedProgress(bounded);
-  const speedFactor = (6 * bounded * (1 - bounded) * TICK_RATE) / durationTicks;
+  const speedFactor = (6 * bounded * (1 - bounded)) / durationSeconds;
   const offset = { x: end.x - start.x, y: end.y - start.y };
   return {
     ...pose,
@@ -145,21 +190,41 @@ function movingPose(
   };
 }
 
-/** A stopped-clock presentation vignette. Never written back into the match record. */
+/** A stopped-clock corner montage, prepared once and shared by the broadcast layers. */
 export function celebrationFrame(
   record: Recording,
   frame: Frame,
   reducedMotion: boolean,
 ): CelebrationFrame {
   const playerIds = new Set<string>();
-  const unchanged = { frame, playerIds, scorerId: null, ageTicks: 0, focus: null };
+  const gestureAges = new Map<string, number>();
+  const unchanged: CelebrationFrame = {
+    frame,
+    playerIds,
+    participantIds: new Set(),
+    scorerId: null,
+    ageTicks: 0,
+    focus: null,
+    corner: null,
+    goal: null,
+    watchAgeSeconds: 0,
+    transitionOpacity: 0,
+    canonical: true,
+    gestureAges,
+  };
   const moment = activeGoal(record, frame);
-  if (!moment || reducedMotion) return unchanged;
-
+  if (!moment) return unchanged;
   const { event: goal, ageTicks } = moment;
+  const watchAgeSeconds = goalWatchSeconds(ageTicks);
+  const information = { goal, ageTicks, watchAgeSeconds };
+  if (reducedMotion) return { ...unchanged, ...information };
+  const transitionOpacity = goalTransitionOpacity(watchAgeSeconds);
+  if (watchAgeSeconds >= GOAL_PRESENTATION.transitionMiddleSeconds)
+    return { ...unchanged, ...information, transitionOpacity };
+
   const beforeGoal = sample(record, Math.max(0, goal.tick - 1) / TICK_RATE);
   const lastTouch = record.initial.players.find((player) => player.id === goal.playerId);
-  // A defender's last touch can score for the other side. Only the scoring side celebrates.
+  // An own goal belongs to the awarded team; the defender never celebrates with them.
   const scorerId = lastTouch && lastTouch.team === goal.team ? lastTouch.id : null;
   const candidates = record.initial.players
     .map((player, index) => ({ player, index, pose: beforeGoal.players[index]! }))
@@ -173,22 +238,22 @@ export function celebrationFrame(
   const nearestToGoal = [...candidates].sort(
     (first, second) =>
       distanceBetween(first.pose.position, beforeGoal.ball) -
-      distanceBetween(second.pose.position, beforeGoal.ball),
+        distanceBetween(second.pose.position, beforeGoal.ball) ||
+      first.player.id.localeCompare(second.player.id),
   )[0];
   const leader = scorer ?? nearestToGoal;
   if (!leader) return unchanged;
 
+  const firstHalfDirection = goal.team === 'coral' ? 1 : -1;
+  const direction = frame.half === 1 ? firstHalfDirection : -firstHalfDirection;
+  const corner = {
+    x: direction === 1 ? FIELD.length : 0,
+    y: leader.pose.position.y < FIELD.width / 2 ? 0 : FIELD.width,
+  };
+  const inward = { x: -direction, y: corner.y === 0 ? 1 : -1 };
   const center = {
-    x: clamp(
-      leader.pose.position.x,
-      GOAL_PRESENTATION.huddleRadius,
-      FIELD.length - GOAL_PRESENTATION.huddleRadius,
-    ),
-    y: clamp(
-      leader.pose.position.y + 3,
-      GOAL_PRESENTATION.huddleRadius + 3,
-      FIELD.width - GOAL_PRESENTATION.huddleRadius - 3,
-    ),
+    x: corner.x + inward.x * GOAL_PRESENTATION.cornerInsetMetres,
+    y: corner.y + inward.y * GOAL_PRESENTATION.cornerInsetMetres,
   };
   const teammates = [
     leader,
@@ -197,47 +262,49 @@ export function celebrationFrame(
       .sort(
         (first, second) =>
           distanceBetween(first.pose.position, center) -
-          distanceBetween(second.pose.position, center),
+            distanceBetween(second.pose.position, center) ||
+          first.player.id.localeCompare(second.player.id),
       ),
   ].slice(0, GOAL_PRESENTATION.teammates);
-  const gathering = ageTicks / GOAL_PRESENTATION.gatheringTicks;
-  const returning =
-    (ageTicks - GOAL_PRESENTATION.returnStartsTicks) /
-    (GOAL_PRESENTATION.durationTicks - GOAL_PRESENTATION.returnStartsTicks);
-  const returnDuration = GOAL_PRESENTATION.durationTicks - GOAL_PRESENTATION.returnStartsTicks;
-  const players = beforeGoal.players.map((pose, index) =>
-    movingPose(pose, pose.position, frame.players[index]!.position, returning, returnDuration),
-  );
+  const players = beforeGoal.players.map((pose) => ({ ...pose, velocity: { x: 0, y: 0 } }));
+  const openingCutSeconds =
+    (GOAL_PRESENTATION.impactEndSeconds + GOAL_PRESENTATION.approachStartSeconds) / 2;
 
-  teammates.forEach(({ player, index, pose }, huddleIndex) => {
-    // Teammates form a semicircle behind the scorer, leaving the landing and face readable.
-    const angle = Math.PI + ((huddleIndex - 0.5) * Math.PI) / Math.max(1, teammates.length - 1);
-    const target =
-      huddleIndex === 0
-        ? center
-        : {
-            x: center.x + Math.cos(angle) * GOAL_PRESENTATION.huddleRadius,
-            y: center.y + Math.sin(angle) * GOAL_PRESENTATION.huddleRadius,
-          };
-    const gathered = movingPose(
-      pose,
-      pose.position,
-      target,
-      gathering,
-      GOAL_PRESENTATION.gatheringTicks,
-    );
-    if (returning > 0) {
-      players[index] = movingPose(
-        gathered,
-        target,
-        frame.players[index]!.position,
-        returning,
-        returnDuration,
-      );
-    } else {
+  if (watchAgeSeconds >= openingCutSeconds) {
+    teammates.forEach(({ player, index, pose }, huddleIndex) => {
+      // The four teammates fan inward, leaving the flag and scorer's face clear.
+      const angle =
+        Math.atan2(inward.y, inward.x) +
+        ((huddleIndex - 1) / Math.max(1, teammates.length - 2) - 0.5) * Math.PI * 0.5;
+      const target =
+        huddleIndex === 0
+          ? center
+          : {
+              x: center.x + Math.cos(angle) * GOAL_PRESENTATION.huddleRadius,
+              y: center.y + Math.sin(angle) * GOAL_PRESENTATION.huddleRadius,
+            };
+      const distance = distanceBetween(pose.position, target);
+      const approachLength = Math.min(distance, GOAL_PRESENTATION.approachLengthMetres);
+      const heading = unitVector({ x: pose.position.x - target.x, y: pose.position.y - target.y });
+      // The opening wipe cuts to the last stretch of the run, including for long-range scorers.
+      const start = {
+        x: target.x + heading.x * approachLength,
+        y: target.y + heading.y * approachLength,
+      };
+      const delay = huddleIndex * GOAL_PRESENTATION.teammateDelaySeconds;
+      const arrival = GOAL_PRESENTATION.gatheringEndSeconds + delay;
+      const duration = arrival - GOAL_PRESENTATION.approachStartSeconds - delay;
+      const progress =
+        (watchAgeSeconds - GOAL_PRESENTATION.approachStartSeconds - delay) / duration;
+      const gathered = movingPose(pose, start, target, progress, duration);
       players[index] = gathered;
-      if (gathering >= 1) {
+      if (watchAgeSeconds >= arrival) {
         playerIds.add(player.id);
+        gestureAges.set(
+          player.id,
+          ageTicks -
+            (delay / GOAL_PRESENTATION.watchDurationSeconds) * GOAL_PRESENTATION.durationTicks,
+        );
         players[index] = {
           ...gathered,
           facing:
@@ -246,23 +313,40 @@ export function celebrationFrame(
               : unitVector({ x: center.x - target.x, y: center.y - target.y }),
         };
       }
-    }
-  });
+    });
+  }
 
-  const ballProgress = easedProgress(returning);
+  // The confirmed goal carries the ball over the line and settles it inside the net.
+  // Only the visible goal and past contact position are used; restart frames are never sampled ahead.
+  const netPoint = {
+    x: (direction === 1 ? FIELD.length : 0) + direction * 1.15,
+    y: clamp(
+      beforeGoal.ball.y,
+      (FIELD.width - FIELD.goalWidth) / 2 + 0.2,
+      (FIELD.width + FIELD.goalWidth) / 2 - 0.2,
+    ),
+  };
+  const impact = easedProgress(watchAgeSeconds / GOAL_PRESENTATION.impactEndSeconds);
   return {
     frame: {
       ...frame,
       players,
       ball: {
-        ...between(beforeGoal.ball, frame.ball, ballProgress),
-        z: beforeGoal.ball.z + (frame.ball.z - beforeGoal.ball.z) * ballProgress,
+        ...between(beforeGoal.ball, netPoint, impact),
+        z: beforeGoal.ball.z * (1 - impact) + BALL_CONTROL.radius * impact,
       },
       owner: null,
     },
     playerIds,
+    participantIds: new Set(teammates.map(({ player }) => player.id)),
     scorerId,
     ageTicks,
     focus: center,
+    corner,
+    goal,
+    watchAgeSeconds,
+    transitionOpacity,
+    canonical: false,
+    gestureAges,
   };
 }

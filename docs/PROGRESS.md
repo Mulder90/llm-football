@@ -34,6 +34,8 @@ At the user's request, `coordination-match-001` was stopped after 129.3667 playi
 
 - Slice 13: toy-like expressive robot helmets, event punctuation and carrying puffs, reacting coaches/bench crews, club pennants and tiny drummers. Playback controls disappear after 2.8 seconds of idle play with keyboard/pointer safeguards. Opening-half presentation places the taker and support near the centre and respects referee geometry without rewriting recorded play. All 156 tests pass; no paid generation or engine change. See [handoff](slices/13-PLAYFUL-BROADCAST.md).
 
+- Slice 14: comic score tiles and goal/kickoff/interval/referee announcements, nine-second corner celebrations, visible disappointed opponents and correct airborne-scorer layering. Larger supporter waves and an edited licensed stadium-goal recording replace the studio applause. Shared presentation sampling, paused-render cleanup, consolidated CSS and separate provider budget caps are implemented. No model calls or simulation changes. See [handoff](slices/14-COMIC-MATCHDAY.md).
+
 ## Code quality agreement
 
 Use descriptive names, explicit units for physics constants, named replay fields, focused functions and components, and Prettier. The user explicitly permits necessary dependencies but wants simple, maintainable code without excessive defensive checks or premature architecture. External JSON remains untrusted and must be validated.

@@ -5,6 +5,7 @@ import { PITCH_LAYOUT, worldToScreen } from './layout.ts';
 import { drawPixelRect } from './pixels.ts';
 import { MOMENT_DURATION_TICKS } from './match-atmosphere.ts';
 import type { MatchAtmosphere } from './match-atmosphere.ts';
+import { goalWatchSeconds, GOAL_PRESENTATION } from './celebration.ts';
 
 const SUPPORTERS = {
   coral: { shirt: '#cc6559', bright: '#f7a184', dark: '#773e43', banner: '#963f42' },
@@ -183,10 +184,10 @@ function drawSpectator(
   drawPixelRect(context, x, y, 2, 1, '#081823');
   drawPixelRect(context, x + 3, y, 2, 1, '#081823');
   if (raisedArms) {
-    drawPixelRect(context, x - 1, y - 6, 1, 4, shirt);
-    drawPixelRect(context, x + 5, y - 6, 1, 4, shirt);
-    drawPixelRect(context, x - 1, y - 7, 1, 2, skin);
-    drawPixelRect(context, x + 5, y - 7, 1, 2, skin);
+    drawPixelRect(context, x - 1, y - 6 - bob, 1, 4, shirt);
+    drawPixelRect(context, x + 5, y - 6 - bob, 1, 4, shirt);
+    drawPixelRect(context, x - 1, y - 7 - bob, 1, 2, skin);
+    drawPixelRect(context, x + 5, y - 7 - bob, 1, 2, skin);
   }
   if (mood === 'disbelief') {
     // Sink into the seat with one hand to the face; clearly below the cheering silhouette.
@@ -200,9 +201,9 @@ function drawSpectator(
     drawPixelRect(context, x + 5, y - 6, 1, 2, skin);
   }
   if (scarf) {
-    drawPixelRect(context, x - 1, y - 8, 7, 2, SUPPORTERS[team].bright);
-    drawPixelRect(context, x + 1, y - 8, 1, 2, '#f1e5c9');
-    drawPixelRect(context, x + 4, y - 8, 1, 2, '#f1e5c9');
+    drawPixelRect(context, x - 1, y - 8 - bob, 7, 2, SUPPORTERS[team].bright);
+    drawPixelRect(context, x + 1, y - 8 - bob, 1, 2, '#f1e5c9');
+    drawPixelRect(context, x + 4, y - 8 - bob, 1, 2, '#f1e5c9');
   }
 }
 
@@ -285,7 +286,7 @@ function drawFlags(
 ): void {
   for (const flag of FLAGS) {
     const colors = SUPPORTERS[flag.team];
-    const energy = celebratingTeam === flag.team ? 1 : 0;
+    const energy = celebratingTeam === flag.team ? 4 : 0;
     const phase = decorationNoise(flag.x, flag.y) * Math.PI * 2;
     drawPixelRect(context, flag.x, flag.y - 24, 1, 25, '#8a9d98');
     for (let strip = 0; strip < 9; strip++) {
@@ -336,7 +337,17 @@ export function drawCrowd(
   }
   const { moment, attack } = atmosphere;
   const reactionPosition = moment ? worldToScreen(moment.position) : null;
-  const reactionAge = moment ? frame.tick - moment.tick : 0;
+  const goal = moment?.type === 'goal';
+  const reactionAge = moment
+    ? goal
+      ? goalWatchSeconds(frame.tick - moment.tick) * TICK_RATE
+      : frame.tick - moment.tick
+    : 0;
+  const reactionDuration = moment
+    ? goal
+      ? GOAL_PRESENTATION.watchDurationSeconds * TICK_RATE
+      : MOMENT_DURATION_TICKS[moment.type]
+    : 0;
   for (const spectator of spectators) {
     const seed = decorationNoise(spectator.x, spectator.y, 19);
     const idleParticipant = seed > 0.78;
@@ -352,7 +363,7 @@ export function drawCrowd(
     const responding =
       moment &&
       reactionAge >= delay &&
-      reactionAge < MOMENT_DURATION_TICKS[moment.type] - delay &&
+      reactionAge < reactionDuration - delay &&
       (moment.type === 'goal' || seed < 0.35 + nearby * 0.6);
     const anticipating = attack && seed < attack.intensity * (spectator.section >= 2 ? 0.95 : 0.8);
     if (!idleParticipant && !responding && !anticipating) continue;
@@ -370,9 +381,16 @@ export function drawCrowd(
       (mood === 'urge' && urgeBeat) ||
       (mood === 'idle' && rhythm < 2);
     const jumping = mood === 'cheer' || (mood === 'urge' && spectator.section >= 2);
-    const bob = jumping && Math.floor(animationTick / 9 + spectator.y) % 3 === 0 ? 1 : 0;
+    const sectionWave = reactionAge / 7 - spectator.x / 38 + spectator.section * 1.5;
+    const bob =
+      mood === 'cheer'
+        ? Math.round(Math.max(0, Math.sin(sectionWave + spectator.variety)) * 3)
+        : jumping && Math.floor(animationTick / 9 + spectator.y) % 3 === 0
+          ? 1
+          : 0;
     const scarf = raisedArms && spectator.variety > (spectator.section === 0 ? 0.6 : 0.88);
-    // All gestures fit one seat. Restore its rail too; no pose accumulates between frames.
+    // Erase the cached seated pose only. The larger leap fits the empty row gap;
+    // every frame restores the whole painting, so it leaves no old airborne pose behind.
     drawPixelRect(context, spectator.x - 1, spectator.y - 8, 8, 9, STAND_COLOR);
     drawPixelRect(context, spectator.x - 1, spectator.y, 8, 1, '#294252');
     drawSpectator(context, spectator, raisedArms, bob, scarf, mood);

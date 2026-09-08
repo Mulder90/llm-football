@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { createFullMatchFixture } from '../src/fixtures/full-match.ts';
 import { capture, sample } from '../src/recording/record.ts';
 import type { Frame } from '../src/recording/record.ts';
-import { celebrationFrame } from '../src/render/celebration.ts';
+import {
+  celebrationFrame,
+  GOAL_PRESENTATION,
+  goalTransitionOpacity,
+} from '../src/render/celebration.ts';
 import { drawGoalEffects } from '../src/render/goal-effects.ts';
 import { BALL_CONTROL, FIELD, MATCH_TIMING, TICK_RATE } from '../src/sim/rules.ts';
 import { createMatch } from '../src/sim/state.ts';
@@ -30,11 +34,11 @@ function drawingContext() {
 }
 
 describe('goal presentation boundaries', () => {
-  it('runs to the huddle, celebrates while settled, then returns to canonical poses before delivery', () => {
+  it('approaches the corner, celebrates while settled, and cuts back to canonical poses under cover', () => {
     const before = JSON.stringify(fixture);
     const gathering = celebrationFrame(fixture, afterGoal(22), false);
     const settled = celebrationFrame(fixture, afterGoal(56), false);
-    const returning = celebrationFrame(fixture, afterGoal(90), false);
+    const returning = celebrationFrame(fixture, afterGoal(101), false);
     expect(gathering.playerIds.size).toBe(0);
     expect(moving(gathering.frame)).toBe(true);
     expect(settled.playerIds.size).toBeGreaterThan(0);
@@ -47,7 +51,8 @@ describe('goal presentation boundaries', () => {
       );
     }
     expect(returning.playerIds.size).toBe(0);
-    expect(moving(returning.frame)).toBe(true);
+    expect(returning.frame).toEqual(afterGoal(101));
+    expect(returning.transitionOpacity).toBe(1);
     const canonical = afterGoal(112);
     expect(canonical.phase.type).toBe('restart_setup');
     const finished = celebrationFrame(fixture, canonical, false);
@@ -55,6 +60,100 @@ describe('goal presentation boundaries', () => {
     expect(finished.playerIds.size).toBe(0);
     expect(MatchMoment({ recording: fixture, frame: canonical })).toBeNull();
     expect(JSON.stringify(fixture)).toBe(before);
+  });
+
+  it('uses the nearest attacked-end corner in both halves and keeps every player on screen', () => {
+    for (const half of [1, 2] as const)
+      for (const team of ['coral', 'cyan'] as const)
+        for (const flankY of [8, FIELD.width - 8]) {
+          const record = structuredClone(fixture);
+          const goal = record.events.find((event) => event.type === 'goal')!;
+          const scorer = record.initial.players.find(
+            (player) => player.team === team && player.role === 'outfield',
+          )!;
+          const index = record.initial.players.indexOf(scorer);
+          goal.team = team;
+          goal.playerId = scorer.id;
+          for (const frame of record.frames)
+            if (frame.tick <= goal.tick)
+              frame.players[index]!.position = { x: FIELD.length / 2, y: flankY };
+          const frame = { ...sample(record, (goal.tick + 60) / TICK_RATE), half };
+          const presentation = celebrationFrame(record, frame, false);
+          const direction = (team === 'coral' ? 1 : -1) * (half === 1 ? 1 : -1);
+          expect(presentation.corner).toEqual({
+            x: direction === 1 ? FIELD.length : 0,
+            y: flankY < FIELD.width / 2 ? 0 : FIELD.width,
+          });
+          expect(presentation.frame.players).toHaveLength(22);
+          for (const pose of presentation.frame.players) {
+            expect(pose.dismissed).toBe(false);
+            expect(pose.position.x).toBeGreaterThanOrEqual(0);
+            expect(pose.position.x).toBeLessThanOrEqual(FIELD.length);
+            expect(pose.position.y).toBeGreaterThanOrEqual(0);
+            expect(pose.position.y).toBeLessThanOrEqual(FIELD.width);
+          }
+        }
+  });
+
+  it('settles the confirmed ball inside the net and reveals only a bounded final approach', () => {
+    const record = structuredClone(fixture);
+    const goal = record.events.find((event) => event.type === 'goal')!;
+    const scorerIndex = record.initial.players.findIndex((player) => player.id === goal.playerId);
+    for (const frame of record.frames)
+      if (frame.tick <= goal.tick)
+        frame.players[scorerIndex]!.position = { x: FIELD.length / 2, y: FIELD.width / 2 };
+    const atWatch = (seconds: number) =>
+      celebrationFrame(
+        record,
+        sample(
+          record,
+          (goal.tick +
+            1 +
+            (seconds / GOAL_PRESENTATION.watchDurationSeconds) * GOAL_PRESENTATION.durationTicks) /
+            TICK_RATE,
+        ),
+        false,
+      );
+    const impact = atWatch(0.4);
+    expect(impact.frame.ball.x < 0 || impact.frame.ball.x > FIELD.length).toBe(true);
+    const approach = atWatch(GOAL_PRESENTATION.approachStartSeconds);
+    const settled = atWatch(4);
+    for (const id of settled.participantIds) {
+      const index = record.initial.players.findIndex((player) => player.id === id);
+      const start = approach.frame.players[index]!.position;
+      const end = settled.frame.players[index]!.position;
+      expect(Math.hypot(start.x - end.x, start.y - end.y)).toBeLessThanOrEqual(
+        GOAL_PRESENTATION.approachLengthMetres + 0.001,
+      );
+    }
+    expect(atWatch(3.3).playerIds.size).toBe(1);
+    expect(settled.playerIds.size).toBe(5);
+    const beforeGoal = sample(record, (goal.tick - 1) / TICK_RATE);
+    record.initial.players.forEach((player, index) => {
+      if (!settled.participantIds.has(player.id))
+        expect(settled.frame.players[index]!.position).toEqual(beforeGoal.players[index]!.position);
+    });
+    const stable = JSON.stringify(settled);
+    atWatch(8.5);
+    atWatch(0);
+    atWatch(2);
+    expect(JSON.stringify(atWatch(4))).toBe(stable);
+    const visibleTick =
+      goal.tick +
+      1 +
+      (4 / GOAL_PRESENTATION.watchDurationSeconds) * GOAL_PRESENTATION.durationTicks;
+    const pastOnly = {
+      ...record,
+      frames: record.frames.filter((frame) => frame.tick <= Math.ceil(visibleTick / 3) * 3),
+      events: record.events.filter((event) => event.tick < visibleTick),
+    };
+    expect(celebrationFrame(pastOnly, settled.frame, false)).toEqual(settled);
+  });
+
+  it('covers each montage cut and gives the restart card a readable held beat', () => {
+    for (const seconds of [0.55, 0.65, 0.75]) expect(goalTransitionOpacity(seconds)).toBe(1);
+    for (const seconds of [7.75, 8, 8.25]) expect(goalTransitionOpacity(seconds)).toBe(1);
+    for (const seconds of [0, 1, 4, 9]) expect(goalTransitionOpacity(seconds)).toBe(0);
   });
 
   it('preserves canonical poses with reduced motion and never shows a future goal effect', () => {

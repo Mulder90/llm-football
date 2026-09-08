@@ -1,5 +1,6 @@
 import type { Frame, Recording } from '../recording/record.ts';
 import { TICK_RATE } from '../sim/rules.ts';
+import { activeGoal } from '../render/celebration.ts';
 import { formatTime, recordingLabel } from './format.ts';
 
 export function Scoreboard({
@@ -18,11 +19,13 @@ export function Scoreboard({
         : 'Unfinished'
       : hasEnded
         ? 'End of recording'
-        : frame.phase.type === 'halftime'
-          ? 'Half time'
-          : 'restart' in frame.phase
-            ? frame.phase.restart.type.replaceAll('_', ' ')
-            : `${frame.half === 1 ? '1st' : '2nd'} half`;
+        : activeGoal(recording, frame)
+          ? 'Goal!'
+          : frame.phase.type === 'halftime'
+            ? 'Half time'
+            : 'restart' in frame.phase
+              ? frame.phase.restart.type.replaceAll('_', ' ')
+              : `${frame.half === 1 ? '1st' : '2nd'} half`;
   return (
     <div
       className="scoreboard"

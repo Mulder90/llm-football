@@ -218,7 +218,7 @@ describe('recording import and presentation boundaries', () => {
     expect(early.playerIds.size).toBe(0);
     const during = celebrationFrame(
       recording,
-      sample(recording, (goal.tick + 45) / TICK_RATE),
+      sample(recording, (goal.tick + 56) / TICK_RATE),
       false,
     );
     expect(during.playerIds.size).toBe(5);

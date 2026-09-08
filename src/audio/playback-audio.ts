@@ -1,8 +1,11 @@
 import type { MatchEvent, MatchPhase } from '../sim/types.ts';
 import type { MatchAtmosphere } from '../render/match-atmosphere.ts';
+import { celebrationGesture } from '../render/celebration.ts';
+import type { CelebrationFrame } from '../render/celebration.ts';
 import { TICK_RATE } from '../sim/rules.ts';
 import {
   createSoundSamples,
+  celebrationLandingCues,
   crossedDrumBeats,
   eventSoundCues,
   momentSoundCues,
@@ -77,6 +80,7 @@ export class PlaybackAudio {
   private revision = -1;
   private enabled = false;
   private volume = 0.45;
+  private audible = false;
   private currentGain = 0;
   private previousSpeed = 1;
   private drumResumeTick = -Infinity;
@@ -100,16 +104,19 @@ export class PlaybackAudio {
       await resumed;
       this.goalCheerLoad ??= this.loadGoalCheer();
     } else {
+      this.audible = false;
       this.stopVoices();
       this.setGain(0);
     }
   }
   setVolume(volume: number): void {
     this.volume = Math.max(0, Math.min(1, volume));
+    // The final whistle may be playing after Canvas has stopped drawing.
+    if (this.audible) this.setGain(this.volume);
   }
   private async loadGoalCheer(): Promise<void> {
     try {
-      const response = await fetch(`${import.meta.env.BASE_URL}audio/goal-cheer.mp3`, {
+      const response = await fetch(`${import.meta.env.BASE_URL}audio/goal-roar.m4a`, {
         signal: this.assetAbort.signal,
       });
       if (!response.ok) return;
@@ -124,15 +131,16 @@ export class PlaybackAudio {
     this.master.gain.setTargetAtTime(value, this.context.currentTime, 0.02);
     this.currentGain = value;
   }
-  private stopVoices(group?: SoundCue['group']): void {
+  private stopVoices(group?: SoundCue['group'], keepTerminal = false): void {
     for (const voice of this.voices) {
       if (group && voice.group !== group) continue;
+      if (keepTerminal && voice.terminal) continue;
       voice.envelope.gain.setTargetAtTime(0, this.context.currentTime, 0.006);
       voice.source.stop(this.context.currentTime + 0.03);
       this.voices.delete(voice);
     }
   }
-  private playSound(cue: SoundCue, variation: number): void {
+  private playSound(cue: SoundCue, variation: number, speed = 1): void {
     const buffer = cue.sound === 'goal-cheer' ? this.goalCheer : this.buffers.get(cue.sound);
     if (!buffer) return;
     if (this.voices.size >= MAXIMUM_VOICES) this.stopVoices('contact');
@@ -161,13 +169,21 @@ export class PlaybackAudio {
       envelope.disconnect();
       panner?.disconnect();
     };
-    source.start(this.context.currentTime + cue.delay);
+    const startsAt = this.context.currentTime + cue.delay;
+    if (recordedCheer) {
+      // Preserve real voices' pitch, but release the roar before a faster replay restarts play.
+      const duration = buffer.duration / Math.max(1, speed);
+      const fadeSeconds = Math.min(0.65, duration / 3);
+      envelope.gain.setValueAtTime(cue.gain, startsAt + duration - fadeSeconds);
+      envelope.gain.linearRampToValueAtTime(0, startsAt + duration);
+      source.start(startsAt, 0, duration);
+    } else source.start(startsAt);
   }
-  private playEvent(event: MatchEvent): void {
+  private playEvent(event: MatchEvent, speed: number): void {
     const cues = eventSoundCues(event);
     if (cues.some((cue) => cue.group === 'whistle')) this.stopVoices('whistle');
     if (cues.some((cue) => cue.group === 'crowd')) this.stopVoices('crowd');
-    for (const cue of cues) this.playSound(cue, event.id);
+    for (const cue of cues) this.playSound(cue, event.id, speed);
   }
 
   advance(
@@ -178,12 +194,15 @@ export class PlaybackAudio {
     seekRevision: number,
     phase: MatchPhase['type'] = 'open_play',
     atmosphere: MatchAtmosphere | null = null,
+    celebration: CelebrationFrame | null = null,
   ): void {
     const interrupted = !this.enabled || document.hidden;
     const seeking = this.revision !== seekRevision || (this.cursor !== null && tick < this.cursor);
     const finalWhistle = phase === 'full_time' && [...this.voices].some((voice) => voice.terminal);
     const audible = !interrupted && (playing || finalWhistle);
+    this.audible = audible;
     this.setGain(audible ? this.volume : 0);
+    if (!playing && finalWhistle) this.stopVoices(undefined, true);
     if (this.cursor === null || seeking || interrupted || (!playing && !finalWhistle)) {
       this.stopVoices();
       this.cursor = tick;
@@ -191,7 +210,10 @@ export class PlaybackAudio {
       this.drumResumeTick = -Infinity;
       return;
     }
-    if (speed !== this.previousSpeed) this.stopVoices('accent');
+    if (speed !== this.previousSpeed) {
+      this.stopVoices('accent');
+      this.stopVoices('crowd');
+    }
     if (speed !== this.previousSpeed || phase !== 'open_play') this.stopVoices('drum');
     this.previousSpeed = speed;
     if (playing) {
@@ -202,7 +224,7 @@ export class PlaybackAudio {
         speed,
         phase === 'full_time' ? tick : undefined,
       ))
-        this.playEvent(event);
+        this.playEvent(event, speed);
       const moment = atmosphere?.moment;
       if (moment && moment.tick > this.cursor && moment.tick <= tick && speed <= 2) {
         const cues = momentSoundCues(moment);
@@ -216,6 +238,16 @@ export class PlaybackAudio {
       if (phase === 'open_play' && tick >= this.drumResumeTick)
         for (const beat of crossedDrumBeats(this.cursor, tick, speed, atmosphere?.attack ?? null))
           this.playSound(beat, Math.floor(tick));
+      const scorerAge = celebration?.scorerId
+        ? celebration.gestureAges.get(celebration.scorerId)
+        : undefined;
+      if (scorerAge !== undefined && celebration?.goal?.team && speed <= 2 && tick > this.cursor) {
+        const team = celebration.goal.team;
+        const previous = celebrationGesture(scorerAge - (tick - this.cursor), true, 0, team);
+        const current = celebrationGesture(scorerAge, true, 0, team);
+        if (current.phase === 'landing' && previous.phase !== 'landing')
+          for (const cue of celebrationLandingCues(team)) this.playSound(cue, celebration.goal.id);
+      }
     }
     this.cursor = tick;
   }
