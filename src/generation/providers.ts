@@ -120,15 +120,17 @@ async function postJson(
 }
 
 export function openaiController(apiKey: string, model = 'gpt-5-nano'): TeamController {
-  if (model !== 'gpt-5-nano' && model !== 'gpt-5-nano-2025-08-07')
+  const nano = model === 'gpt-5-nano' || model === 'gpt-5-nano-2025-08-07';
+  const mini = model === 'gpt-5-mini' || model === 'gpt-5-mini-2025-08-07';
+  if (!nano && !mini)
     throw new Error('OpenAI model has no reviewed adapter configuration and price');
   return {
     config: {
       provider: 'openai',
       model,
       settings: { reasoning: 'low', verbosity: 'low' },
-      inputUsdPerMillion: 0.05,
-      outputUsdPerMillion: 0.4,
+      inputUsdPerMillion: nano ? 0.05 : 0.25,
+      outputUsdPerMillion: nano ? 0.4 : 2,
     },
     async request(request, signal) {
       const raw = await postJson(
@@ -182,15 +184,19 @@ export function openaiController(apiKey: string, model = 'gpt-5-nano'): TeamCont
 }
 
 export function geminiController(apiKey: string, model = 'gemini-3.1-flash-lite'): TeamController {
-  if (model !== 'gemini-3.1-flash-lite')
+  const lite = model === 'gemini-3.1-flash-lite';
+  if (!lite && model !== 'gemini-3.8-flash')
     throw new Error('Gemini model has no reviewed adapter configuration and price');
+  const thinkingLevel = lite ? 'MINIMAL' : 'LOW';
+  const temperature = lite ? 0.4 : 1;
   return {
     config: {
       provider: 'gemini',
       model,
-      settings: { thinkingLevel: 'MINIMAL', temperature: 0.4 },
-      inputUsdPerMillion: 0.25,
-      outputUsdPerMillion: 1.5,
+      settings: { thinkingLevel, temperature },
+      // Use standard rates, conservatively ignoring Flash's temporary 2026 discount.
+      inputUsdPerMillion: lite ? 0.25 : 1.5,
+      outputUsdPerMillion: lite ? 1.5 : 7.5,
     },
     async request(request, signal) {
       const raw = await postJson(
@@ -203,8 +209,8 @@ export function geminiController(apiKey: string, model = 'gemini-3.1-flash-lite'
           ],
           generationConfig: {
             maxOutputTokens: request.maximumOutputTokens,
-            temperature: 0.4,
-            thinkingConfig: { thinkingLevel: 'MINIMAL' },
+            temperature,
+            thinkingConfig: { thinkingLevel },
             responseMimeType: 'application/json',
             responseJsonSchema: request.responseSchema,
           },

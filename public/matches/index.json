@@ -2,6 +2,12 @@
   "version": 1,
   "matches": [
     {
+      "id": "character-match-001",
+      "file": "character-match-001.json.gz",
+      "title": "Finding their feet",
+      "complete": false
+    },
+    {
       "id": "tactical-memory-match-001",
       "file": "tactical-memory-match-001.json.gz",
       "title": "The first meeting",

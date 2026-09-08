@@ -6,14 +6,27 @@ The user has OpenAI and Gemini API keys and wants cheap models first. Keep real 
 
 The original Gemini 2.5 Flash-Lite suggestion returned HTTP 404 on this account in the integration smoke test: unavailable to new users. The runner now deliberately defaults to Gemini 3.1 Flash-Lite (minimal thinking, temperature 0.4), $0.25 input / $1.50 output per million tokens. GPT-5 nano uses low reasoning, after the minimal setting failed to deliver a kickoff. See [decision 003](decisions/003-MODEL-CONTROL-AND-INSPECTION.md) and the [measured test](slices/03-FIRST-MODEL-POSSESSION.md). Prices were rechecked against the official pages linked below on 2026-09-07. No automatic upgrade is permitted.
 
-## Supported model pair
+## Reviewed model configurations
 
 | Provider | Model ID              | Standard text input / 1M tokens | Output / 1M tokens |
 | -------- | --------------------- | ------------------------------- | ------------------ |
 | OpenAI   | gpt-5-nano            | $0.05                           | $0.40              |
 | Gemini   | gemini-3.1-flash-lite | $0.25                           | $1.50              |
+| OpenAI   | gpt-5-mini            | $0.25                           | $2.00              |
+| Gemini   | gemini-3.8-flash      | $1.50 estimate                  | $7.50 estimate     |
 
-These are the only currently configured adapters/prices. The unused Gemini 2.5 branch was removed during the simplification slice. Model availability and the rates above were checked during integration on 7 September 2026 against [OpenAI's model documentation](https://developers.openai.com/api/docs/models/gpt-5-nano) and [Google's pricing](https://ai.google.dev/gemini-api/docs/pricing). Recheck them before changing models or prices. Both providers have completed real requests in this project; football ability still needs evaluation.
+The original cheap pair remains the CLI default. The user approved testing stronger controllers on 8 September 2026. GPT-5 mini uses low reasoning/verbosity, like nano. Gemini 3.8 Flash uses LOW thinking and temperature 1, following the [supported thinking settings](https://ai.google.dev/gemini-api/docs/generate-content/thinking) and [temperature guidance](https://ai.google.dev/gemini-api/docs/gemini-3#temperature). The baseline Flash-Lite configuration remains minimal/0.4 so the comparison preserves its existing configuration. This compares configurations, not model architecture alone.
+
+Prices and API settings were rechecked on 8 September against [GPT-5 mini](https://developers.openai.com/api/docs/models/gpt-5-mini), [GPT-5 nano](https://developers.openai.com/api/docs/models/gpt-5-nano) and [Google pricing](https://ai.google.dev/gemini-api/docs/pricing). Google lists temporary 2026 Flash 3.8 prices of $0.75 input / $3.75 output; our estimates deliberately use its published January 2027 standard rates instead. Cached input is also charged conservatively at full price in our estimates. Recheck prices before subsequent changes. All four configurations completed real structured-output requests on this account; unreviewed model IDs still fail closed.
+
+The fixed-situation comparison supports trying mini against Flash 3.8: both retained possession in 6 of 8 two-second cases, versus 1/8 for nano and 0/8 for Flash-Lite. This small development evaluation is not a general model ranking or proof of sustained match quality. See [the character and controller handoff](slices/11-CHARACTER-AND-CONTROLLERS.md).
+
+```sh
+pnpm evaluate-controllers --name comparison-01 --usd 1 --repetitions 2
+OPENAI_MODEL=gpt-5-mini GEMINI_MODEL=gemini-3.8-flash pnpm generate --decisions 10 --usd .5 --name stronger-trial
+```
+
+The comparison runner uses four deterministic 22-player snapshots with fixed scripted opposition. Every controller receives identical observation/rulebook bytes, including the actual two-second evaluation horizon. It permits one repair, reserves all concurrent requests and repair allowance, shares the generation lock, and writes exact private observations/replies/configurations plus actual engine outcomes. Invalid replies have no football outcome; they are not replaced by invented tactics. A permanent provider failure is tried once and remains visible as an incomplete comparison. The report and any practice footage are not a model-versus-model match.
 
 Output billing can include reasoning/thinking tokens. Count the rules and retained context as input. Use actual reported usage where available and never promise a per-match cost before measuring representative requests.
 

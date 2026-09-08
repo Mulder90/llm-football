@@ -28,13 +28,15 @@ At the user's request, `coordination-match-001` was stopped after 129.3667 playi
 
 - Slice 10: full-screen stadium with compact TV overlays and simpler optional explanations, six-second goal celebrations on a separate watch timeline, animated trees, clearer ball height, and scripted carrying/chipping practice. Live user feedback shaped deeper 130 BPM drums, the approved whistle, a licensed recorded goal cheer, and removal of synthetic crowd voices/claps. All 98 tests pass, as do the build, full 1× browser playback, exact slider endpoints and export checks. See [handoff](slices/10-MATCHDAY-FEEL.md).
 
+- Slice 11: controller names under teams, Whole pitch on by default with an optional closer camera, individual robot mannerisms, scorer jump/turn/wide-arm landing, receiver/event reactions and fluttering corner/stand flags. All 116 tests pass. A fixed-situation evaluation supports testing GPT-5 mini against Gemini 3.8 Flash; their fresh match was stopped on user request after 25.95 playing seconds, 0–0, with a conservative $1.3133 estimate. It remains explicitly unfinished in Matches as Finding their feet; the earlier complete match remains the default. Both the generation and its lower-budget guard exited. See [handoff](slices/11-CHARACTER-AND-CONTROLLERS.md).
+
 ## Code quality agreement
 
 Use descriptive names, explicit units for physics constants, named replay fields, focused functions and components, and Prettier. The user explicitly permits necessary dependencies but wants simple, maintainable code without excessive defensive checks or premature architecture. External JSON remains untrusted and must be validated.
 
 ## Next slice
 
-Compare controllers on fixed carry/pass/chip and keeper-distribution snapshots, using actual outcomes and spacing to evaluate them. The current record has just one outfield carrying order in 60 possession decisions, and 57 of 58 kicks/shots use zero loft. Carrying and gravity work; models need to choose those options well. The clarified prompt has not yet had a paid evaluation. Keep outcomes determined by the engine.
+Proposed: positional role briefs plus receiver arrival timing. The engine currently distinguishes keeper/outfield, while models would benefit from clear defender, full-back, midfield, wing and striker responsibilities alongside their changing tactical assignments. The controlled comparison improved with stronger models, but matching pass/run coordinates still does not ensure that ball and receiver arrive together. No further paid generation is scheduled; the user explicitly stopped the latest run.
 
 ## Limitations
 

@@ -17,6 +17,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "generate": "node --experimental-strip-types scripts/generate.ts",
+    "evaluate-controllers": "node --experimental-strip-types scripts/evaluate-controllers.ts",
     "publish-recording": "node --experimental-strip-types scripts/publish-recording.ts"
   },
   "dependencies": {

@@ -8,7 +8,9 @@ An independent football experiment: one language model controls each team, a det
 
 The broadcast fills the viewport by default. A complete one-minute model match is available alongside the scripted fixtures. It took 27 minutes and an estimated $0.64 to generate; viewing makes no AI calls. At the user's request, the previous four-minute generation was stopped and its public recordings removed. Development supports only football-0.5, with no backward compatibility layer. The engine implements a documented simplified football ruleset, not every IFAB rule.
 
-The stadium fills the screen with a small TV-style score overlay. Open **Inside the match** for team plans, what each team sees, rules and recordings. Exact prompts and instructions remain available under disclosures. Select an order to highlight its player and target on the pitch. Goals have six-second celebrations at normal speed. Sound defaults on when you press Play, with a mute control always available. Playback never calls an LLM.
+The stadium fills the screen with a small TV-style score overlay, including each team's controller model. Whole pitch is on by default; turn it off in Viewing options to try the closer broadcast camera. Open **Inside the match** for team plans, what each team sees, rules and recordings. Exact prompts and instructions remain available under disclosures. Select an order to highlight its player and target on the pitch. Goals have six-second scorer-led jump/turn/landing celebrations, with expressive teammates and fluttering stadium flags. Sound defaults on when you press Play, with a mute control always available. Playback never calls an LLM.
+
+**Inside the match → Matches → Finding their feet** is a newer, explicitly unfinished 25.95-second preview using GPT-5 mini and Gemini 3.8 Flash. The user stopped its generation before halftime; its conservative estimate was $1.31. The previous complete match remains the default. The stronger configurations improved short controlled possession tests, while role discipline and pass timing still need work. See the [character and controller handoff](docs/slices/11-CHARACTER-AND-CONTROLLERS.md).
 
 ## Run locally
 
@@ -72,4 +74,4 @@ One package: strict TypeScript, pnpm, Vite, React for controls, Canvas 2D for th
 
 ## Next slice
 
-Compare controllers on identical carrying, passing, chipping and keeper-distribution situations. The mechanics work, but the current models almost always release the ball immediately and choose zero loft. The clearer prompt needs a fresh evaluation before claiming better model football. See the [matchday handoff](docs/slices/10-MATCHDAY-FEEL.md). Public deployment remains separate work.
+Give controllers clear positional role briefs and improve receiver arrival timing. The fixed-situation comparison supports the stronger pair, but good isolated decisions do not establish sustained match quality. Keep tactical choices with the model and outcomes with the engine. No further paid generation is scheduled. Public deployment remains separate work.
