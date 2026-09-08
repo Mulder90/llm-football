@@ -1,3 +1,4 @@
+import { drawRobotHelmetShell, drawRobotAntenna, TEAM_KITS, type KitPalette } from './robot-art.ts';
 import { MOVEMENT, TICK_RATE } from '../sim/rules.ts';
 import { clamp, unitVector } from '../sim/math.ts';
 import type { Player, Team } from '../sim/types.ts';
@@ -12,11 +13,6 @@ import { drawBall, drawBallTrail } from './ball.ts';
 import type { FootballMoment } from './match-atmosphere.ts';
 import { kickoffFrame } from './kickoff.ts';
 
-type KitPalette = { highlight: string; shirt: string; shade: string; boots: string };
-const TEAM_KITS: Record<Team, KitPalette> = {
-  coral: { highlight: '#ff9780', shirt: '#ec6e60', shade: '#943f46', boots: '#ffbc9b' },
-  cyan: { highlight: '#99e2d8', shirt: '#54bbc6', shade: '#2a7189', boots: '#b9f1e3' },
-};
 const KEEPER_KITS: Record<Team, KitPalette> = {
   coral: { highlight: '#ffe493', shirt: '#edbd58', shade: '#527752', boots: '#e5e4ae' },
   cyan: { highlight: '#c4f29e', shirt: '#91c678', shade: '#527752', boots: '#e5e4ae' },
@@ -243,31 +239,7 @@ function drawRobot(
   // The visor turns within the helmet; an away-facing runner shows its rear panel.
   const headPixel = (x: number, y: number, width: number, height: number, color: string) =>
     pixel(x + headX, y + helmetY, width, height, color);
-  if (style.helmet === 'round') {
-    headPixel(-7, -25, 15, 15, OUTLINE);
-    headPixel(-9, -23, 19, 11, OUTLINE);
-    headPixel(-7, -23, 15, 12, kit.shirt);
-    headPixel(-8, -22, 17, 9, kit.shirt);
-    headPixel(-5, -24, 11, 2, kit.highlight);
-  } else if (style.helmet === 'square') {
-    headPixel(-9, -24, 19, 14, OUTLINE);
-    headPixel(-8, -23, 17, 12, kit.shirt);
-    headPixel(-7, -22, 15, 2, kit.highlight);
-    headPixel(-11, -20, 3, 6, OUTLINE);
-    headPixel(9, -20, 3, 6, OUTLINE);
-    headPixel(-10, -19, 2, 4, kit.highlight);
-    headPixel(9, -19, 2, 4, kit.shade);
-    headPixel(-2, -27, 5, 3, OUTLINE);
-    headPixel(-1, -26, 3, 3, kit.highlight);
-  } else {
-    headPixel(-7, -27, 15, 17, OUTLINE);
-    headPixel(-6, -26, 13, 15, kit.shirt);
-    headPixel(-5, -25, 11, 2, '#eff0cb');
-    headPixel(-9, -21, 3, 7, OUTLINE);
-    headPixel(7, -21, 3, 7, OUTLINE);
-    headPixel(-8, -20, 2, 5, kit.highlight);
-    headPixel(7, -20, 2, 5, kit.shade);
-  }
+  drawRobotHelmetShell(headPixel, style.helmet, kit);
   if (facingAway) {
     headPixel(-4, -21, 9, 7, kit.shade);
     headPixel(-3, -20, 7, 2, OUTLINE);
@@ -317,15 +289,7 @@ function drawRobot(
       );
   }
   const antennaSway = (!reducedMotion && isMoving ? Math.sign(stride) : 0) + idlePose.antennaLean;
-  if (style.helmet === 'round') {
-    headPixel(antennaSway, -29, 1, 4, OUTLINE);
-    headPixel(-1 + antennaSway, -31, 4, 3, celebrating ? EYES : kit.highlight);
-  } else if (style.helmet === 'twin') {
-    for (const side of [-1, 1]) {
-      headPixel(side * 4 + antennaSway, -30, 1, 4, OUTLINE);
-      headPixel(side * 4 - 1 + antennaSway, -32, 3, 3, celebrating ? EYES : kit.highlight);
-    }
-  }
+  drawRobotAntenna(headPixel, style.helmet, celebrating ? EYES : kit.highlight, antennaSway);
 
   if (handsOnHead) {
     for (const side of player.number % 3 === 0 ? [-1, 1] : [1]) {

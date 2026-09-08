@@ -4,6 +4,10 @@ LLM Football is a local, replay-first spectator game with 22 robot players, a de
 
 ## Latest work
 
+The rendering pass rebuilds the south touchline with north-facing cutaway dugouts, smaller rear/side-facing robot substitutes, distinct coaches and grouped equipment. Sideline robots were reduced after live scale feedback; pitch-player size remains unchanged pending a separate comparison. Drummers now sit within the crowd. Paving, boards and spectator colours are quieter, seating varies in small groups, and pitch markings are drawn as crisp pixels. No match, ruleset, model or audio changes. [Slice 17](slices/17-TOUCHLINE-AND-STADIUM.md) records the implementation and verification.
+
+## Latest football work
+
 The carrier now chooses whether to dribble, pass or shoot before arranging a receiver. Tactical memory requests three important off-ball jobs while actual orders still cover all eleven players. The response schema stays stable across requests; runtime identity and ownership checks remain strict. Releasing a ball into flight no longer triggers an extra early replan, while reception and phase changes still can.
 
 A bounded five-situation evaluation made 20 requests, all accepted first try with full-roster orders and no own-order execution failures. It produced six deliberate carries of 5–11 m, four successful pressure escapes and three goals from four shooting attempts. Passing remained preferred in one recorded low-pressure possession. This is short-case evidence, not a new full match or proof of sustained teamwork.

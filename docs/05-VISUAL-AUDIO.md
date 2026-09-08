@@ -14,7 +14,11 @@ A compact scoreboard identifies teams and models. Playback controls disappear af
 
 World metres stay separate from drawing pixels. Foot anchors, directional steps, leaning, kick/tackle recovery and keeper gloves make actions readable. Ball height is exaggerated to 12 pixels per metre above a ground shadow; this never changes flight physics.
 
-Static stadium geometry is cached. Trees, flags, spectators, coaches and bench crews animate separately. Attack buildup and actual saves, nearby misses, completed passes and goals drive different supporter and robot reactions. Decorative sideline drummers still move, but produce no percussion. The referee follows a deterministic route through recorded play and signals actual incidents.
+Static stadium geometry is cached. Trees, flags, spectators, coaches and bench crews animate separately. Attack buildup and actual saves, nearby misses, completed passes and goals drive different supporter and robot reactions. Two small drummers sit within the south supporter stand and produce no percussion. The referee follows a deterministic route through recorded play and signals actual incidents.
+
+Two north-facing dugouts occupy a shared service apron below the pitch, with a shallow cutaway rear canopy, upholstered seats and bottle crates. Each has three decorative substitutes and an empty seat; the coach stands beside the entrance. They share the players' helmet construction, but use a smaller drawing scale to fit the surrounding spectators. Most poses show their backs toward the camera, with brief side glances, seated leans and individual reactions. These characters are stadium decoration, not extra simulated players or an implemented substitution system.
+
+The lower crowd rail moves back to make room for the dugouts. Quieter paving seams, boards and supporter colours keep the action prominent; deterministic small groups vary seat occupancy. Pitch markings use opaque pixel rectangles and raster arcs rather than antialiased Canvas strokes. World coordinates and field dimensions are unchanged.
 
 React updates controls at roughly 10 Hz; Canvas draws independently with requestAnimationFrame. Reduced motion removes decorative movement while retaining event and score readability.
 

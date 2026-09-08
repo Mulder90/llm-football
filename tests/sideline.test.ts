@@ -104,20 +104,6 @@ describe('sideline presentation', () => {
     expect(draw(calm, 0)).not.toEqual(draw(calm, 60));
   });
 
-  it('keeps drum sticks on recording time and rests them during stoppages', () => {
-    const drums = (current: Frame, watchTick: number) =>
-      paint((context) => drawSidelines(context, current, calm, watchTick, false)).filter(
-        (rectangle) => rectangle.x < 130 || rectangle.x > 828,
-      );
-    expect(drums(frame, 20)).toEqual(drums(frame, 1200));
-    expect(drums({ ...frame, tick: 10 }, 20)).not.toEqual(drums({ ...frame, tick: 40 }, 20));
-    const interval: Frame = {
-      ...frame,
-      phase: { type: 'halftime', sinceTick: 100, endsAtTick: 280 },
-    };
-    expect(drums(interval, 10)).toEqual(drums({ ...interval, tick: 130 }, 40));
-  });
-
   it('keeps every pose outside the field, banners, tunnel and south rail', () => {
     const atmospheres: MatchAtmosphere[] = [
       calm,
@@ -132,14 +118,14 @@ describe('sideline presentation', () => {
       for (let tick = 0; tick < 360; tick += 13.5) rectangles.push(...draw(atmosphere, tick));
     const forbidden = [
       { x: 450, y: 572, w: 60, h: 81 }, // Tunnel and its aisle.
-      { x: 135, y: 588, w: 122, h: 12 },
-      { x: 706, y: 588, w: 122, h: 12 },
+      { x: 126, y: 589, w: 122, h: 12 },
+      { x: 719, y: 589, w: 122, h: 12 },
       { x: 854, y: 558, w: 40, h: 42 }, // Lower-right tree and trunk.
     ];
     for (const r of rectangles) {
       if (![r.x, r.y, r.w, r.h].every(Number.isFinite) || r.w <= 0 || r.h <= 0)
         throw new Error(`Invalid sideline rectangle: ${JSON.stringify(r)}`);
-      if (r.y < 569 || r.y + r.h > 596)
+      if (r.y < 569 || r.y + r.h > 611)
         throw new Error(`Sideline crossed pitch or rail clearance: ${JSON.stringify(r)}`);
       for (const area of forbidden)
         if (

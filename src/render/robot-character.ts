@@ -1,3 +1,4 @@
+import type { RobotHelmet } from './robot-art.ts';
 import type { Frame, Recording } from '../recording/record.ts';
 import { distanceBetween } from '../sim/math.ts';
 import { ORDER_LIFETIME, TICK_RATE } from '../sim/rules.ts';
@@ -29,9 +30,10 @@ const REACTION_TIMING = {
 /** Decorative roster identity: these differences are not player abilities or model traits. */
 export function robotStyle(player: Player) {
   const variant = (player.number + (player.team === 'cyan' ? 1 : 0)) % 3;
+  const helmet: RobotHelmet = variant === 0 ? 'round' : variant === 1 ? 'square' : 'twin';
   return {
     variant,
-    helmet: variant === 0 ? 'round' : variant === 1 ? 'square' : 'twin',
+    helmet,
     runBob: variant === 0 ? 2 : variant === 1 ? 0 : 1,
     armSwing: variant === 2 ? 1.4 : 1,
     headBounce: variant === 0 ? 2 : variant === 1 ? 1 : 3,

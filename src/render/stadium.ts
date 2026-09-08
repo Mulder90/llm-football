@@ -1,5 +1,5 @@
 import { PITCH_LAYOUT, STADIUM_SIZE } from './layout.ts';
-import { drawPixelRect } from './pixels.ts';
+import { drawPixelRect, drawPixelOutline, drawPixelArc } from './pixels.ts';
 import { drawSidelineStructures } from './sideline.ts';
 import {
   decorationNoise,
@@ -22,7 +22,7 @@ const FIELD_MARKINGS = {
 const MOWING_STRIPE_COUNT = 14;
 
 function drawConcourseAndStands(context: CanvasRenderingContext2D): void {
-  drawPixelRect(context, 0, 0, STADIUM_SIZE.width, STADIUM_SIZE.height, '#10202a');
+  drawPixelRect(context, 0, 0, STADIUM_SIZE.width, STADIUM_SIZE.height, '#21353b');
   // Paved concourse, block seams, planted corners and four stands.
   for (let y = 0; y < STADIUM_SIZE.height; y += 12)
     for (let x = 0; x < STADIUM_SIZE.width; x += 16) {
@@ -32,7 +32,7 @@ function drawConcourseAndStands(context: CanvasRenderingContext2D): void {
         y + 1,
         15,
         11,
-        decorationNoise(x, y) > 0.5 ? '#263c43' : '#2b4147',
+        decorationNoise(x, y) > 0.5 ? '#253a3f' : '#283d41',
       );
     }
   drawSupporterStands(context);
@@ -41,8 +41,9 @@ function drawConcourseAndStands(context: CanvasRenderingContext2D): void {
   drawPixelRect(context, 74, 68, 812, 519, '#081720');
   drawPixelRect(context, 82, 74, 796, 506, '#39724c');
   for (let x = 100; x < 870; x += 70) {
-    drawPixelRect(context, x, 69, 66, 6, Math.floor(x / 70) % 2 ? '#ce6459' : '#70b8b5');
-    drawPixelRect(context, x, 582, 66, 6, Math.floor(x / 70) % 2 ? '#70b8b5' : '#ce6459');
+    const color = x < 480 ? '#82554d' : '#486d72';
+    drawPixelRect(context, x, 69, 66, 5, color);
+    if (x < 240 || x > 710) drawPixelRect(context, x, 582, 66, 4, color);
   }
 }
 
@@ -74,42 +75,42 @@ function drawPitch(context: CanvasRenderingContext2D): void {
           grassY,
           textureValue > 0.95 ? 2 : 1,
           1,
-          textureValue > 0.86 ? '#579763' : '#377e4d',
+          textureValue > 0.86 ? '#4b8d58' : '#3a8050',
         );
     }
-  context.strokeStyle = '#c1d5a4';
-  context.lineWidth = 1.5;
-  context.strokeRect(pitchLeft + 0.5, pitchTop + 0.5, pitchWidth, pitchHeight);
-  context.beginPath();
-  context.moveTo(pitchLeft + pitchWidth / 2, pitchTop);
-  context.lineTo(pitchLeft + pitchWidth / 2, pitchTop + pitchHeight);
-  context.stroke();
-  context.beginPath();
-  context.arc(
+  const chalk = '#abc496';
+  drawPixelOutline(context, pitchLeft, pitchTop, pitchWidth, pitchHeight, chalk);
+  drawPixelRect(context, pitchLeft + pitchWidth / 2 - 1, pitchTop, 2, pitchHeight, chalk);
+  drawPixelArc(
+    context,
     pitchLeft + pitchWidth / 2,
     pitchTop + pitchHeight / 2,
     FIELD_MARKINGS.centerCircleRadiusMetres * pixelsPerMetre,
     0,
     Math.PI * 2,
+    chalk,
   );
-  context.stroke();
   for (const left of [true, false]) {
     const goalLineX = left ? pitchLeft : pitchLeft + pitchWidth,
       sign = left ? 1 : -1;
-    context.strokeRect(
+    drawPixelOutline(
+      context,
       goalLineX,
       pitchTop + pitchHeight / 2 - (FIELD_MARKINGS.penaltyAreaWidthMetres / 2) * pixelsPerMetre,
       sign * FIELD_MARKINGS.penaltyAreaDepthMetres * pixelsPerMetre,
       FIELD_MARKINGS.penaltyAreaWidthMetres * pixelsPerMetre,
+      chalk,
     );
-    context.strokeRect(
+    drawPixelOutline(
+      context,
       goalLineX,
       pitchTop + pitchHeight / 2 - (FIELD_MARKINGS.goalAreaWidthMetres / 2) * pixelsPerMetre,
       sign * FIELD_MARKINGS.goalAreaDepthMetres * pixelsPerMetre,
       FIELD_MARKINGS.goalAreaWidthMetres * pixelsPerMetre,
+      chalk,
     );
-    context.beginPath();
-    context.arc(
+    drawPixelArc(
+      context,
       goalLineX + sign * FIELD_MARKINGS.penaltySpotDistanceMetres * pixelsPerMetre,
       pitchTop + pitchHeight / 2,
       FIELD_MARKINGS.centerCircleRadiusMetres * pixelsPerMetre,
@@ -119,8 +120,8 @@ function drawPitch(context: CanvasRenderingContext2D): void {
       left
         ? FIELD_MARKINGS.penaltyArcHalfAngleRadians
         : Math.PI + FIELD_MARKINGS.penaltyArcHalfAngleRadians,
+      chalk,
     );
-    context.stroke();
     drawPixelRect(
       context,
       goalLineX + sign * FIELD_MARKINGS.penaltySpotDistanceMetres * pixelsPerMetre - 1,

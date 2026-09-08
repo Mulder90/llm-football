@@ -8,16 +8,16 @@ import type { MatchAtmosphere } from './match-atmosphere.ts';
 import { goalWatchSeconds, GOAL_PRESENTATION } from './celebration.ts';
 
 const SUPPORTERS = {
-  coral: { shirt: '#cc6559', bright: '#f7a184', dark: '#773e43', banner: '#963f42' },
-  cyan: { shirt: '#54aeba', bright: '#9ae0dc', dark: '#305b72', banner: '#326c82' },
+  coral: { shirt: '#a96156', bright: '#d99d80', dark: '#633e42', banner: '#713e40' },
+  cyan: { shirt: '#528c95', bright: '#94bfba', dark: '#344f60', banner: '#355966' },
 } as const;
-const SKIN_COLORS = ['#e2c39c', '#b68c70', '#815e50', '#e9d6b6'];
+const SKIN_COLORS = ['#bca68b', '#9f806a', '#755b50', '#c7b99c'];
 const STAND_COLOR = '#182d3b';
 const ROW_HEIGHT = 12;
 const SEAT_SPACING = 9;
 const STANDS = [
   { x: 112, y: 13, width: 735, height: 49 },
-  { x: 112, y: 600, width: 735, height: 49 },
+  { x: 112, y: 615, width: 735, height: 34 },
   { x: 12, y: 110, width: 55, height: 432 },
   { x: 893, y: 110, width: 55, height: 432 },
 ] as const;
@@ -122,6 +122,7 @@ type Spectator = {
   skin: string;
   variety: number;
   section: number;
+  drummer: boolean;
 };
 type SupporterMood = 'idle' | 'urge' | 'tense' | 'cheer' | 'disbelief' | 'relief' | 'acknowledge';
 
@@ -145,9 +146,11 @@ const spectators: Spectator[] = STANDS.flatMap((stand, section) => {
       const x = stand.x + column;
       const y = stand.y + row + 10;
       // Vertical aisles and the south tunnel stay clear, including during celebrations.
-      if (seat % 18 === 17 || (stand.y === 600 && x > 440 && x < 518)) continue;
+      if (seat % 18 === 17 || (section === 1 && x > 440 && x < 518)) continue;
       const variety = decorationNoise(x, y);
-      if (variety < 0.1) continue;
+      const drummer = section === 1 && row === 0 && (seat === 5 || seat === 75);
+      const group = decorationNoise(Math.floor(column / 45), Math.floor(row / 24), section + 7);
+      if (!drummer && variety < (group < 0.25 ? 0.34 : 0.08)) continue;
       const team = x < 480 ? 'coral' : 'cyan';
       seats.push({
         x,
@@ -155,12 +158,13 @@ const spectators: Spectator[] = STANDS.flatMap((stand, section) => {
         team,
         variety,
         section,
+        drummer,
         shirt:
-          variety < 0.65
+          variety < 0.48 + group * 0.24
             ? SUPPORTERS[team].shirt
             : variety < 0.85
               ? SUPPORTERS[team].dark
-              : '#a4b6ab',
+              : '#7f9189',
         skin: SKIN_COLORS[Math.floor(decorationNoise(y, x, 9) * SKIN_COLORS.length)]!,
       });
     }
@@ -174,6 +178,7 @@ function drawSpectator(
   bob = 0,
   scarf = false,
   mood: SupporterMood = 'idle',
+  drumBeat = false,
 ): void {
   const { x, y, shirt, skin, team } = spectator;
   const slump = mood === 'disbelief' ? 2 : 0;
@@ -183,7 +188,7 @@ function drawSpectator(
   drawPixelRect(context, x + 1, headY, 3, 1, '#353843');
   drawPixelRect(context, x, y, 2, 1, '#081823');
   drawPixelRect(context, x + 3, y, 2, 1, '#081823');
-  if (raisedArms) {
+  if (raisedArms && !spectator.drummer) {
     drawPixelRect(context, x - 1, y - 6 - bob, 1, 4, shirt);
     drawPixelRect(context, x + 5, y - 6 - bob, 1, 4, shirt);
     drawPixelRect(context, x - 1, y - 7 - bob, 1, 2, skin);
@@ -200,10 +205,18 @@ function drawSpectator(
     drawPixelRect(context, x + 5, y - 5, 1, 3, shirt);
     drawPixelRect(context, x + 5, y - 6, 1, 2, skin);
   }
-  if (scarf) {
+  if (scarf && !spectator.drummer) {
     drawPixelRect(context, x - 1, y - 8 - bob, 7, 2, SUPPORTERS[team].bright);
     drawPixelRect(context, x + 1, y - 8 - bob, 1, 2, '#f1e5c9');
-    drawPixelRect(context, x + 4, y - 8 - bob, 1, 2, '#f1e5c9');
+    drawPixelRect(context, x + 4, y - 8 - bob, 1, 2, '#c9c6ac');
+  }
+  if (spectator.drummer) {
+    // Two supporters carry drums inside the stand; these gestures have no audio layer.
+    drawPixelRect(context, x - 1, y - 3, 7, 4, SUPPORTERS[team].dark);
+    drawPixelRect(context, x - 1, y - 3, 7, 1, '#b9ac8d');
+    drawPixelRect(context, x, y, 5, 1, SUPPORTERS[team].shirt);
+    drawPixelRect(context, x - 1, y - (drumBeat ? 6 : 4), 1, 3, '#b9ac8d');
+    drawPixelRect(context, x + 5, y - (drumBeat ? 4 : 6), 1, 3, '#b9ac8d');
   }
 }
 
@@ -214,12 +227,12 @@ export function drawSupporterStands(context: CanvasRenderingContext2D): void {
     for (let row = 0; row < stand.height - 5; row += ROW_HEIGHT) {
       drawPixelRect(context, stand.x, stand.y + row + 10, stand.width, 2, '#294252');
       for (let aisle = 5 + 17 * SEAT_SPACING; aisle < stand.width - 5; aisle += 18 * SEAT_SPACING) {
-        drawPixelRect(context, stand.x + aisle - 1, stand.y + row, 8, 10, '#425961');
-        drawPixelRect(context, stand.x + aisle, stand.y + row + 8, 6, 1, '#82908a');
+        drawPixelRect(context, stand.x + aisle - 1, stand.y + row, 8, 10, '#334951');
+        drawPixelRect(context, stand.x + aisle, stand.y + row + 8, 6, 1, '#536860');
       }
     }
-    drawPixelRect(context, stand.x, stand.y, stand.width, 2, '#547080');
-    drawPixelRect(context, stand.x, stand.y + stand.height - 2, stand.width, 2, '#38546a');
+    drawPixelRect(context, stand.x, stand.y, stand.width, 2, '#3f555f');
+    drawPixelRect(context, stand.x, stand.y + stand.height - 2, stand.width, 2, '#30464f');
   }
   for (const spectator of spectators) {
     const scarf = spectator.variety > 0.94;
@@ -234,9 +247,9 @@ function drawBanner(context: CanvasRenderingContext2D, x: number, y: number, tea
   drawPixelRect(context, x, y, 120, 1, colors.bright);
   for (const end of [x + 3, x + 108]) {
     drawPixelRect(context, end, y + 2, 3, 6, colors.bright);
-    drawPixelRect(context, end + 5, y + 2, 3, 6, '#e1dec6');
+    drawPixelRect(context, end + 5, y + 2, 3, 6, '#b6b9a4');
   }
-  context.fillStyle = '#f4e8d1';
+  context.fillStyle = '#c7c3a8';
   context.font = 'bold 7px monospace';
   context.textAlign = 'center';
   context.textBaseline = 'top';
@@ -301,22 +314,22 @@ function drawFlags(
 
 export function drawStadiumAtmosphere(context: CanvasRenderingContext2D): void {
   // Rails and supporter banners sit entirely outside the playing surface.
-  for (const y of [64, 597]) {
-    if (y === 597) {
-      drawPixelRect(context, 112, y, 328, 1, '#81918a');
-      drawPixelRect(context, 518, y, 329, 1, '#81918a');
-    } else drawPixelRect(context, 112, y, 735, 1, '#81918a');
+  for (const y of [64, 612]) {
+    if (y === 612) {
+      drawPixelRect(context, 112, y, 328, 1, '#566e66');
+      drawPixelRect(context, 518, y, 329, 1, '#566e66');
+    } else drawPixelRect(context, 112, y, 735, 1, '#566e66');
     for (let x = 116; x < 847; x += 24) {
-      if (y === 597 && x > 440 && x < 518) continue;
-      drawPixelRect(context, x, y, 1, 4, '#536965');
+      if (y === 612 && x > 440 && x < 518) continue;
+      drawPixelRect(context, x, y, 1, 4, '#3e5652');
     }
   }
-  drawPixelRect(context, 69, 110, 2, 432, '#718782');
-  drawPixelRect(context, 889, 110, 2, 432, '#718782');
+  drawPixelRect(context, 69, 110, 2, 432, '#526b64');
+  drawPixelRect(context, 889, 110, 2, 432, '#526b64');
   drawBanner(context, 135, 77, 'coral');
   drawBanner(context, 706, 77, 'cyan');
-  drawBanner(context, 135, 588, 'coral');
-  drawBanner(context, 706, 588, 'cyan');
+  drawBanner(context, 126, 589, 'coral');
+  drawBanner(context, 719, 589, 'cyan');
   // Only poles belong to the cached painting; cloth must not leave an old pose behind.
   for (const flag of FLAGS) drawPixelRect(context, flag.x, flag.y - 24, 1, 25, '#8a9d98');
 }
@@ -350,7 +363,7 @@ export function drawCrowd(
     : 0;
   for (const spectator of spectators) {
     const seed = decorationNoise(spectator.x, spectator.y, 19);
-    const idleParticipant = seed > 0.78;
+    const idleParticipant = spectator.drummer || seed > 0.91;
     // End stands lead the jumping; the north stand raises scarves; south responds in waves.
     const sectionDelay = spectator.section === 1 ? 9 : spectator.section >= 2 ? 0 : 4;
     const delay = sectionDelay + Math.floor(decorationNoise(spectator.y, spectator.x) * 12);
@@ -393,7 +406,15 @@ export function drawCrowd(
     // every frame restores the whole painting, so it leaves no old airborne pose behind.
     drawPixelRect(context, spectator.x - 1, spectator.y - 8, 8, 9, STAND_COLOR);
     drawPixelRect(context, spectator.x - 1, spectator.y, 8, 1, '#294252');
-    drawSpectator(context, spectator, raisedArms, bob, scarf, mood);
+    drawSpectator(
+      context,
+      spectator,
+      raisedArms,
+      bob,
+      scarf,
+      mood,
+      frame.phase.type === 'open_play' && Math.floor(frame.tick / 15) % 2 === 0,
+    );
   }
   drawFlags(context, animationTick, moment?.type === 'goal' ? moment.team : null);
 }
