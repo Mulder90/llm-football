@@ -124,4 +124,6 @@ Only `esbuild` and `workerd` dependency build scripts are enabled in `pnpm-works
 
 The latest release contains only **One minute, two models**, with its original recording and keeper-review caveat. All eight live assets match the checked build; the six earlier public/excerpt URLs return 404. [Slice 24](slices/24-SINGLE-MATCH-CLOUDFLARE-RELEASE.md) records this deployment. Keep release progress in these docs; the main README remains evergreen.
 
+Cloudflare Web Analytics loads from the module-script snippet in `index.html`, using the public site token supplied from the Cloudflare dashboard. Vite preserves the external script and its `data-cf-beacon` attribute in the production HTML. The browser sends analytics to Cloudflare independently of match playback; no simulation or recording changes are needed. View incoming visits in Cloudflare's Web Analytics dashboard after deployment. Blocking the beacon in the browser prevents those visits from being measured. This shared HTML also loads the snippet during local development; no production-only gate is configured.
+
 See [current progress](PROGRESS.md) for implemented slices, verification and remaining work, or the [product brief](01-PRODUCT.md) for the overall direction.

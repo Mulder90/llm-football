@@ -4,6 +4,8 @@ LLM Football is a replay-first spectator game with 22 robot players, a determini
 
 ## Website
 
+Cloudflare Web Analytics is installed using the user's supplied module-script snippet in `index.html`. The analytics release (`ff722704-0ab7-4573-af6a-65b5fa656de4`) changes only the public HTML; the seven other assets and single-match catalogue are unchanged. TypeScript, production build, focused formatting, deployment dry run and exact live-HTML comparison pass. Dashboard receipt has not been checked. The browser loads Cloudflare's beacon with the public site token; simulation and recorded outcomes remain independent of analytics. Next: check incoming visits in Cloudflare Web Analytics.
+
 The user requested deployment of this version with only the latest game. [The Cloudflare website](https://llm-football.lore-cinque.workers.dev) now serves **One minute, two models** as its only bundled recording. Older match files return 404; scripted practice choices remain development-only. All eight live assets match the checked build by SHA-256. Deployment version: `ff1ae8ca-4e69-4017-8aa5-e8bbc83bc1f4`. [Slice 24](slices/24-SINGLE-MATCH-CLOUDFLARE-RELEASE.md) records the release checks. Pushing Git and deploying remain separate actions.
 
 ## Latest complete match — keeper review
