@@ -1,6 +1,10 @@
 # Current progress
 
-LLM Football is a local, replay-first spectator game with 22 robot players, a deterministic football engine, two team controllers and a full-screen comic stadium. Development matches have two 30-second playing halves. Watching the included recordings makes no API calls.
+LLM Football is a replay-first spectator game with 22 robot players, a deterministic football engine, two team controllers and a full-screen comic stadium. Development matches have two 30-second playing halves. Watching the included recordings makes no API calls.
+
+## Website
+
+The viewer is public at [llm-football.lore-cinque.workers.dev](https://llm-football.lore-cinque.workers.dev). Cloudflare serves the built app, audio and three bundled recordings, including their prompts and decisions. Watching makes no model calls. The first deployment uses the verified viewer before the in-progress keeper changes. Updates require `pnpm deploy`; pushing Git alone does not deploy. [Deployment instructions and verification](DEVELOPMENT.md#deploy-the-website-to-cloudflare).
 
 ## Latest work
 
@@ -37,7 +41,7 @@ The proposed next slice is proper goalkeeper hand possession, legal handling and
 
 The engine never chooses tactics or repairs a model's chosen target. The two-second evaluations cannot establish longer buildup, defensive coordination or full-match cost savings. A model's written review may be wrong.
 
-The viewer currently runs locally. Public hosting, live model-token streaming, generation resume, accounts and tournaments are not implemented. The inspector replays recorded observations; browser audio needs a play gesture. See [football rules](04-FOOTBALL-RULES.md) for omitted laws and [providers](07-PROVIDERS.md) for dated pricing assumptions.
+The viewer runs locally and on Cloudflare. Live model-token streaming, generation resume, accounts and tournaments are not implemented. The inspector replays recorded observations; browser audio needs a play gesture. See [football rules](04-FOOTBALL-RULES.md) for omitted laws and [providers](07-PROVIDERS.md) for dated pricing assumptions.
 
 ## Working agreement and history
 

@@ -67,7 +67,7 @@ This validates the recording, verifies its replay, and writes compressed match d
 
 ## Deploy the website to Cloudflare
 
-The viewer deploys as Cloudflare Workers Static Assets. `wrangler.jsonc` uploads only the production `dist/` directory to the `llm-football` application. No server code, database or model provider keys are needed; the match generator stays local. The public website includes the bundled recordings and their inspection data.
+The public viewer is [LLM Football](https://llm-football.lore-cinque.workers.dev). It deploys as Cloudflare Workers Static Assets. `wrangler.jsonc` uploads only the production `dist/` directory to the `llm-football` application. No server code, database or model provider keys are needed; the match generator stays local. The public website includes the bundled recordings and their inspection data.
 
 Authenticate with your own Cloudflare account, then publish deliberately:
 
@@ -85,6 +85,8 @@ For a local deployment-package check without uploading:
 pnpm build
 pnpm exec wrangler deploy --dry-run
 ```
+
+First release (8 September 2026): the viewer from commit `013d0a5`, with deployment configuration in `991b2b8`, was published from a verified build snapshot while keeper development continued separately. All 177 tests, TypeScript, the production build and deployment dry run passed. All ten public assets match the tested files by SHA-256; the three bundled recordings independently replayed to their original hashes. Live browser playback, pause, seek and the team-plan/rules inspector passed with no console errors. The release includes the three existing LLM recordings and their inspection data; no model generation ran during deployment.
 
 Only `esbuild` and `workerd` dependency build scripts are enabled in `pnpm-workspace.yaml`; these support Wrangler's tooling. Local Cloudflare state and credentials are ignored. Keep private files outside `public/`, which Vite copies into the website. Compressed match files are served as assets; the viewer handles gzip decoding before validation.
 

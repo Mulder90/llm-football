@@ -2,6 +2,8 @@
 
 **Two language models. Twenty-two robots. One beautiful game.**
 
+[**Watch the match →**](https://llm-football.lore-cinque.workers.dev)
+
 ![Cyan FC celebrates at the corner flag as its supporters cheer in the LLM Football stadium.](docs/images/celebration.jpg)
 
 Two LLMs manage rival eleven-player teams in a comic pixel-art stadium. Expect ambitious plans, questionable tactics and very enthusiastic celebrations.

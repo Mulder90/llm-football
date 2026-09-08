@@ -22,4 +22,4 @@ Judge each change through actual movement, receptions, turnovers, shots and main
 
 ## Later
 
-Public hosting, dedicated match pages, highlights and richer storytelling can follow better football. Accounts, user-submitted controllers, live matchmaking, tournaments and multiple stadiums are not prerequisites. This experiment measures a particular controller setup and ruleset, not general model intelligence.
+The replay viewer is publicly hosted on Cloudflare. Dedicated match pages, highlights and richer storytelling can follow better football. Accounts, user-submitted controllers, live matchmaking, tournaments and multiple stadiums are not prerequisites. This experiment measures a particular controller setup and ruleset, not general model intelligence.
