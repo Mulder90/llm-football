@@ -8,7 +8,12 @@ import { verifyRecording, stateHash } from '../src/recording/record.ts';
 import { parseRecording } from '../src/recording/validate.ts';
 import { observe } from '../src/protocol/observation.ts';
 import { rulebook } from '../src/protocol/rulebook.ts';
-import { parseModelDecision } from '../src/protocol/schema.ts';
+import {
+  modelResponseSchema,
+  parseModelDecision,
+  RESPONSE_JSON_SCHEMA,
+} from '../src/protocol/schema.ts';
+import { z } from 'zod';
 import type { TacticalMemory } from '../src/protocol/schema.ts';
 import { createMatch } from '../src/sim/state.ts';
 import { emptyBatch } from '../src/sim/orders.ts';
@@ -68,6 +73,57 @@ function provenance(controllers: Record<Team, TeamController>): GenerationProven
 }
 
 describe('shared model protocol', () => {
+  it('rejects the malformed keeper replies observed in the paired trials', () => {
+    const state = createMatch();
+    const reply = (orders: unknown[]) => ({
+      batch: { ...emptyBatch(state, 'coral'), orders },
+      memory: memory('coral'),
+      intent: '',
+    });
+    const guard = { type: 'guard', playerId: 'coral-1', target: { x: 8, y: 34 } };
+    expect(parseModelDecision(reply([guard]), state, 'coral').batch.orders).toEqual([guard]);
+    expect(() =>
+      parseModelDecision(reply([{ ...guard, playerId: 'coral-3' }]), state, 'coral'),
+    ).toThrow('Only keepers');
+    expect(() =>
+      parseModelDecision(reply([guard, { ...guard, type: 'move' }]), state, 'coral'),
+    ).toThrow('batch.orders.1');
+    expect(() =>
+      parseModelDecision(reply([guard, { ...guard, type: 'move', pace: 1 }]), state, 'coral'),
+    ).toThrow('Duplicate player');
+  });
+
+  it('omits only the problematic provider orders cap while rejecting excess orders locally', () => {
+    const strictWire = z.toJSONSchema(modelResponseSchema, { target: 'draft-7' });
+    const expected = structuredClone(strictWire);
+    const batch = expected.properties!.batch as z.core.JSONSchema.BaseSchema;
+    const orders = batch.properties!.orders as z.core.JSONSchema.BaseSchema;
+    expect(orders.maxItems).toBe(11);
+    delete orders.maxItems;
+    expect(RESPONSE_JSON_SCHEMA).toEqual(expected);
+
+    const state = createMatch();
+    const fullRoster = state.players
+      .filter((player) => player.team === 'coral')
+      .map((player) => ({ type: 'hold', playerId: player.id }));
+    const valid = {
+      batch: { ...emptyBatch(state, 'coral'), orders: fullRoster },
+      memory: memory('coral'),
+      intent: '',
+    };
+    expect(parseModelDecision(valid, state, 'coral').batch.orders).toHaveLength(11);
+    const tooMany = { ...valid, batch: { ...valid.batch, orders: [...fullRoster, fullRoster[0]] } };
+    const rejected = modelResponseSchema.safeParse(tooMany);
+    expect(rejected.success).toBe(false);
+    if (!rejected.success)
+      expect(rejected.error.issues[0]).toMatchObject({
+        code: 'too_big',
+        path: ['batch', 'orders'],
+        maximum: 11,
+      });
+    expect(() => parseModelDecision(tooMany, state, 'coral')).toThrow('batch.orders');
+  });
+
   it('exposes public state, owned orders and bounded events without opponent orders or random state', () => {
     const state = createMatch();
     state.players[0]!.active = {

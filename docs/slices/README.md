@@ -22,3 +22,4 @@ These documents describe implementation and evidence **at the end of each slice*
 18. [Persistent goalkeeper possession](18-GOALKEEPER-POSSESSION.md)
 19. [Offline sustained-play harness](19-SUSTAINED-PLAY-HARNESS.md)
 20. [Bounded paired-model trial and provider failure](20-PAIRED-MODEL-TRIAL.md)
+21. [Model excerpts and provider schema compatibility](21-MODEL-SEQUENCES-AND-SCHEMA.md)

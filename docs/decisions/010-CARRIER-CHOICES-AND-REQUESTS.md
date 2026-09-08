@@ -29,3 +29,13 @@ Offline tests exercise a received pass, a subsequent aerial release without an e
 The bounded evaluation accepted all 20 responses on their first attempt, all with eleven orders and three memory assignments. It produced six deliberate carries over two metres, successful pressure escapes and three goals from four shooting attempts. It also retained a preference for passing in the recorded Cyan possession. Cost, timing and limitations are in [slice 16](../slices/16-CARRIER-CHOICES.md). This does not establish full-match improvement or isolate the effect of each change.
 
 Revisit sustained carrier decisions and receiver timing next. Prefer short measured possessions before another full paid game.
+
+## 2026-09-08 amendment: provider orders-array cap
+
+The first keeper-era paired trial failed at Gemini schema compilation with HTTP 400. Controlled probes retained the model, prompt, settings and full schema while removing only `batch.orders.maxItems`; Gemini then returned valid full-roster decisions. Grouping equivalent action shapes, replacing constants with enums, or pruning unrelated schema constraints did not solve the rejection.
+
+Omit only that keyword from the common provider JSON schema. The actual Zod response schema retains `.max(11)`, so neither accepted actions nor engine behavior are relaxed. Identity, role, duplicate-player, numeric and memory validation are unchanged. Both providers still receive identical schema bytes, which are saved in provenance. Memory array length caps remain constrained by both the provider and local schema.
+
+The alternative of switching to unstructured output or changing the response format would add a broader compatibility surface without evidence of need. A decoder may now generate too many orders; the existing repair/fallback boundary handles that case. A focused test compares the generated schemas to prove this is the sole wire difference and verifies that twelve orders still fail local shape validation. Revisit only if future action changes expose another provider limit.
+
+A further keeper-ID enum experiment is **not retained**. In its keeper sample Mini accepted 7/7 initial replies, but Gemini returned repeated keeper moves without `pace` on all fourteen attempts and Cyan fell back every round. The final wire schema is restored exactly to the successful paired passing trial. Keeper-role restrictions stay in runtime validation. This outcome does not isolate the provider’s internal cause; it is sufficient reason to avoid shipping that unproven optimization. [Slice 21](../slices/21-MODEL-SEQUENCES-AND-SCHEMA.md) preserves the experiment and cost.

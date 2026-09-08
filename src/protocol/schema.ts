@@ -71,6 +71,7 @@ export const modelOrderSchema = z.union([
   z.strictObject({ type: z.literal('tackle'), ...playerFields, targetId: playerIdSchema }),
   z.strictObject({ type: z.literal('restart_taker'), ...playerFields }),
 ]);
+const modelOrdersSchema = z.array(modelOrderSchema).max(PLAYERS_PER_TEAM);
 export const modelResponseSchema = z.strictObject({
   batch: z.strictObject({
     version: z.literal(1),
@@ -78,12 +79,20 @@ export const modelResponseSchema = z.strictObject({
     decisionId: z.int().nonnegative(),
     tick: z.int().nonnegative(),
     team: teamSchema,
-    orders: z.array(modelOrderSchema).max(PLAYERS_PER_TEAM),
+    orders: modelOrdersSchema,
   }),
   intent: z.string().max(PROTOCOL_LIMITS.intentCharacters),
   memory: tacticalMemorySchema,
 });
-export const RESPONSE_JSON_SCHEMA = z.toJSONSchema(modelResponseSchema, { target: 'draft-7' });
+export const RESPONSE_JSON_SCHEMA = z.toJSONSchema(modelResponseSchema, {
+  target: 'draft-7',
+  override({ zodSchema, jsonSchema }) {
+    // Gemini rejects maxItems on this array of action alternatives (HTTP 400).
+    // Keep the eleven-order cap in modelOrdersSchema and all runtime validation.
+    // Both providers receive the same stable wire schema; only this cap is omitted.
+    if (zodSchema === modelOrdersSchema) delete jsonSchema.maxItems;
+  },
+});
 
 export type ModelDecision = { batch: Batch; intent: string; memory: TacticalMemory | null };
 export function parseModelDecision(raw: unknown, state: MatchState, team: Team): ModelDecision {

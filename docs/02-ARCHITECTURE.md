@@ -23,7 +23,7 @@ Both batches are validated against the same match, team, tick and decision ident
 
 A scheduled decision is due after one simulated second. Phase changes interrupt sooner; gaining control of the ball can interrupt after a minimum 15 ticks since the last decision. A release into flight does not itself request a replan: existing runs continue, with loose-ball play reviewed at the regular interval. The scheduler remembers a release so even the same player's later recapture can prompt both teams. Both teams always receive the same opportunity. A valid order can still fail physically; that is a recorded football event, distinct from rejected JSON or operational fallback.
 
-Both providers receive the same stable response schema. Match/team/tick/decision values are supplied in the observation and checked in code after parsing. They are no longer embedded as changing schema constants. This allows prefix/schema reuse without accepting stale replies; cache hits and actual latency remain measured provider behavior.
+Both providers receive the same stable response schema. Its orders-array length cap is enforced locally because Gemini rejects the expanded action-union array when that provider-side cap is present; all other schema constraints remain. Match/team/tick/decision values are supplied in the observation and checked in code after parsing. They are no longer embedded as changing schema constants. This allows prefix/schema reuse without accepting stale replies; cache hits and actual latency remain measured provider behavior.
 
 The observation stream shown to spectators follows these recorded boundaries. It is not a WebSocket or a claim of live model token streaming. Partial JSON never becomes a committed action.
 

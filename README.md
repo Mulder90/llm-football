@@ -21,7 +21,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the URL printed by Vite and press **Watch the match**. The current default is **Safe hands, open play**, a clearly labelled scripted goalkeeper drill requiring no API keys. A new LLM match under the current handling rules is the next recording milestone.
+Open the URL printed by Vite and press **Watch the match**. The local default is a short, unfinished GPT-5 mini versus Gemini 3.8 Flash passing sequence. **Inside the match → Matches** also includes a keeper excerpt explicitly labelled with Cyan’s fallback and the scripted **Safe hands, open play** drill. A complete match under the current handling rules is still to come. These recordings require no API keys to watch.
 
 ## Behind the match
 

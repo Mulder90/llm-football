@@ -8,11 +8,13 @@ Development and readiness checks use the **local build**. The public website is 
 
 ## Latest work
 
-The paired-model entry point is implemented locally with one shared spending/request/time allowance across all scenarios. TypeScript, **251 tests** and the production build passed; six scripted CLI runs reproduced the prior hashes with 108 calls and zero cost.
+Two short recordings are available in the **local catalogue**. The default passing excerpt contains 6.7 playing seconds with both model teams active: Coral completes three passes, then loses possession; one tackle misses. It reaches the twelve-round cap before the planned eight playing seconds. The keeper excerpt contains 5.55 seconds, a catch, throw, three further passes and a 3.71 m carry, but **Cyan uses fallback on all seven rounds**. Its opposition is inactive, so this is not evidence of successful two-model keeper buildup. Both remain honestly labelled incomplete.
 
-The user approved a $0.60 trial ($0.20 OpenAI / $0.40 Gemini), up to 144 request attempts and 15 minutes. `sustained-model-01` stopped at the first boundary after **3 requests in 32.7 seconds**: Gemini returned HTTP 400, “Request contains an invalid argument.” GPT-5 mini's initial reply incorrectly used keeper-only guard orders on outfielders; its one repair passed validation. No paired decision was applied, no playing time elapsed and the other two scenarios did not start.
+The Gemini HTTP 400 was isolated to the provider schema’s `batch.orders.maxItems` constraint. Omitting only that wire keyword enabled valid eleven-order replies; the local cap and all football validation stay strict. A subsequent keeper-ID schema experiment eliminated Mini repairs in that sample but produced fourteen malformed Gemini replies and seven fallbacks. That experiment was reverted; the final wire schema exactly matches the successful paired passing trial. Failed responses and original recordings are retained. No engine, tactics, provider model or cadence changed in this slice.
 
-The saved conservative estimate is **$0.047654**: $0.007718 from OpenAI's reported tokens and $0.039936 reserved for Gemini's failed request with no usage. This is not confirmed billing. The tick-zero recording verifies to `1ad6ad38` and imports locally with incomplete status. No new complete match or sustained-teamwork evidence was produced. The exact Gemini rejection cause remains unconfirmed. [Slice 20](slices/20-PAIRED-MODEL-TRIAL.md) records the attempt and next diagnostic slice.
+The original $0.60 allowance ($0.20 OpenAI / $0.40 Gemini), 144 attempts and 15 generation minutes covers the initial failed run, six compatibility probes and both excerpts together. Totals: **61 requests, 6m 33s, $0.43614375 estimated** ($0.10788 OpenAI / $0.32826375 Gemini), including conservative reservations for failures without usage. The keeper run stopped before its next Gemini boundary could be fully reserved. This is not confirmed billing. No generation is running. The separate receiver sample was skipped because its starting state is identical to the carrying case apart from match ID; the actual receptions are retained in the first excerpt.
+
+TypeScript, **253 tests**, production build and independent replay verification passed. The passing hash is `def08e93`; the keeper hash is `51cf5d78`. [Slice 21](slices/21-MODEL-SEQUENCES-AND-SCHEMA.md) records accounting, browser checks and limitations. The user deferred the full run until they like the football and add more credit. Cost savings from the earlier leaner prompts and fewer release-triggered requests remain plausible, not a measured full-match result.
 
 ## Previous offline harness work
 
@@ -22,11 +24,11 @@ Use `pnpm evaluate-sequences --dry-run` to inspect the offline plan, then `pnpm 
 
 ## Previous keeper work
 
-**Safe hands, open play** is the new default: a 16-second scripted goalkeeper drill under `football-0.6`. It shows pickup, movement in hands, a roll to Coral #3, a scripted opponent return, a catch, and a throw to Coral #6. Both receptions are engine-resolved. The fixture has nine events, no failed orders or handling violations, and verifies independently to hash `5a64393a`. It is not LLM-played and made no provider requests.
+**Safe hands, open play** remains available: a 16-second scripted goalkeeper drill under `football-0.6`. It shows pickup, movement in hands, a roll to Coral #3, a scripted opponent return, a catch, and a throw to Coral #6. Both receptions are engine-resolved. The fixture has nine events, no failed orders or handling violations, and verifies independently to hash `5a64393a`. It is not LLM-played and made no provider requests.
 
 Keepers now retain actual hand possession through movement and order expiry, choose roll/throw/punt/put-down, and face explicit handling restrictions and an eight-second playing-time limit. The referee signals the final five seconds and awards a corner for exceeding the limit. Replay preserves pickup/release boundaries even when the owner does not change. Glove poses and quiet catch audio follow recorded state/events. TypeScript, 220 tests, production build and three fixture replays passed; browser checks covered playback and narrow screens. [Slice 18](slices/18-GOALKEEPER-POSSESSION.md) contains the checks and limitations.
 
-The three incompatible public LLM recordings and catalogue entries have been removed; there is no current-ruleset LLM match yet. The scripted demo keeps the viewer usable without backward compatibility or altered historical results.
+The three incompatible public LLM recordings and catalogue entries have been removed; the new catalogue contains only current-ruleset incomplete excerpts. The scripted demo remains available without backward compatibility or altered historical results.
 
 ## Previous visual work
 
@@ -59,9 +61,9 @@ That match predates the latest carrier and scheduling changes. Coral completed m
 
 ## Next step and limitations
 
-The next slice is to isolate and fix Gemini request compatibility, preserving strict action validation and the failed attempt. Then continue the bounded paired-model evaluation and assess every outcome before a new complete two-half match. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled.
+Next, review the local football excerpts with the user and address keeper-order reliability before another paid trial. The full two-half run is deferred until the user likes the football and adds credit. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled.
 
-The engine never chooses tactics or repairs a model's chosen target. The two-second evaluations cannot establish longer buildup, defensive coordination or full-match cost savings. A model's written review may be wrong.
+The engine never chooses tactics or repairs a model's chosen target. These short and partly fallback-driven evaluations cannot establish sustained defensive coordination or full-match cost savings. A model's written review may be wrong.
 
 The viewer runs locally and on Cloudflare. Live model-token streaming, generation resume, accounts and tournaments are not implemented. The inspector replays recorded observations; browser audio needs a play gesture. See [football rules](04-FOOTBALL-RULES.md) for omitted laws and [providers](07-PROVIDERS.md) for dated pricing assumptions.
 
