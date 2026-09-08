@@ -168,7 +168,9 @@ export function validateBatch(raw: unknown, state: MatchState, team: Team): Batc
       ['guard', 'pickup', 'put_down', 'distribute'].includes(order.type) &&
       player.role !== 'keeper'
     )
-      throw new Error('Only keepers may guard, pick up or distribute');
+      throw new Error(
+        `Only keepers may ${order.type}; ${playerId} is outfield. Defend with move (target + pace) or hold. Send one order per player.`,
+      );
     if (
       order.type === 'tackle' &&
       !state.players.some(

@@ -8,6 +8,16 @@ Development and readiness checks use the **local build**. The public website is 
 
 ## Latest work
 
+Keeper-order reliability now passes a small real-provider check: **6/6 first replies accepted**, three paired rounds, eleven orders per team per round, zero repairs, fallbacks, execution failures or handling violations. The keeper catches, rolls to Coral #7, and #7 receives. Both model teams are active. The 2.45-second excerpt stops deliberately at the three-round cap; it does not establish sustained defending or full-match reliability.
+
+The working provider schema is unchanged. Observations now identify the active keeper; the prompt distinguishes outfield move/hold from keeper-only guarding/handling. Invalid recognized actions report their specific field, and role errors name the action and outfielder. No automatic order correction or tactical help was added. Offline replay of all 52 earlier replies preserves all acceptance/rejection results. TypeScript, **258 tests**, production build and replay verification pass.
+
+`keeper-reliability-01` cost **$0.03487 estimated** ($0.01097875 OpenAI / $0.02389125 Gemini), six requests in 42.43 seconds. This used the remaining original allowance, with a separate $0.10 ceiling, no retries and an immediate stop on fallback or incomplete roster. The original trial total is now **$0.47101375** ($0.11885875 OpenAI / $0.352155 Gemini), **67 requests and 435.51 generation seconds**. Remaining: $0.12898625 combined / $0.08114125 OpenAI / $0.047845 Gemini. Estimates include prior reservations without usage and are not confirmed billing. No generation is running.
+
+The new **Keeper orders · first-attempt check** recording is available locally through **Inside the match → Matches**, hash `86c27e6f`. The passing excerpt remains the default and the older failed keeper experiment remains labelled separately. [Slice 22](slices/22-KEEPER-ORDER-RELIABILITY.md) records the change, tests and sample limits. Next: review this catch-and-outlet clip, then a sustained keeper sequence with both teams active before the deferred full run.
+
+## Previous model excerpts and compatibility work
+
 Two short recordings are available in the **local catalogue**. The default passing excerpt contains 6.7 playing seconds with both model teams active: Coral completes three passes, then loses possession; one tackle misses. It reaches the twelve-round cap before the planned eight playing seconds. The keeper excerpt contains 5.55 seconds, a catch, throw, three further passes and a 3.71 m carry, but **Cyan uses fallback on all seven rounds**. Its opposition is inactive, so this is not evidence of successful two-model keeper buildup. Both remain honestly labelled incomplete.
 
 The Gemini HTTP 400 was isolated to the provider schema’s `batch.orders.maxItems` constraint. Omitting only that wire keyword enabled valid eleven-order replies; the local cap and all football validation stay strict. A subsequent keeper-ID schema experiment eliminated Mini repairs in that sample but produced fourteen malformed Gemini replies and seven fallbacks. That experiment was reverted; the final wire schema exactly matches the successful paired passing trial. Failed responses and original recordings are retained. No engine, tactics, provider model or cadence changed in this slice.
@@ -61,7 +71,7 @@ That match predates the latest carrier and scheduling changes. Coral completed m
 
 ## Next step and limitations
 
-Next, review the local football excerpts with the user and address keeper-order reliability before another paid trial. The full two-half run is deferred until the user likes the football and adds credit. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled.
+Next, review the new local keeper excerpt with the user, then check sustained keeper play under active opposition. The six-response check passes but does not establish longer reliability. The full two-half run is deferred until the user likes the football and adds credit. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled.
 
 The engine never chooses tactics or repairs a model's chosen target. These short and partly fallback-driven evaluations cannot establish sustained defensive coordination or full-match cost savings. A model's written review may be wrong.
 

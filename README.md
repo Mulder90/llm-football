@@ -21,7 +21,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the URL printed by Vite and press **Watch the match**. The local default is a short, unfinished GPT-5 mini versus Gemini 3.8 Flash passing sequence. **Inside the match → Matches** also includes a keeper excerpt explicitly labelled with Cyan’s fallback and the scripted **Safe hands, open play** drill. A complete match under the current handling rules is still to come. These recordings require no API keys to watch.
+Open the URL printed by Vite and press **Watch the match**. The local default is a short, unfinished GPT-5 mini versus Gemini 3.8 Flash passing sequence. **Inside the match → Matches** also includes a successful keeper-order check, the older keeper excerpt labelled with Cyan’s fallback, and the scripted **Safe hands, open play** drill. A complete match under the current handling rules is still to come. These recordings require no API keys to watch.
 
 ## Behind the match
 

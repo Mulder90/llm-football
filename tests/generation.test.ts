@@ -84,13 +84,32 @@ describe('shared model protocol', () => {
     expect(parseModelDecision(reply([guard]), state, 'coral').batch.orders).toEqual([guard]);
     expect(() =>
       parseModelDecision(reply([{ ...guard, playerId: 'coral-3' }]), state, 'coral'),
-    ).toThrow('Only keepers');
+    ).toThrow(
+      'Only keepers may guard; coral-3 is outfield. Defend with move (target + pace) or hold.',
+    );
     expect(() =>
       parseModelDecision(reply([guard, { ...guard, type: 'move' }]), state, 'coral'),
-    ).toThrow('batch.orders.1');
+    ).toThrow('batch.orders.1.pace');
     expect(() =>
       parseModelDecision(reply([guard, { ...guard, type: 'move', pace: 1 }]), state, 'coral'),
     ).toThrow('Duplicate player');
+  });
+
+  it.each([
+    [{ type: 'guard', pace: 1, target: { x: 8, y: 34 } }, 'Unrecognized key: "pace"'],
+    [{ type: 'move', pace: 1, target: { x: NaN, y: 34 } }, 'batch.orders.0.target.x'],
+    [{ type: 'move', pace: 2, target: { x: 8, y: 34 } }, 'batch.orders.0.pace'],
+    [{ type: 'invented_action' }, 'batch.orders.0: Invalid input'],
+  ])('reports the recognized action’s invalid field without accepting it (%j)', (order, error) => {
+    const state = createMatch();
+    const raw = {
+      batch: { ...emptyBatch(state, 'coral'), orders: [{ ...order, playerId: 'coral-1' }] },
+      memory: memory('coral'),
+      intent: '',
+    };
+    const before = structuredClone(raw);
+    expect(() => parseModelDecision(raw, state, 'coral')).toThrow(error);
+    expect(raw).toEqual(before);
   });
 
   it('omits only the problematic provider orders cap while rejecting excess orders locally', () => {
@@ -265,7 +284,16 @@ describe('shared model protocol', () => {
       cyan: mockController(async (request) => {
         calls.cyan.push(request);
         await cyanGate;
-        return calls.cyan.length === 1 ? { broken: true } : response(request);
+        const valid = response(request);
+        return calls.cyan.length === 1
+          ? {
+              ...valid,
+              batch: {
+                ...valid.batch,
+                orders: [{ type: 'move', playerId: 'cyan-1', target: { x: 98, y: 34 } }],
+              },
+            }
+          : valid;
       }),
     };
     const record = provenance(controllers);
@@ -285,7 +313,7 @@ describe('shared model protocol', () => {
     expect(calls.coral).toHaveLength(1);
     expect(calls.cyan).toHaveLength(2);
     expect(calls.cyan[0]!.observation).toBe(calls.cyan[1]!.observation);
-    expect(calls.cyan[1]!.feedback).toContain('Invalid response');
+    expect(calls.cyan[1]!.feedback).toContain('batch.orders.0.pace');
     expect(result.fallback).toEqual([]);
     expect(result.decisions.map((decision) => decision.memory)).toEqual([
       memory('coral'),

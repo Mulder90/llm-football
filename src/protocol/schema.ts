@@ -98,8 +98,25 @@ export type ModelDecision = { batch: Batch; intent: string; memory: TacticalMemo
 export function parseModelDecision(raw: unknown, state: MatchState, team: Team): ModelDecision {
   const response = modelResponseSchema.safeParse(raw);
   if (!response.success) {
-    const issue = response.error.issues[0]!;
-    throw new Error(`Invalid response at ${issue.path.join('.')}: ${issue.message}`);
+    let issue = response.error.issues[0]!;
+    let path = issue.path;
+    if (
+      issue.code === 'invalid_union' &&
+      path.length === 3 &&
+      path[0] === 'batch' &&
+      path[1] === 'orders'
+    ) {
+      // For a recognized action, report its own invalid field rather than the
+      // union's generic error. This changes feedback only, never acceptance/schema.
+      const matching = issue.errors.filter(
+        (errors) => !errors.some((error) => error.path[0] === 'type'),
+      );
+      if (matching.length === 1 && matching[0]!.length) {
+        issue = matching[0]![0]!;
+        path = [...path, ...issue.path];
+      }
+    }
+    throw new Error(`Invalid response at ${path.join('.')}: ${issue.message}`);
   }
   validateTacticalMemory(
     response.data.memory,

@@ -19,7 +19,9 @@ export function rulebook(): string {
 RULESET ${ENGINE_VERSION}, protocol 1. Absolute metres: x=0 left goal, x=${FIELD.length} right goal, y=0 top, y=${FIELD.width} bottom. Goal centre y=${FIELD.width / 2}, width ${FIELD.goalWidth}, height ${FIELD.goalHeight}. Attack direction +1 means right, -1 left. Ends swap at halftime. Two ${MATCH_TIMING.halfPlayingTicks / TICK_RATE}-second playing halves; restart setup/delivery and halftime pause playing time. Draws stand.
 
 TEAM COORDINATION
-Use teamContext's THIS-half goals, flanks and roster. Order EVERY active teammate including keeper, ONE order each. Choose carry/pass/shoot BEFORE arranging a receiver. canKickNow permits, never requires, release.
+Use teamContext's THIS-half goals, flanks and roster. Order EVERY active teammate including keeper, ONE order each.
+Only teamContext.keeperId may guard/pickup/distribute/put_down. Outfield defending, marking and covering use move (target + pace) or hold, NEVER guard. Keeper guard already moves: target, NO pace, no second order for that player.
+Choose carry/pass/shoot BEFORE arranging a receiver. canKickNow permits, never requires, release.
 CARRY with move into reachable space to advance/improve angles. Retain useful runs and support. Moving retains possession; kicking releases it.
 PASS with kick for a better teammate route or unsafe pressure. Coordinate ONE receiver: compare travel time/velocity/acceleration with ball arrival; matching targets alone cannot synchronize them. Choose controllable speed/loft and a clear lane, or carry/hold for an outlet.
 SHOOT when distance/angle/defenders/keeper allow; aim inside opponentGoal away from the keeper. Otherwise improve position. From hands distribute/put_down; guard only positions. Restart takers must kick.

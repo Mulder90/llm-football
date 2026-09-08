@@ -59,6 +59,7 @@ describe('starting positional briefs', () => {
       for (const team of ['coral', 'cyan'] as const) {
         const snapshot = observe(state, team, null, TICK_RATE);
         const own = snapshot.players.filter((player) => player.team === team);
+        expect(snapshot.teamContext.keeperId).toBe(`${team}-1`);
         expect(own.map((player) => player.startingPosition!.role)).toEqual(expectedRoles);
         expect(snapshot.teamContext.positioning.startingShape).toBe('4-3-3');
         expect(Object.keys(snapshot.teamContext.positioning.briefs)).toHaveLength(7);
@@ -78,6 +79,15 @@ describe('starting positional briefs', () => {
         }
       }
     }
+  });
+
+  it('reports no available keeper after dismissal without naming an outfield replacement', () => {
+    const state = createMatch();
+    state.players.find((player) => player.id === 'coral-1')!.dismissed = true;
+    const before = stateHash(state);
+    expect(observe(state, 'coral', null, TICK_RATE).teamContext.keeperId).toBeNull();
+    expect(observe(state, 'cyan', null, TICK_RATE).teamContext.keeperId).toBe('cyan-1');
+    expect(stateHash(state)).toBe(before);
   });
 
   it('does not confuse a temporary marking job or moved player with the starting role', () => {

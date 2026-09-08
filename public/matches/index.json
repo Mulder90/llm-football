@@ -8,6 +8,12 @@
       "complete": false
     },
     {
+      "id": "keeper-reliability-01",
+      "file": "keeper-reliability-01.json.gz",
+      "title": "Keeper orders · first-attempt check",
+      "complete": false
+    },
+    {
       "id": "sustained-keeper-outlet",
       "file": "sustained-keeper-outlet.json.gz",
       "title": "Keeper buildup · Cyan fallback",

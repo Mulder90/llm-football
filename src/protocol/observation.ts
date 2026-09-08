@@ -116,7 +116,7 @@ export function observe(
         ? `DELIVERY REQUIRED: issue kick or shoot for ${state.phase.restart.takerId} now. Choose the target, speed and loft. Move cannot restart play; everyone remains stationary until the kick.`
         : `The opponent must deliver this ${state.phase.restart.type}. Set defensive movement and keeper guard orders for when play resumes. You cannot kick or tackle yet.`
       : state.phase.type === 'restart_setup'
-        ? 'Setup only: position your team with move or guard. Guard already moves the keeper; do not add a separate move for the same player. The delivery decision follows setup.'
+        ? 'Setup only: outfield players use move/hold; only your keeper may guard. Guard already moves the keeper; one order per player. The delivery decision follows setup.'
         : state.phase.type === 'open_play'
           ? 'Choose carry, pass or shoot from space, pressure and goal position; move retains foot or hand possession; from hands choose distribute or put_down before kicking. Coordinate support and cover, and a receiver only when passing. Read actionContext. Movement persists; kicks/tackles execute now.'
           : 'The clock is stopped for the interval or full time. No orders are accepted.';
@@ -148,6 +148,10 @@ export function observe(
     attackDirection: direction,
     teamContext: {
       team,
+      keeperId:
+        state.players.find(
+          (player) => player.team === team && player.role === 'keeper' && !player.dismissed,
+        )?.id ?? null,
       ownGoal: { x: direction === 1 ? 0 : FIELD.length, y: FIELD.width / 2 },
       opponentGoal: { x: direction === 1 ? FIELD.length : 0, y: FIELD.width / 2 },
       positioning: {
