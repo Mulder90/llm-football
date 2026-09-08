@@ -34,7 +34,7 @@ async function fetchMatch(entry: MatchListing, signal?: AbortSignal): Promise<Re
   return recording;
 }
 export function useRecordings() {
-  const [recording, setRecording] = useState(createKeeperFixture);
+  const [recording, setRecording] = useState<Recording | null>(null);
   const [matches, setMatches] = useState<MatchListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -48,11 +48,9 @@ export function useRecordings() {
         if (abort.signal.aborted) return;
         setMatches(catalog.matches);
         const latest = catalog.matches.find((entry) => entry.complete) ?? catalog.matches[0];
-        if (latest) {
-          setLoading(true);
-          const match = await fetchMatch(latest, abort.signal);
-          if (!abort.signal.aborted) setRecording(match);
-        }
+        if (!latest) throw new Error('No recordings are available');
+        const match = await fetchMatch(latest, abort.signal);
+        if (!abort.signal.aborted) setRecording(match);
       } catch (error) {
         if (!abort.signal.aborted)
           setLoadError(error instanceof Error ? error.message : 'Could not load recording');
@@ -66,7 +64,10 @@ export function useRecordings() {
   const selectRecording = useCallback(
     async (id: string) => {
       setLoadError('');
-      if (id === 'keeper' || id === 'full' || id === 'passing' || id === 'carry-and-chip') {
+      if (
+        import.meta.env.DEV &&
+        (id === 'keeper' || id === 'full' || id === 'passing' || id === 'carry-and-chip')
+      ) {
         const fixture =
           id === 'keeper'
             ? createKeeperFixture

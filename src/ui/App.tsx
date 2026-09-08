@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { sample } from '../recording/record.ts';
+import type { Recording } from '../recording/record.ts';
 import { DecisionInspector } from './DecisionInspector.tsx';
 import type { InspectorTab } from './DecisionInspector.tsx';
 import { Pitch } from './Pitch.tsx';
@@ -14,10 +15,33 @@ import { useControlsVisibility } from './useControlsVisibility.ts';
 const DOWNLOAD_URL_LIFETIME_MS = 1000;
 export function App() {
   const library = useRecordings();
-  return <BroadcastPage key={library.recording.initial.matchId} library={library} />;
+  if (!library.recording)
+    return (
+      <main className="broadcast-app">
+        <section className="watch-area" aria-label="Match broadcast">
+          <div className="stadium-wrap">
+            <p className="notice" role="status">
+              {library.loadError || 'Getting the match ready…'}
+            </p>
+          </div>
+        </section>
+      </main>
+    );
+  return (
+    <BroadcastPage
+      key={library.recording.initial.matchId}
+      library={library}
+      recording={library.recording}
+    />
+  );
 }
-function BroadcastPage({ library }: { library: ReturnType<typeof useRecordings> }) {
-  const { recording } = library;
+function BroadcastPage({
+  library,
+  recording,
+}: {
+  library: ReturnType<typeof useRecordings>;
+  recording: Recording;
+}) {
   const [notice, setNotice] = useState('');
   const sound = useSound(setNotice);
   const playback = usePlayback(recording, () => void sound.unlockFromGesture());

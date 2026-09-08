@@ -373,13 +373,15 @@ export function DecisionInspector({
               <select
                 disabled={loading}
                 value={
-                  recording.initial.matchId === 'keeper-practice-001'
+                  import.meta.env.DEV && recording.initial.matchId === 'keeper-practice-001'
                     ? 'keeper'
-                    : recording.initial.matchId === 'carry-and-chip-fixture-001'
+                    : import.meta.env.DEV &&
+                        recording.initial.matchId === 'carry-and-chip-fixture-001'
                       ? 'carry-and-chip'
-                      : recording.initial.matchId === 'full-match-fixture-001'
+                      : import.meta.env.DEV &&
+                          recording.initial.matchId === 'full-match-fixture-001'
                         ? 'full'
-                        : recording.initial.matchId === 'fixture-001'
+                        : import.meta.env.DEV && recording.initial.matchId === 'fixture-001'
                           ? 'passing'
                           : matches.some((entry) => entry.id === recording.initial.matchId)
                             ? recording.initial.matchId
@@ -396,10 +398,14 @@ export function DecisionInspector({
                     {entry.complete ? '' : ' · incomplete'}
                   </option>
                 ))}
-                <option value="keeper">Keeper practice · scripted</option>
-                <option value="full">Full practice match · scripted</option>
-                <option value="passing">Passing practice · scripted</option>
-                <option value="carry-and-chip">Running & chips · scripted</option>
+                {import.meta.env.DEV && (
+                  <>
+                    <option value="keeper">Keeper practice · scripted</option>
+                    <option value="full">Full practice match · scripted</option>
+                    <option value="passing">Passing practice · scripted</option>
+                    <option value="carry-and-chip">Running & chips · scripted</option>
+                  </>
+                )}
               </select>
             </label>
             <label className="fixture-picker">

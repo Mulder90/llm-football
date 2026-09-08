@@ -4,7 +4,7 @@ LLM Football is a replay-first spectator game with 22 robot players, a determini
 
 ## Website
 
-Development and readiness checks use the **local build**. The public website is an older release; the user asked to leave it alone and publish the new final version when ready. Pushing Git does not deploy. [Deployment instructions](DEVELOPMENT.md#deploy-the-website-to-cloudflare) remain available for that later step.
+The user requested deployment of this version with only the latest game. [The Cloudflare website](https://llm-football.lore-cinque.workers.dev) now serves **One minute, two models** as its only bundled recording. Older match files return 404; scripted practice choices remain development-only. All eight live assets match the checked build by SHA-256. Deployment version: `ff1ae8ca-4e69-4017-8aa5-e8bbc83bc1f4`. [Slice 24](slices/24-SINGLE-MATCH-CLOUDFLARE-RELEASE.md) records the release checks. Pushing Git and deploying remain separate actions.
 
 ## Latest complete match — keeper review
 
@@ -12,7 +12,7 @@ Development and readiness checks use the **local build**. The public website is 
 
 Generation took **21m 47s** and cost **$1.1262515 estimated** ($0.36848975 OpenAI / $0.75776175 Gemini), using 193 requests within the $3 combined / $1 OpenAI / $2 Gemini caps. The earlier full match cost $2.08662375 with the same recorded model settings and pricing: this run is **46% cheaper**, but different play, rules and prompts prevent attributing the saving to one change. Fresh user-reported balances were $3.17 OpenAI / £5.93 Gemini; estimated remaining credit is roughly **$2.80 / £5.37**, using reference FX rather than confirmed billing. The old short-trial allowance is separate. No generation is running.
 
-**The four-minute showcase is on hold for a reproduced keeper defect.** At tick 3245, a legal incoming catch attaches to a keeper facing outward at x=104.6: its 0.65 m hand offset puts the ball at x=105.25, beyond the 105 m goal line. The same tick awards an outside-area free kick; Cyan scores from the subsequent sequence. Original actions and score remain unchanged. This cannot establish successful keeper distribution. Coral also takes no shots and eventually carries out over the goal line. Next: fix and verify catch placement near boundaries offline, then review whether to adopt the requested two-minute halves and fund the longer run. The live website remains untouched.
+**The four-minute showcase is on hold for a reproduced keeper defect.** At tick 3245, a legal incoming catch attaches to a keeper facing outward at x=104.6: its 0.65 m hand offset puts the ball at x=105.25, beyond the 105 m goal line. The same tick awards an outside-area free kick; Cyan scores from the subsequent sequence. Original actions and score remain unchanged. This cannot establish successful keeper distribution. Coral also takes no shots and eventually carries out over the goal line. Next: fix and verify catch placement near boundaries offline, then review whether to adopt the requested two-minute halves and fund the longer run. The deployed review match retains the keeper caveat.
 
 ## Previous keeper-order reliability work
 
@@ -22,11 +22,11 @@ The working provider schema is unchanged. Observations now identify the active k
 
 `keeper-reliability-01` cost **$0.03487 estimated** ($0.01097875 OpenAI / $0.02389125 Gemini), six requests in 42.43 seconds. This used the remaining original allowance, with a separate $0.10 ceiling, no retries and an immediate stop on fallback or incomplete roster. The original trial total is now **$0.47101375** ($0.11885875 OpenAI / $0.352155 Gemini), **67 requests and 435.51 generation seconds**. Remaining: $0.12898625 combined / $0.08114125 OpenAI / $0.047845 Gemini. Estimates include prior reservations without usage and are not confirmed billing. No generation is running.
 
-The **Keeper orders · first-attempt check** recording remains available locally through **Inside the match → Matches**, hash `86c27e6f`, alongside the passing excerpt and separately labelled failed keeper experiment. [Slice 22](slices/22-KEEPER-ORDER-RELIABILITY.md) records the change, tests and sample limits. The subsequent funded full match supersedes the earlier deferral and is now the default.
+The **Keeper orders · first-attempt check** recording, hash `86c27e6f`, passing excerpt and separately labelled failed keeper experiment are retained privately. Their compressed catalogue copies were archived before the single-match release. [Slice 22](slices/22-KEEPER-ORDER-RELIABILITY.md) records the change, tests and sample limits. The subsequent funded full match supersedes the earlier deferral and is now the only public recording.
 
 ## Previous model excerpts and compatibility work
 
-Two short recordings are available in the **local catalogue**. The default passing excerpt contains 6.7 playing seconds with both model teams active: Coral completes three passes, then loses possession; one tackle misses. It reaches the twelve-round cap before the planned eight playing seconds. The keeper excerpt contains 5.55 seconds, a catch, throw, three further passes and a 3.71 m carry, but **Cyan uses fallback on all seven rounds**. Its opposition is inactive, so this is not evidence of successful two-model keeper buildup. Both remain honestly labelled incomplete.
+Two short recordings were previously available in the local catalogue and are now retained privately. The passing excerpt contains 6.7 playing seconds with both model teams active: Coral completes three passes, then loses possession; one tackle misses. It reaches the twelve-round cap before the planned eight playing seconds. The keeper excerpt contains 5.55 seconds, a catch, throw, three further passes and a 3.71 m carry, but **Cyan uses fallback on all seven rounds**. Its opposition is inactive, so this is not evidence of successful two-model keeper buildup. Both remain honestly labelled incomplete.
 
 The Gemini HTTP 400 was isolated to the provider schema’s `batch.orders.maxItems` constraint. Omitting only that wire keyword enabled valid eleven-order replies; the local cap and all football validation stay strict. A subsequent keeper-ID schema experiment eliminated Mini repairs in that sample but produced fourteen malformed Gemini replies and seven fallbacks. That experiment was reverted; the final wire schema exactly matches the successful paired passing trial. Failed responses and original recordings are retained. No engine, tactics, provider model or cadence changed in this slice.
 
@@ -46,7 +46,7 @@ Use `pnpm evaluate-sequences --dry-run` to inspect the offline plan, then `pnpm 
 
 Keepers now retain actual hand possession through movement and order expiry, choose roll/throw/punt/put-down, and face explicit handling restrictions and an eight-second playing-time limit. The referee signals the final five seconds and awards a corner for exceeding the limit. Replay preserves pickup/release boundaries even when the owner does not change. Glove poses and quiet catch audio follow recorded state/events. TypeScript, 220 tests, production build and three fixture replays passed; browser checks covered playback and narrow screens. [Slice 18](slices/18-GOALKEEPER-POSSESSION.md) contains the checks and limitations.
 
-The three incompatible public LLM recordings and catalogue entries have been removed; the new catalogue contains only current-ruleset incomplete excerpts. The scripted demo remains available without backward compatibility or altered historical results.
+The three incompatible public LLM recordings and catalogue entries were removed at that stage. The current single-match catalogue contains the complete keeper-review match; scripted demos remain available in development without backward compatibility or altered historical results.
 
 ## Previous visual work
 

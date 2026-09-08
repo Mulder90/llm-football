@@ -9,7 +9,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the local URL printed by Vite; the port depends on what's available. Press **Watch the match** to start the unfinished model passing excerpt. **Inside the match → Matches** also offers **Keeper orders · first-attempt check**, the older **Keeper buildup · Cyan fallback**, and the scripted **Safe hands, open play** demo. Watching and replaying require no API keys or provider requests.
+Open the local URL printed by Vite; the port depends on what's available. Press **Watch the match** to start the default catalogue recording. **Inside the match → Matches** offers the public catalogue plus scripted practice choices in development mode. Production builds offer only catalogue entries, with no scripted fallback if loading fails. Watching and replaying require no API keys or provider requests.
 
 Space toggles playback and the left/right arrows seek five seconds when focus is outside a control. **Viewing options** contains speed, volume, player numbers, camera and fullscreen controls. **Inside the match** contains recordings, team plans, observations and exact prompts. Scripted practice is labelled separately from model-played matches.
 
@@ -56,7 +56,7 @@ Each scenario starts with only the job's remaining dollars, requests and wall ti
 
 The version-2 report records cumulative totals at every checkpoint, including the active run. Each recording stores its own remaining allowance and receipts. Completed horizons with failed football criteria remain in the report and do not trigger reruns. An incomplete scenario stops the job, preserving its exact stop reason and all prior outcomes. Ctrl+C also stops the entire job. Replay import identifies model controllers and the eight-second excerpt; a completed diagnostic is not a completed match.
 
-The receiver criterion still specifically checks Coral #7 passing to Coral #6 followed by at least 3 m of controlled movement. Models can choose other legal tactics. Review actual passes, carries and failures alongside that fixed diagnostic; do not interpret its boolean alone as a general model score. The provider schema now omits only the orders-array length keyword that triggered Gemini HTTP 400; local validation still caps orders at eleven. The continued trial produced two incomplete excerpts. Carrying and receiving currently have identical starting states apart from match ID, so the duplicate receiver sample was skipped to preserve the shared allowance. The subsequent three-round keeper check accepted six full-roster replies first try with no fallback; it disabled repairs only for that diagnostic. See [the latest measured results and remaining allowance](slices/22-KEEPER-ORDER-RELIABILITY.md). The full run is deferred pending the user’s football review and additional credit.
+The receiver criterion still specifically checks Coral #7 passing to Coral #6 followed by at least 3 m of controlled movement. Models can choose other legal tactics. Review actual passes, carries and failures alongside that fixed diagnostic; do not interpret its boolean alone as a general model score. The provider schema now omits only the orders-array length keyword that triggered Gemini HTTP 400; local validation still caps orders at eleven. The continued trial produced two incomplete excerpts. Carrying and receiving currently have identical starting states apart from match ID, so the duplicate receiver sample was skipped to preserve the shared allowance. The subsequent three-round keeper check accepted six full-roster replies first try with no fallback; it disabled repairs only for that diagnostic. See [the latest measured results and remaining allowance](slices/22-KEEPER-ORDER-RELIABILITY.md). The subsequent funded one-minute run is complete; see [its review](slices/23-ONE-MINUTE-REVIEW.md). The longer run remains conditional on fixing the keeper defect.
 
 ## Generate a match
 
@@ -97,7 +97,7 @@ This validates the recording, verifies its replay, and writes compressed match d
 
 ## Deploy the website to Cloudflare
 
-The user’s current direction is to work locally and publish the new final version when ready. The older live release is not the readiness reference; do not deploy intermediate slices.
+Deploy when the user requests a release. Check the production build and the exact public catalogue before uploading; development-only practice options are excluded by Vite's production build. Preserve private recordings outside `public/` when removing them from the release.
 
 The public viewer is [LLM Football](https://llm-football.lore-cinque.workers.dev). It deploys as Cloudflare Workers Static Assets. `wrangler.jsonc` uploads only the production `dist/` directory to the `llm-football` application. No server code, database or model provider keys are needed; the match generator stays local. The public website includes the bundled recordings and their inspection data.
 
@@ -121,5 +121,7 @@ pnpm exec wrangler deploy --dry-run
 First release (8 September 2026): the viewer from commit `013d0a5`, with deployment configuration in `991b2b8`, was published from a verified build snapshot while keeper development continued separately. All 177 tests, TypeScript, the production build and deployment dry run passed. All ten public assets match the tested files by SHA-256; the three bundled recordings independently replayed to their original hashes. Live browser playback, pause, seek and the team-plan/rules inspector passed with no console errors. The release includes the three existing LLM recordings and their inspection data; no model generation ran during deployment.
 
 Only `esbuild` and `workerd` dependency build scripts are enabled in `pnpm-workspace.yaml`; these support Wrangler's tooling. Local Cloudflare state and credentials are ignored. Keep private files outside `public/`, which Vite copies into the website. Compressed match files are served as assets; the viewer handles gzip decoding before validation.
+
+The latest release contains only **One minute, two models**, with its original recording and keeper-review caveat. All eight live assets match the checked build; the six earlier public/excerpt URLs return 404. [Slice 24](slices/24-SINGLE-MATCH-CLOUDFLARE-RELEASE.md) records this deployment. Keep release progress in these docs; the main README remains evergreen.
 
 See [current progress](PROGRESS.md) for implemented slices, verification and remaining work, or the [product brief](01-PRODUCT.md) for the overall direction.
