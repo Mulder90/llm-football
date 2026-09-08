@@ -1,3 +1,9 @@
+import {
+  drawKeeperHands,
+  keeperBallFrame,
+  keeperReleasePose,
+  type KeeperReleasePose,
+} from './keeper.ts';
 import { drawRobotHelmetShell, drawRobotAntenna, TEAM_KITS, type KitPalette } from './robot-art.ts';
 import { MOVEMENT, TICK_RATE } from '../sim/rules.ts';
 import { clamp, unitVector } from '../sim/math.ts';
@@ -45,6 +51,8 @@ function drawRobot(
   celebration: CelebrationGesture | null,
   reaction: RobotReaction | undefined,
   animationTick: number,
+  hands: boolean,
+  release: KeeperReleasePose | null,
 ): void {
   const ground = worldToScreen(frame.position);
   const celebrating = celebration !== null;
@@ -77,7 +85,8 @@ function drawRobot(
   const ticksSinceTackle = tick - frame.lastTackleTick;
   const isTackling = ticksSinceTackle >= 0 && ticksSinceTackle < ANIMATION.tackleDurationTicks;
   const ticksSinceSave = tick - frame.lastSaveTick;
-  const isSaving = ticksSinceSave >= 0 && ticksSinceSave < ANIMATION.saveDurationTicks && !pumping;
+  const isSaving =
+    hands && ticksSinceSave >= 0 && ticksSinceSave < ANIMATION.saveDurationTicks && !pumping;
   const focused = hasBall || isKicking || isTackling || isSaving || preparing || receiving;
   const expression = robotExpression(reaction, celebrating, focused);
   const idle = !isMoving && !focused && !celebrating && !reaction && !frame.guarding;
@@ -165,6 +174,18 @@ function drawRobot(
 
   // Individual arm swings, receiver signals and scorer salutes share the same small sprite.
   for (const side of [-1, 1]) {
+    if (hands && !(pumping && side === 1)) continue;
+    if (release && release.delivery !== 'punt') {
+      const fraction = reducedMotion ? 1 : Math.min(1, release.ageTicks / 18);
+      const overhead = release.delivery === 'throw';
+      const handX = lean + side * (7 + Math.round(fraction * 3));
+      const handY = overhead ? -20 + Math.round(fraction * 8) : -3 - Math.round(fraction * 3);
+      const top = Math.min(-10, handY);
+      pixel(handX - 1, top, 3, Math.abs(handY + 10) + 3, OUTLINE);
+      pixel(handX, top + 1, 2, Math.abs(handY + 10) + 1, kit.shade);
+      pixel(handX - 1, handY, 4, 3, '#f5efd2');
+      continue;
+    }
     const favouredSide = side === (player.number % 2 === 0 ? -1 : 1);
     const raised =
       celebration?.armPose === 'raised' ||
@@ -334,7 +355,7 @@ export function drawPlayers(
           ageTicks: celebration.ageTicks,
         });
   }
-  frame = celebration.frame;
+  frame = keeperBallFrame(celebration.frame, reducedMotion);
   const ballMoving = drawBallTrail(context, frame, record, reducedMotion);
   const drawingOrder = record.initial.players
     .map((player, index) => {
@@ -368,12 +389,22 @@ export function drawPlayers(
       entry.gesture,
       reactions.get(entry.player.id),
       animationTick,
+      frame.owner === entry.player.id && Boolean(frame.handControl),
+      entry.player.role === 'keeper' ? keeperReleasePose(record, frame, entry.player.id) : null,
     );
+    if (frame.handControl && frame.owner === entry.player.id)
+      drawKeeperHands(
+        context,
+        frame,
+        record.initial.players.findIndex((player) => player.id === entry.player.id),
+        reactions.get(entry.player.id)?.gesture === 'save-pump',
+      );
   }
   const carrierIndex = record.initial.players.findIndex((player) => player.id === frame.owner);
   const carrier = frame.players[carrierIndex];
   const carrying =
     carrier && Math.hypot(carrier.velocity.x, carrier.velocity.y) > ANIMATION.movementThreshold;
-  drawBall(context, frame, !reducedMotion && (ballMoving || Boolean(carrying)));
+  if (!frame.handControl)
+    drawBall(context, frame, !reducedMotion && (ballMoving || Boolean(carrying)));
   return frame;
 }

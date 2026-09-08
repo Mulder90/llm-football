@@ -1,4 +1,5 @@
-import { BALL_CONTROL, FIELD, TACKLE, TICK_RATE, MATCH_TIMING } from '../sim/rules.ts';
+import { BALL_CONTROL, FIELD, KEEPER, TACKLE, TICK_RATE, MATCH_TIMING } from '../sim/rules.ts';
+import { handlingRestriction, possessionMode } from '../sim/ball-control.ts';
 import { distanceBetween } from '../sim/math.ts';
 import { attackDirection, cloneOrder, clonePhase } from '../sim/state.ts';
 import type { MatchState, Order, Player, Team, Vec2 } from '../sim/types.ts';
@@ -50,6 +51,7 @@ function actionContext(state: MatchState, player: Player) {
     !player.dismissed &&
     state.phase.type === 'open_play' &&
     carrier &&
+    !state.ball.handControl &&
     tackleCooldownTicks === 0 &&
     distanceBetween(player.position, carrier.position) <= TACKLE.maximumOpponentDistance &&
     distanceToBall <= TACKLE.ballReach &&
@@ -58,7 +60,28 @@ function actionContext(state: MatchState, player: Player) {
     state.phase.type === 'open_play' ||
     (state.phase.type === 'restart_ready' && state.phase.restart.takerId === player.id);
   return {
-    canKickNow: !player.dismissed && kickingPhase && state.ball.owner === player.id,
+    canKickNow:
+      !player.dismissed &&
+      kickingPhase &&
+      state.ball.owner === player.id &&
+      !state.ball.handControl,
+    ...(player.role === 'keeper'
+      ? {
+          handlingEligible: handlingRestriction(state, player) === null,
+          handlingRestriction: handlingRestriction(state, player),
+          canPickUpNow:
+            !player.dismissed &&
+            state.phase.type === 'open_play' &&
+            state.ball.owner === player.id &&
+            !state.ball.handControl &&
+            handlingRestriction(state, player) === null,
+          canDistributeNow:
+            !player.dismissed &&
+            state.phase.type === 'open_play' &&
+            state.ball.owner === player.id &&
+            Boolean(state.ball.handControl),
+        }
+      : {}),
     reachableTackleTargetId: canReachCarrier ? carrier.id : null,
     tackleCooldownTicks,
     distanceToBall: round(distanceToBall),
@@ -94,7 +117,7 @@ export function observe(
       : state.phase.type === 'restart_setup'
         ? 'Setup only: position your team with move or guard. Guard already moves the keeper; do not add a separate move for the same player. The delivery decision follows setup.'
         : state.phase.type === 'open_play'
-          ? 'Choose carry, pass or shoot from space, pressure and goal position; move carries an owned ball. Coordinate support and cover, and a receiver only when passing. Read actionContext. Movement persists; kicks/tackles execute now.'
+          ? 'Choose carry, pass or shoot from space, pressure and goal position; move retains foot or hand possession; from hands choose distribute or put_down before kicking. Coordinate support and cover, and a receiver only when passing. Read actionContext. Movement persists; kicks/tackles execute now.'
           : 'The clock is stopped for the interval or full time. No orders are accepted.';
   return {
     protocolVersion: 1,
@@ -142,6 +165,14 @@ export function observe(
       velocity: { ...position(state.ball.velocity), z: round(state.ball.velocity.z) },
       owner: state.ball.owner,
       lastTouch: state.ball.lastTouch,
+      possessionMode: possessionMode(state.ball),
+      holdTicksRemaining: state.ball.handControl
+        ? Math.max(
+            0,
+            KEEPER.maximumHoldTicks -
+              (state.playingTicks - state.ball.handControl.sincePlayingTick),
+          )
+        : null,
     },
     players: state.players.map((player) => ({
       id: player.id,
@@ -176,7 +207,9 @@ export function observe(
         (event) =>
           event.tick >= previousDecisionTick &&
           event.playerId?.startsWith(`${team}-`) &&
-          (event.type === 'order_failed' || event.type === 'restart_violation'),
+          (event.type === 'order_failed' ||
+            event.type === 'restart_violation' ||
+            event.type === 'keeper_violation'),
       )
       .slice(-PROTOCOL_LIMITS.recentEvents)
       .map((event) => ({ ...event })),

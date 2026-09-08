@@ -1,26 +1,16 @@
 # Next steps
 
-Proposed sequence following the carrier-choice evaluation and the user's request to plan goalkeeper handling. This is a plan, not a statement that the features below are implemented. [Current progress](PROGRESS.md) records measured results; [historical handoffs](slices/README.md) preserve earlier work.
+Goalkeeper possession is complete. The remaining sequence starts with sustained short decisions; later paid evaluations and a complete match still need their own bounded review. [Current progress](PROGRESS.md) records measured results; [historical handoffs](slices/README.md) preserve earlier work.
 
 The carrier-choice slice is complete: clearer carry/pass/shoot guidance, compact memory, stable schemas and fewer release-triggered rounds. Twenty short-case requests cost approximately $0.11 and all passed validation first try. Sustained teamwork remains unproven.
 
-## 1. Proper goalkeeper possession
+## 1. Goalkeeper possession — complete
 
-Deliver one reviewable keeper sequence: collect a legal ball, hold it visibly, then distribute to a model-chosen target.
+The offline keeper slice is implemented in `football-0.6`: persistent hands, eligible guard catches, pickup, roll/throw/punt/put-down, handling restrictions, protected possession, the eight-second limit and its referee countdown. Model targets remain explicit; the engine chooses no outlet or run. [Decision 011](decisions/011-GOALKEEPER-HAND-POSSESSION.md) records the contract, timing and deliberate simplifications.
 
-Represent hands separately from foot possession in canonical state, observations and replay samples. Guarding retains its documented automatic catch reach; an explicit pickup can lift an eligible ball already controlled at the keeper's feet. Neither action chooses a position or chases a ball automatically. A catch must persist as hand possession until a release, restart or half ending; changing a movement order must not silently put the ball down.
+**Safe hands, open play** is the current scripted default. It shows a pickup, movement in hands, roll and reception, an opponent return, catch, throw and another reception. Incompatible development LLM files/catalogue entries are removed; there is no legacy playback or relabelled outcome. Watching costs no inference. [Slice 18](slices/18-GOALKEEPER-POSSESSION.md) records verification and the mechanism.
 
-Give the controller compact release choices: roll, throw, punt or put down to play with the feet. Reuse existing target, speed and loft concepts where appropriate, with clear physical bounds per delivery. The model selects delivery and teammates' runs; the engine resolves flight and reception. Expose handling eligibility, possession mode and remaining hold time without prescribing tactics.
-
-Cover own-area handling, protected possession, deliberate teammate kicks/direct teammate throws, and handling again after release before another player touches the ball. Track relevant touches explicitly; a deflection must not silently erase a restriction. Define handling at the penalty-area boundary using the ball's position, including when the keeper moves while holding it. Document deliberate simplifications and unsupported cases rather than claiming complete Laws compliance.
-
-Use the current eight-second holding limit and corner sanction, with the referee's final-five-second signal. Count simulation playing ticks, never provider latency or presentation time. Holding does not pause the match clock. Use [IFAB Law 12](https://theifab.com/laws/latest/fouls-and-misconduct/) as the rule reference and verify boundary/sanction details during implementation.
-
-Render a ground scoop, a catch into gloves, held-ball movement and readable releases, with restrained catch audio and the existing save reaction. Animation reads the real possession state; it cannot make a failed save appear caught. Include pause, seek and playback-speed checks.
-
-Exit: deterministic offline cases prove legal catches, foot-only back-pass control, protected possession, each release, handling restrictions, area and timer boundaries, end swaps, half endings and exact replay. Show the sequence in a clearly labelled scripted fixture. No paid model calls are needed for this slice.
-
-This changes the engine/recording contract. Bump the ruleset, update validators, prompts, fixtures and current docs together. Remove incompatible public development recordings and catalogue entries instead of adding legacy playback or relabelling old outcomes. Provide a current scripted demo so the viewer remains usable until a new LLM recording exists. Record the accepted choice alongside implementation, not as a speculative ADR now.
+The response schema remains stable across requests. Shared action shapes and compact rule wording keep bounded full-roster/memory requests within the existing 32 KiB limit; delivery-specific limits are also enforced by runtime and recording validation. No paid requests were needed.
 
 ## 2. Sustained football decisions
 
@@ -31,6 +21,10 @@ Use three focused situations: a carrier advancing into space before pressure arr
 Measure controlled carrying across boundaries, pass reception and follow-up control, turnovers, supporting spacing, keeper distribution and illegal attempts. Record rounds, requests, repairs, latency and cost beside football results. Adjust one coherent prompt or execution issue at a time; do not hide failed decisions behind automatic tactics.
 
 Exit: reproducible short sequences demonstrate whether carrying, receiving and keeper buildup survive repeated decisions. Dry-run the exact request allowance and set combined/per-provider spending caps against the remaining balances before dispatch. Do not assume old balances or promise a price from the previous two-second cases.
+
+Implementation dependency: `evaluateControllerScenario` currently applies one accepted batch against fixed opposition and advances two simulation seconds. Increasing its duration alone would not test repeated decisions. First make the existing match runner usable from an explicit scenario state with a bounded playing-time stop, reusing its paired scheduler, memory, repairs and receipts. Keep this football-specific; do not introduce a second scheduler or a generic runner framework. Scripted runs must retain fixture provenance rather than inheriting the runner's current `kind: 'llm'` label.
+
+Review the offline evaluation harness before paid execution. A paired round requires two initial requests and permits up to four total with one repair per team. Reception and phase changes can add rounds, so derive request ceilings from explicit maximum rounds, not just the nominal one-second interval. Preserve every run's recording, metrics and stop reason. Choose fixed seeds, repetitions and football success criteria before dispatch; decide whether the observed sequences justify a complete match after reviewing all outcomes.
 
 ## 3. A fresh complete match
 

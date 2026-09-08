@@ -1,3 +1,6 @@
+import { noteHandlingTouch } from './ball-control.ts';
+import { awardRestart } from './restarts.ts';
+import { opponent } from './state.ts';
 import { footPosition } from './ball.ts';
 import { emitEvent } from './events.ts';
 import { awardFoul, tackleFoul, type FoulSeverity } from './fouls.ts';
@@ -22,6 +25,22 @@ export function resolveTackles(state: MatchState): void {
     }
     player.lastTackleTick = state.tick;
     const ballDistance = distanceBetween(player.position, state.ball.position);
+    if (
+      state.ball.handControl &&
+      carrier?.id === active.order.targetId &&
+      carrier.team !== player.team &&
+      distanceBetween(player.position, carrier.position) <= TACKLE.maximumOpponentDistance
+    ) {
+      emitEvent(
+        state,
+        'keeper_violation',
+        player.id,
+        'Opponent challenged protected hand possession',
+        player.team,
+      );
+      awardRestart(state, 'indirect_free_kick', opponent(player.team), carrier.position);
+      return;
+    }
     const canReach =
       carrier?.id === active.order.targetId &&
       carrier.team !== player.team &&
@@ -65,6 +84,8 @@ export function resolveTackles(state: MatchState): void {
   }
   if (penalizeOffsideInvolvement(state, winner)) return;
   notePlayerTouch(state, winner, true, false);
+  noteHandlingTouch(state, winner, true);
+  state.ball.handControl = null;
   state.ball.owner = winner.id;
   state.ball.lastTouch = winner.id;
   state.ball.restartTouch = null;

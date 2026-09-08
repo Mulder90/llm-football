@@ -3,7 +3,7 @@ import { applyDecision } from '../sim/orders.ts';
 import { ENGINE_VERSION, TICK_RATE } from '../sim/rules.ts';
 import { cloneState, clonePhase } from '../sim/state.ts';
 import { step } from '../sim/step.ts';
-import type { Batch, MatchEvent, MatchState, Team, Vec2, Vec3 } from '../sim/types.ts';
+import type { Ball, Batch, MatchEvent, MatchState, Team, Vec2, Vec3 } from '../sim/types.ts';
 import type { TacticalMemory } from '../protocol/schema.ts';
 import type { GenerationProvenance } from './provenance.ts';
 
@@ -40,6 +40,7 @@ export type Frame = {
   players: PlayerFrame[];
   ball: Vec3;
   owner: string | null;
+  handControl: Ball['handControl'];
 };
 
 export type Recording = {
@@ -80,6 +81,7 @@ export function capture(state: MatchState): Frame {
     })),
     ball: { ...state.ball.position },
     owner: state.ball.owner,
+    handControl: state.ball.handControl ? { ...state.ball.handControl } : null,
   };
 }
 
@@ -187,6 +189,10 @@ export function sample(record: Recording, seconds: number): Frame {
       };
     }),
     // Receiving a ball is a discrete contact, not a slide through its new owner.
-    ball: previousFrame.owner !== nextFrame.owner ? previousFrame.ball : interpolatedBall,
+    ball:
+      previousFrame.owner !== nextFrame.owner ||
+      previousFrame.handControl?.sinceTick !== nextFrame.handControl?.sinceTick
+        ? previousFrame.ball
+        : interpolatedBall,
   };
 }

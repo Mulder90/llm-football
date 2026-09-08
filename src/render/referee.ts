@@ -1,3 +1,4 @@
+import { keeperCountdown } from './keeper.ts';
 import type { Frame, Recording } from '../recording/record.ts';
 import type { MatchEvent, Vec2 } from '../sim/types.ts';
 import { clamp } from '../sim/math.ts';
@@ -65,6 +66,7 @@ function incidentSignal(
     case 'yellow_card':
     case 'red_card':
       return { type: event.type, tick: event.tick, target: { x: incident.x, y: incident.y } };
+    case 'keeper_violation':
     case 'foul':
     case 'offside':
     case 'restart_ready':
@@ -230,10 +232,12 @@ export function drawReferee(
   const facingAway = pose.facing.y < -0.7;
   const signal = pose.signal;
   const age = signal ? frame.tick - signal.tick : 0;
+  const countdown = keeperCountdown(frame);
+  const counting = countdown !== null;
   const showingCard = signal?.type === 'yellow_card' || signal?.type === 'red_card';
   const whistling = signal?.type === 'whistle' && (reducedMotion || age < REFEREE.whistleTicks);
   const pointing = signal?.type === 'point' || (signal?.type === 'whistle' && !whistling);
-  const gestureSide = pointing && pose.facing.x < 0 ? -1 : 1;
+  const gestureSide = !counting && pointing && pose.facing.x < 0 ? -1 : 1;
   const pixel = (x: number, y: number, width: number, height: number, color: string) =>
     drawPixelRect(context, anchor.x + x, anchor.y + y, width, height, color);
   context.save();
@@ -247,7 +251,7 @@ export function drawReferee(
     pixel(footX - 1, footY - 3, 2, 2, KIT.shirt);
     pixel(footX - 2, footY, 4, 2, KIT.outline);
     pixel(footX - 1, footY, 2, 1, '#cad9c3');
-    if (side === gestureSide && (showingCard || whistling || pointing)) continue;
+    if (side === gestureSide && (showingCard || counting || whistling || pointing)) continue;
     pixel(lean + side * 7 - 1, -11 + side * stride + bodyBob, 3, 6, KIT.outline);
     pixel(lean + side * 7, -10 + side * stride + bodyBob, 2, 4, KIT.shade);
     pixel(lean + side * 7 - 1, -5 + side * stride + bodyBob, 3, 2, KIT.shell);
@@ -286,6 +290,16 @@ export function drawReferee(
     pixel(6 + lean, handY - 1, 3, 3, KIT.shell);
     pixel(5 + lean, handY - 8, 6, 8, KIT.outline);
     pixel(6 + lean, handY - 7, 4, 6, signal.type === 'red_card' ? '#f46e65' : '#ffe06a');
+  } else if (counting) {
+    pixel(6 + lean, -23, 3, 15, KIT.outline);
+    pixel(7 + lean, -21, 2, 11, KIT.shirt);
+    pixel(6 + lean, -25, 4, 4, KIT.shell);
+    // A small count accompanies the raised hand; no persistent spectator HUD is needed.
+    pixel(3 + lean, -39, 11, 11, KIT.outline);
+    context.fillStyle = KIT.highlight;
+    context.textAlign = 'center';
+    context.font = '9px monospace';
+    context.fillText(String(countdown), anchor.x + 8 + lean, anchor.y - 30);
   } else if (whistling) {
     pixel(6 + lean, -12 + bodyBob, 3, 7, KIT.outline);
     pixel(3 + lean, -14 + bodyBob, 5, 3, KIT.shade);

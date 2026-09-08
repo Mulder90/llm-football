@@ -1,14 +1,22 @@
 import { mkdir, writeFile } from 'node:fs/promises';
+import { createKeeperFixture } from '../src/fixtures/keeper.ts';
 import { createFullMatchFixture } from '../src/fixtures/full-match.ts';
 import { createPassingFixture } from '../src/fixtures/passing.ts';
 import { TICK_RATE } from '../src/sim/rules.ts';
 import { verifyRecording } from '../src/recording/record.ts';
 
 const isFullMatch = process.argv.includes('--full');
-const record = isFullMatch ? createFullMatchFixture() : createPassingFixture();
-const outputPath = isFullMatch
-  ? 'artifacts/full-match-fixture.json'
-  : 'artifacts/passing-fixture.json';
+const isKeeper = process.argv.includes('--keeper');
+const record = isKeeper
+  ? createKeeperFixture()
+  : isFullMatch
+    ? createFullMatchFixture()
+    : createPassingFixture();
+const outputPath = isKeeper
+  ? 'artifacts/keeper-fixture.json'
+  : isFullMatch
+    ? 'artifacts/full-match-fixture.json'
+    : 'artifacts/passing-fixture.json';
 verifyRecording(record);
 await mkdir('artifacts', { recursive: true });
 await writeFile(outputPath, JSON.stringify(record));

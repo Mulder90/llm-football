@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BALL_CONTROL, FIELD, PLAYERS_PER_TEAM } from '../sim/rules.ts';
+import { BALL_CONTROL, FIELD, KEEPER, PLAYERS_PER_TEAM } from '../sim/rules.ts';
 import { validateBatch } from '../sim/orders.ts';
 import type { Batch, MatchState, Player, Team } from '../sim/types.ts';
 
@@ -51,6 +51,15 @@ const kickFields = {
 // Required loft (zero for ground passes) works with both providers' strict JSON schemas.
 export const modelOrderSchema = z.union([
   z.strictObject({ type: z.literal('hold'), ...playerFields }),
+  z.strictObject({ type: z.enum(['pickup', 'put_down']), ...playerFields }),
+  z.strictObject({
+    type: z.literal('distribute'),
+    ...playerFields,
+    delivery: z.enum(['roll', 'throw', 'punt']),
+    target: pitchTargetSchema,
+    speed: z.number().min(BALL_CONTROL.minimumKickSpeed).max(KEEPER.deliveries.punt.maximumSpeed),
+    loft: z.number().min(0).max(KEEPER.deliveries.punt.maximumLoft),
+  }),
   z.strictObject({
     type: z.literal('move'),
     ...playerFields,
@@ -58,8 +67,7 @@ export const modelOrderSchema = z.union([
     pace: z.number().min(0.01).max(1),
   }),
   z.strictObject({ type: z.literal('guard'), ...playerFields, target: pitchTargetSchema }),
-  z.strictObject({ type: z.literal('kick'), ...kickFields }),
-  z.strictObject({ type: z.literal('shoot'), ...kickFields }),
+  z.strictObject({ type: z.enum(['kick', 'shoot']), ...kickFields }),
   z.strictObject({ type: z.literal('tackle'), ...playerFields, targetId: playerIdSchema }),
   z.strictObject({ type: z.literal('restart_taker'), ...playerFields }),
 ]);

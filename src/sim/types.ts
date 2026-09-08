@@ -18,6 +18,16 @@ export type Order =
   | { type: 'hold'; playerId: string }
   | { type: 'move'; playerId: string; target: Vec2; pace: number }
   | KickOrder
+  | { type: 'pickup'; playerId: string }
+  | { type: 'put_down'; playerId: string }
+  | {
+      type: 'distribute';
+      playerId: string;
+      delivery: 'roll' | 'throw' | 'punt';
+      target: Vec2;
+      speed: number;
+      loft: number;
+    }
   | { type: 'guard'; playerId: string; target: Vec2 }
   | { type: 'tackle'; playerId: string; targetId: string }
   | { type: 'restart_taker'; playerId: string };
@@ -67,6 +77,19 @@ export type Ball = {
   position: Vec3;
   velocity: Vec3;
   owner: string | null;
+  /** Null means loose/foot possession, according to owner. Independent of active orders. */
+  handControl: {
+    sinceTick: number;
+    sincePlayingTick: number;
+    height: number;
+    kind: 'catch' | 'pickup';
+  } | null;
+  handling: {
+    deliberateKick: { playerId: string; team: Team } | null;
+    directThrowInTeam: Team | null;
+    releasedBy: string | null;
+    directThrowBy: string | null;
+  };
   lastTouch: string | null;
   /** Simulation tick of the last kick; controls the recapture cooldown. */
   kickedAt: number;
@@ -85,6 +108,9 @@ export type MatchEvent = {
     | 'ball_out'
     | 'goal'
     | 'save'
+    | 'keeper_pickup'
+    | 'keeper_release'
+    | 'keeper_violation'
     | 'block'
     | 'post'
     | 'tackle'
@@ -102,6 +128,7 @@ export type MatchEvent = {
   playerId: string | null;
   detail: string;
   team?: Team;
+  delivery?: 'roll' | 'throw' | 'punt' | 'put_down';
 };
 export type MatchState = {
   version: typeof ENGINE_VERSION;

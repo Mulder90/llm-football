@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';
+import { createKeeperFixture } from '../fixtures/keeper.ts';
 import { createFullMatchFixture } from '../fixtures/full-match.ts';
 import { createPassingFixture } from '../fixtures/passing.ts';
 import { createCarryAndChipFixture } from '../fixtures/carry-and-chip.ts';
@@ -33,7 +34,7 @@ async function fetchMatch(entry: MatchListing, signal?: AbortSignal): Promise<Re
   return recording;
 }
 export function useRecordings() {
-  const [recording, setRecording] = useState(createPassingFixture);
+  const [recording, setRecording] = useState(createKeeperFixture);
   const [matches, setMatches] = useState<MatchListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -65,13 +66,15 @@ export function useRecordings() {
   const selectRecording = useCallback(
     async (id: string) => {
       setLoadError('');
-      if (id === 'full' || id === 'passing' || id === 'carry-and-chip') {
+      if (id === 'keeper' || id === 'full' || id === 'passing' || id === 'carry-and-chip') {
         const fixture =
-          id === 'full'
-            ? createFullMatchFixture
-            : id === 'carry-and-chip'
-              ? createCarryAndChipFixture
-              : createPassingFixture;
+          id === 'keeper'
+            ? createKeeperFixture
+            : id === 'full'
+              ? createFullMatchFixture
+              : id === 'carry-and-chip'
+                ? createCarryAndChipFixture
+                : createPassingFixture;
         setRecording(fixture());
         return;
       }

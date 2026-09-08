@@ -153,10 +153,24 @@ describe('controller comparison situations', () => {
     expect(observation.privateMemory).toEqual(memory);
     expect(observation.previousDecisionTick).toBeLessThan(scenario.state.tick);
     const repeated = evaluate(scenario, [
-      { type: 'kick', playerId: 'coral-1', target: { x: 30, y: 34 }, speed: 15, loft: 0 },
+      {
+        type: 'distribute',
+        delivery: 'roll',
+        playerId: 'coral-1',
+        target: { x: 30, y: 34 },
+        speed: 12,
+        loft: 0,
+      },
     ]);
     const changed = evaluate(scenario, [
-      { type: 'kick', playerId: 'coral-1', target: { x: 22, y: 26 }, speed: 15, loft: 0 },
+      {
+        type: 'distribute',
+        delivery: 'roll',
+        playerId: 'coral-1',
+        target: { x: 22, y: 26 },
+        speed: 12,
+        loft: 0,
+      },
     ]);
     expect(repeated.metrics.turnovers).toBe(1);
     expect(repeated.metrics.finalOwnerId).toBe('cyan-10');

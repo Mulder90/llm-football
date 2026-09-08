@@ -7,7 +7,7 @@ import { drawPixelRect } from './pixels.ts';
 // Height is exaggerated for legibility; its ground shadow always marks the physical x/y.
 const BALL_ART = { heightPixelsPerMetre: 12, trailSampleTicks: 3 } as const;
 
-function ballScreenPosition(frame: Frame) {
+export function ballScreenPosition(frame: Frame) {
   const ground = worldToScreen(frame.ball);
   const heightOffset = Math.round(
     (frame.ball.z - BALL_CONTROL.radius) * BALL_ART.heightPixelsPerMetre,

@@ -14,5 +14,6 @@ These records explain approved choices and their evidence. For current behavior,
 | [008 — Positional briefs](008-POSITIONAL-BRIEFS.md)                               | Active role guidance; 010 uses a stable request schema in size checks.                                                 |
 | [009 — Provider budgets](009-PROVIDER-BUDGETS.md)                                 | Active combined and per-provider estimated ceilings.                                                                   |
 | [010 — Carrier choices and requests](010-CARRIER-CHOICES-AND-REQUESTS.md)         | Current carry/pass/shoot guidance, compact memory and request cadence.                                                 |
+| [011 — Goalkeeper hand possession](011-GOALKEEPER-HAND-POSSESSION.md)             | Current persistent hand state, distribution, handling histories, timing and replay boundaries.                         |
 
 Add an ADR only when an approved choice constrains future work. Describe the context, decision, principal alternative, consequences, relevant verification and revisit condition. Ordinary filenames and hypothetical systems do not need records.

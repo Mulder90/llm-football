@@ -333,7 +333,8 @@ describe('browser playback audio lifecycle', () => {
     const events = [event('save', 4, 10), event('goal', 20, 11)];
     audio.advance(events, 0, true, 1, 0);
     audio.advance(events, 5, true, 1, 0, 'restart_setup');
-    expect(context.sources).toHaveLength(0); // Saves do not add synthetic claps or crowd voices.
+    expect(context.sources).toHaveLength(1); // One quiet glove contact, without crowd voices.
+    expect(context.sources[0]!.buffer).not.toEqual({ recorded: true, duration: 7.1 });
     audio.advance(events, 21, true, 1, 0, 'restart_setup');
     expect(context.sources.at(-1)!.buffer).toEqual({ recorded: true, duration: 7.1 });
     expect(context.sources.at(-1)!.playbackRate.value).toBe(1);

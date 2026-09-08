@@ -173,6 +173,20 @@ export function scriptedOrders(state: MatchState, team: Team): Order[] {
       };
     }
     if (state.phase.type === 'open_play' && owner?.id === player.id) {
+      if (state.ball.handControl) {
+        const outlet = chooseDelivery(state, player);
+        // Explicit scripted tactic, never used as assistance for a model team.
+        return outlet
+          ? {
+              type: 'distribute',
+              delivery: 'throw',
+              playerId: player.id,
+              target: outlet.target,
+              speed: Math.min(outlet.speed, 18),
+              loft: 1,
+            }
+          : { type: 'put_down', playerId: player.id };
+      }
       return (
         chooseDelivery(state, player) ?? {
           type: 'move',

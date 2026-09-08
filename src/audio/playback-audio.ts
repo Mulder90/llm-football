@@ -12,6 +12,7 @@ const SIGNIFICANT_EVENTS = new Set([
   'goal',
   'restart_ready',
   'foul',
+  'keeper_violation',
   'offside',
   'ball_out',
   'halftime',

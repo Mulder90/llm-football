@@ -3,6 +3,7 @@ import type { Team } from '../sim/types.ts';
 
 export const SOUND_DURATIONS = {
   kick: 0.11,
+  catch: 0.09,
   post: 0.4,
   'whistle-short': 0.22,
   'whistle-long': 0.58,
@@ -40,10 +41,16 @@ export function eventSoundCues(event: MatchEvent): SoundCue[] {
       return [cue('kick', 0.28, 'contact')];
     case 'shot':
       return [cue('kick', 0.33, 'contact')];
+    case 'save':
+    case 'keeper_pickup':
+      return [cue('catch', 0.13, 'contact')];
+    case 'keeper_release':
+      return event.delivery === 'punt' ? [cue('kick', 0.26, 'contact')] : [];
     case 'tackle':
       return [cue('kick', 0.15, 'contact')];
     case 'post':
       return [cue('post', 0.2, 'contact')];
+    case 'keeper_violation':
     case 'foul':
     case 'offside':
     case 'ball_out':
@@ -88,6 +95,9 @@ export function createSoundSamples(sound: SynthesizedSound, sampleRate: number):
         (Math.sin(Math.PI * 2 * 2850 * time + flutter * 0.16) * 0.7 +
           Math.sin(Math.PI * 2 * 4090 * time) * 0.2) *
         (0.85 + flutter * 0.15);
+    } else if (sound === 'catch') {
+      value =
+        (Math.sin(Math.PI * 2 * 95 * time) * 0.45 + softenedNoise * 0.55) * Math.exp(-time * 48);
     } else if (sound === 'post') {
       value =
         (Math.sin(Math.PI * 2 * 810 * time) + Math.sin(Math.PI * 2 * 1357 * time) * 0.45) *

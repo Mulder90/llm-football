@@ -19,3 +19,4 @@ These documents describe implementation and evidence **at the end of each slice*
 15. [Quiet stadium and football evaluation](15-QUIET-STADIUM-AND-FOOTBALL.md)
 16. [Carrier choices and leaner requests](16-CARRIER-CHOICES.md)
 17. [Touchline and stadium rendering](17-TOUCHLINE-AND-STADIUM.md)
+18. [Persistent goalkeeper possession](18-GOALKEEPER-POSSESSION.md)

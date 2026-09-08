@@ -20,6 +20,7 @@ it('keeps the simulation free of platform imports and external clocks', () => {
 
 it('protects the foundation fixture from unnoticed rule or numeric drift', () => {
   // Changes require reviewing the event sequence, engine version and slice record.
-  // Same kick/contact sequence as football-0.3; only the serialized version changed.
-  expect(createPassingFixture().finalHash).toBe('891d002e');
+  // football-0.6 adds canonical handling history. Compared with the previous
+  // ruleset: events and football state are unchanged in this passing fixture.
+  expect(createPassingFixture().finalHash).toBe('cdc195ec');
 });

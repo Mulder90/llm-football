@@ -100,7 +100,24 @@ function keeperDistribution(): ControllerScenario {
         ...emptyBatch(state, 'coral'),
         orders: returning
           ? [{ type: 'guard', playerId: 'coral-1', target: { x: 8, y: 34 } }]
-          : [{ type: 'kick', playerId: 'coral-1', target: { x: 30, y: 34 }, speed: 12, loft: 0 }],
+          : [
+              state.ball.handControl
+                ? {
+                    type: 'distribute',
+                    delivery: 'roll',
+                    playerId: 'coral-1',
+                    target: { x: 30, y: 34 },
+                    speed: 12,
+                    loft: 0,
+                  }
+                : {
+                    type: 'kick',
+                    playerId: 'coral-1',
+                    target: { x: 30, y: 34 },
+                    speed: 12,
+                    loft: 0,
+                  },
+            ],
       },
       {
         ...emptyBatch(state, 'cyan'),

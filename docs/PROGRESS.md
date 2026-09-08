@@ -8,9 +8,17 @@ The viewer is public at [llm-football.lore-cinque.workers.dev](https://llm-footb
 
 ## Latest work
 
+**Safe hands, open play** is the new default: a 16-second scripted goalkeeper drill under `football-0.6`. It shows pickup, movement in hands, a roll to Coral #3, a scripted opponent return, a catch, and a throw to Coral #6. Both receptions are engine-resolved. The fixture has nine events, no failed orders or handling violations, and verifies independently to hash `5a64393a`. It is not LLM-played and made no provider requests.
+
+Keepers now retain actual hand possession through movement and order expiry, choose roll/throw/punt/put-down, and face explicit handling restrictions and an eight-second playing-time limit. The referee signals the final five seconds and awards a corner for exceeding the limit. Replay preserves pickup/release boundaries even when the owner does not change. Glove poses and quiet catch audio follow recorded state/events. TypeScript, 220 tests, production build and three fixture replays passed; browser checks covered playback and narrow screens. [Slice 18](slices/18-GOALKEEPER-POSSESSION.md) contains the checks and limitations.
+
+The three incompatible public LLM recordings and catalogue entries have been removed; there is no current-ruleset LLM match yet. The scripted demo keeps the viewer usable without backward compatibility or altered historical results.
+
+## Previous visual work
+
 The rendering pass rebuilds the south touchline with north-facing cutaway dugouts, smaller rear/side-facing robot substitutes, distinct coaches and grouped equipment. Sideline robots were reduced after live scale feedback; pitch-player size remains unchanged pending a separate comparison. Drummers now sit within the crowd. Paving, boards and spectator colours are quieter, seating varies in small groups, and pitch markings are drawn as crisp pixels. No match, ruleset, model or audio changes. [Slice 17](slices/17-TOUCHLINE-AND-STADIUM.md) records the implementation and verification.
 
-## Latest football work
+## Previous controller work
 
 The carrier now chooses whether to dribble, pass or shoot before arranging a receiver. Tactical memory requests three important off-ball jobs while actual orders still cover all eleven players. The response schema stays stable across requests; runtime identity and ownership checks remain strict. Releasing a ball into flight no longer triggers an extra early replan, while reception and phase changes still can.
 
@@ -20,15 +28,15 @@ Estimated evaluation spending: **$0.10943875** ($0.036166 OpenAI / $0.07327275 G
 
 The obsolete concept image is removed, the original planning brief is archived, and current guides are separated from historical handoffs. Start at the [documentation index](README.md).
 
-## Latest complete match
+## Latest complete LLM match — previous ruleset
 
-**Finding their shape** (`positional-match-001`) is the default recording: GPT-5 mini versus Gemini 3.8 Flash, 0–0 after 60 playing seconds. Its 133 paired rounds used 293 requests, including 27 repairs and two explicit Coral fallbacks. Generation took 43m 43s and an estimated $2.08662375; independent replay matches hash `cd60f48a`.
+**Finding their shape** (`positional-match-001`) was the previous default recording: GPT-5 mini versus Gemini 3.8 Flash, 0–0 after 60 playing seconds. Its 133 paired rounds used 293 requests, including 27 repairs and two explicit Coral fallbacks. Generation took 43m 43s and an estimated $2.08662375; independent replay matches hash `cd60f48a`.
 
 That match predates the latest carrier and scheduling changes. Coral completed more passes than the earlier nano/Flash-Lite baseline, but neither side deliberately selected a carrier move, crowding was broadly unchanged, and all ten shots belonged to Cyan in the first half. [Slice 15](slices/15-QUIET-STADIUM-AND-FOOTBALL.md) retains the full comparison and accounting.
 
 ## Implemented boundaries
 
-- Seeded 60 Hz simulation, ground/aerial ball physics, carrying, passing, shooting, guarding, tackles, restarts, halftime and full time.
+- Seeded 60 Hz simulation, ground/aerial ball physics, foot/hand possession, keeper distribution and handling rules, passing, shooting, tackles, restarts, halftime and full time.
 - Fouls, cards, dismissals, penalties and explicit offside rules with documented simplifications.
 - Simultaneous team observations, positional briefs, private tactical memory, bounded repairs and per-provider budgets.
 - Validated recordings, deterministic replay verification, import/export and local catalogue publication.
@@ -37,7 +45,7 @@ That match predates the latest carrier and scheduling changes. Coral completed m
 
 ## Next step and limitations
 
-The proposed next slice is proper goalkeeper hand possession, legal handling and visible distribution, verified offline. Then test sustained short possessions across several paired decisions before another complete two-half match. [The next-steps plan](06-BUILD-PLAN.md) describes the sequence and the required replacement of incompatible development recordings. No automatic new run is scheduled.
+The next slice is an offline harness for sustained 6–10-second possessions across several paired decisions, reusing the real match scheduler, memory and budgets. Review those scripted checks before bounded model evaluation and another complete two-half match. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled.
 
 The engine never chooses tactics or repairs a model's chosen target. The two-second evaluations cannot establish longer buildup, defensive coordination or full-match cost savings. A model's written review may be wrong.
 

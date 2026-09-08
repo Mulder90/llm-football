@@ -192,7 +192,8 @@ describe('starting positional briefs', () => {
         tick: 4311 + (index % 10),
         type: 'order_failed',
         playerId: `coral-${(index % 11) + 1}`,
-        detail: 'Tackle did not reach the carrier and ball',
+        detail: 'Kick requires foot possession; use distribute or put_down from hands',
+        team: 'coral',
       }));
       const memory = populatedMemory(state, 'coral');
       memory.plan = character.repeat(PROTOCOL_LIMITS.planCharacters);

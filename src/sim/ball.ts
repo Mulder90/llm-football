@@ -1,3 +1,11 @@
+import {
+  footPosition,
+  handlingRestriction,
+  noteHandlingTouch,
+  noteDeliberateKick,
+} from './ball-control.ts';
+export { footPosition } from './ball-control.ts';
+import { collectInHands, updateHeldBall } from './keeper.ts';
 import { firstBoundaryCrossing, pointOnSegment, resolveBoundary } from './boundaries.ts';
 import { emitEvent } from './events.ts';
 import { goalFrameContacts } from './goal-frame.ts';
@@ -12,7 +20,7 @@ import {
   RESTART_RULES,
   SECONDS_PER_TICK,
 } from './rules.ts';
-import { attackDirection, inOwnPenaltyArea, opponent } from './state.ts';
+import { attackDirection, opponent } from './state.ts';
 import type { Ball, MatchState, Player, Vec2, Vec3 } from './types.ts';
 
 type PlayerContact = {
@@ -23,14 +31,6 @@ type PlayerContact = {
   isSave: boolean;
 };
 
-export function footPosition(player: Player): Vec3 {
-  return {
-    x: player.position.x + player.facing.x * BALL_CONTROL.carryingOffset,
-    y: player.position.y + player.facing.y * BALL_CONTROL.carryingOffset,
-    z: BALL_CONTROL.radius,
-  };
-}
-
 export function executeKick(state: MatchState, player: Player): void {
   if (player.dismissed) return;
   const activeOrder = player.active;
@@ -38,8 +38,13 @@ export function executeKick(state: MatchState, player: Player): void {
   const order = activeOrder.order;
   player.active = null;
   if (activeOrder.expires <= state.tick) return;
-  if (state.ball.owner !== player.id) {
-    emitEvent(state, 'order_failed', player.id, 'Kick requires possession');
+  if (state.ball.owner !== player.id || state.ball.handControl) {
+    emitEvent(
+      state,
+      'order_failed',
+      player.id,
+      'Kick requires foot possession; use distribute or put_down from hands',
+    );
     return;
   }
   const direction = unitVector({
@@ -63,6 +68,7 @@ export function executeKick(state: MatchState, player: Player): void {
   const restart = releaseRestart(state);
   snapshotOffside(state, player, restart?.type);
   const isThrow = restart?.type === 'throw_in';
+  noteDeliberateKick(state, player, isThrow);
   const speed = isThrow ? Math.min(order.speed, RESTART_RULES.maximumThrowSpeed) : order.speed;
   player.facing = direction;
   player.lastKick = state.tick;
@@ -123,41 +129,40 @@ function findPlayerContacts(
       player.id === state.ball.lastTouch &&
       state.tick - state.ball.kickedAt < BALL_CONTROL.kickerRecaptureDelayTicks;
     if (justKicked) continue;
-    const isGuarding =
-      player.role === 'keeper' &&
-      player.active?.order.type === 'guard' &&
-      inOwnPenaltyArea(state, player);
-    const controlHeight = isGuarding
-      ? KEEPER.guardingHeight
-      : BALL_CONTROL.maximumFootControlHeight;
-    const slowEnough =
-      isGuarding || vectorLength(state.ball.velocity) <= BALL_CONTROL.maximumFootControlSpeed;
-    const canControl = slowEnough && Math.max(from.z, state.ball.position.z) <= controlHeight;
-    const reach = canControl
-      ? isGuarding
-        ? KEEPER.guardingReach
-        : BALL_CONTROL.receivingRadius
-      : MOVEMENT.playerRadius + BALL_CONTROL.radius;
-    const previousPlayer = previousPositions.get(player.id)!;
-    const timeFraction = contactTime(
-      { x: from.x - previousPlayer.x, y: from.y - previousPlayer.y },
-      {
-        x: state.ball.position.x - player.position.x,
-        y: state.ball.position.y - player.position.y,
-      },
-      { x: 0, y: 0 },
-      reach,
-    );
-    if (timeFraction === null) continue;
-    const contactHeight = from.z + (state.ball.position.z - from.z) * timeFraction;
-    if (contactHeight > (canControl ? controlHeight : BALL_CONTROL.bodyHeight)) continue;
-    contacts.push({
-      type: 'player',
-      player,
-      timeFraction,
-      canControl,
-      isSave: Boolean(isGuarding && canControl),
-    });
+    const guarding = player.role === 'keeper' && player.active?.order.type === 'guard';
+    // Evaluate catching at its swept ball contact. If illegal, retain the ordinary
+    // foot/body candidate rather than granting hand reach or inventing a foul.
+    for (const catching of guarding ? [true, false] : [false]) {
+      const controlHeight = catching
+        ? KEEPER.guardingHeight
+        : BALL_CONTROL.maximumFootControlHeight;
+      const slowEnough =
+        catching || vectorLength(state.ball.velocity) <= BALL_CONTROL.maximumFootControlSpeed;
+      const canControl = slowEnough && Math.max(from.z, state.ball.position.z) <= controlHeight;
+      if (catching && !canControl) continue;
+      const reach = canControl
+        ? catching
+          ? KEEPER.guardingReach
+          : BALL_CONTROL.receivingRadius
+        : MOVEMENT.playerRadius + BALL_CONTROL.radius;
+      const previousPlayer = previousPositions.get(player.id)!;
+      const timeFraction = contactTime(
+        { x: from.x - previousPlayer.x, y: from.y - previousPlayer.y },
+        {
+          x: state.ball.position.x - player.position.x,
+          y: state.ball.position.y - player.position.y,
+        },
+        { x: 0, y: 0 },
+        reach,
+      );
+      if (timeFraction === null) continue;
+      const contactPosition = pointOnSegment(from, state.ball.position, timeFraction);
+      if (contactPosition.z > (canControl ? controlHeight : BALL_CONTROL.bodyHeight)) continue;
+      if (catching && handlingRestriction(state, player, contactPosition)) continue;
+      contacts.push({ type: 'player', player, timeFraction, canControl, isSave: catching });
+      // A legal catch has greater reach and owns this player's earliest contact.
+      break;
+    }
   }
   return contacts;
 }
@@ -181,24 +186,24 @@ function resolvePlayerContact(state: MatchState, contact: PlayerContact, positio
   }
   state.ball.restartTouch = null;
   notePlayerTouch(state, receiver, contact.canControl, contact.isSave);
+  noteHandlingTouch(state, receiver, contact.canControl);
   const previousPlayer = state.players.find((player) => player.id === state.ball.lastTouch);
   state.ball.lastTouch = receiver.id;
+  if (contact.isSave) {
+    collectInHands(state, receiver, 'catch', position.z);
+    updateHeldBall(state, receiver);
+    return;
+  }
   if (contact.canControl) {
+    state.ball.handControl = null;
     state.ball.owner = receiver.id;
     state.ball.velocity = { x: 0, y: 0, z: 0 };
     state.ball.position = footPosition(receiver);
-    if (contact.isSave) receiver.lastSaveTick = state.tick;
     emitEvent(
       state,
-      contact.isSave
-        ? 'save'
-        : previousPlayer && previousPlayer.team !== receiver.team
-          ? 'interception'
-          : 'receive',
+      previousPlayer && previousPlayer.team !== receiver.team ? 'interception' : 'receive',
       receiver.id,
-      contact.isSave
-        ? 'Keeper controls the ball while guarding'
-        : 'Ball entered first-touch radius',
+      'Ball entered first-touch radius',
       receiver.team,
     );
   } else {
@@ -225,6 +230,10 @@ export function advanceBall(state: MatchState, previousPositions: ReadonlyMap<st
   const from = { ...ball.position };
   if (ball.owner) {
     const carrier = state.players.find((player) => player.id === ball.owner)!;
+    if (ball.handControl) {
+      updateHeldBall(state, carrier);
+      return;
+    }
     ball.position = footPosition(carrier);
     ball.velocity = { x: carrier.velocity.x, y: carrier.velocity.y, z: 0 };
     const crossing = firstBoundaryCrossing(from, ball.position);

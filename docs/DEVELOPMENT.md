@@ -9,7 +9,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the local URL printed by Vite; the port depends on what's available. Press **Watch the match** to start the included recording. Watching and replaying require no API keys or provider requests.
+Open the local URL printed by Vite; the port depends on what's available. Press **Watch the match** to start **Safe hands, open play**, the current scripted goalkeeper demo. Watching and replaying require no API keys or provider requests.
 
 Space toggles playback and the left/right arrows seek five seconds when focus is outside a control. **Viewing options** contains speed, volume, player numbers, camera and fullscreen controls. **Inside the match** contains recordings, team plans, observations and exact prompts. Scripted practice is labelled separately from model-played matches.
 
@@ -24,6 +24,7 @@ pnpm format:check   # Check formatting without changing files
 pnpm build          # Typecheck and build the production viewer
 pnpm fixture        # Export and replay-verify a scripted passing fixture
 pnpm fixture --full # Export and replay-verify a full scripted baseline
+pnpm fixture --keeper # Export and replay-verify the current keeper demo
 ```
 
 Fixtures write to `artifacts/`. Tests and fixtures make no paid requests. See the [architecture](02-ARCHITECTURE.md) for simulation, controller and presentation boundaries, and [AGENTS.md](../AGENTS.md) for the working agreement.
@@ -53,7 +54,7 @@ pnpm evaluate-controllers --dry-run \
   --scenarios carry-space,pass-pressure,shooting-chance --repetitions 2
 ```
 
-To evaluate real positions, add `--recording public/matches/positional-match-001.json.gz --possessions coral:5,cyan:82`. Selectors use team and **zero-based decision index**, not seconds. The recording is validated and replayed to those exact boundaries; its previous own memory and current opponent batch are reused. Future opponent decisions are not supplied.
+Once a new recording exists under the current ruleset, evaluate its real positions with `--recording artifacts/private/<run-name>/match.json --possessions coral:5,cyan:82`, choosing indices present in that recording. The previous public LLM recordings were removed after the keeper ruleset change. Selectors use team and **zero-based decision index**, not seconds. The recording is validated and replayed to those exact boundaries; its previous own memory and current opponent batch are reused. Future opponent decisions are not supplied.
 
 Remove `--dry-run` only when intending paid requests, and set a fresh `--name`, `--usd`, `--openai-usd` and `--gemini-usd`. Omitting `--models` compares all four supported configurations; omitting `--scenarios` includes all five authored situations. Each repetition is an independent request per model, with at most one repair. Reports are saved in `artifacts/private/<name>/report.json`. These two-second diagnostics are not model-versus-model matches.
 

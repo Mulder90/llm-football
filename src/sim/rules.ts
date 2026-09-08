@@ -1,5 +1,5 @@
 /** Football tuning. Distances are metres, speeds m/s, accelerations m/s². */
-export const ENGINE_VERSION = 'football-0.5';
+export const ENGINE_VERSION = 'football-0.6';
 export const TICK_RATE = 60;
 export const SECONDS_PER_TICK = 1 / TICK_RATE;
 export const PLAYERS_PER_TEAM = 11;
@@ -81,6 +81,14 @@ export const RESTART_RULES = {
 export const KEEPER = {
   guardingReach: 1.6,
   guardingHeight: 2.4,
+  handHeight: 1.2,
+  maximumHoldTicks: 8 * TICK_RATE,
+  countdownTicks: 5 * TICK_RATE,
+  deliveries: {
+    roll: { maximumSpeed: 12, maximumLoft: 0 },
+    throw: { maximumSpeed: 18, maximumLoft: 6 },
+    punt: { maximumSpeed: 30, maximumLoft: 8 },
+  },
 } as const;
 
 export const TACKLE = {

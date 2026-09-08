@@ -70,6 +70,13 @@ export function createMatch(matchId = 'fixture-001', seed = DEFAULT_SEED): Match
       },
       velocity: { x: 0, y: 0, z: 0 },
       owner: carrier.id,
+      handControl: null,
+      handling: {
+        deliberateKick: null,
+        directThrowInTeam: null,
+        releasedBy: null,
+        directThrowBy: null,
+      },
       lastTouch: carrier.id,
       kickedAt: BEFORE_MATCH_TICK,
       restartTouch: null,
@@ -103,6 +110,13 @@ export function cloneState(state: MatchState): MatchState {
     })),
     ball: {
       ...state.ball,
+      handControl: state.ball.handControl ? { ...state.ball.handControl } : null,
+      handling: {
+        ...state.ball.handling,
+        deliberateKick: state.ball.handling.deliberateKick
+          ? { ...state.ball.handling.deliberateKick }
+          : null,
+      },
       restartTouch: state.ball.restartTouch ? { ...state.ball.restartTouch } : null,
       position: { ...state.ball.position },
       velocity: { ...state.ball.velocity },

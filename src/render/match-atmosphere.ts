@@ -118,14 +118,19 @@ export function createFootballMoments(recording: Recording): FootballMoment[] {
         }
       }
     }
-    if (event.type === 'kick' || event.type === 'shot') {
-      lastKick = event.type === 'kick' ? { event, position } : null;
+    if (event.type === 'kick' || event.type === 'shot' || event.type === 'keeper_release') {
+      lastKick =
+        event.type === 'kick' || (event.type === 'keeper_release' && event.delivery !== 'put_down')
+          ? { event, position }
+          : null;
       shot = event.type === 'shot' ? event : null;
     } else if (
       [
         'receive',
         'interception',
         'save',
+        'keeper_pickup',
+        'keeper_violation',
         'block',
         'tackle',
         'ball_out',
@@ -153,7 +158,17 @@ function attackAt(recording: Recording, frame: Frame): MatchAtmosphere['attack']
       (event) =>
         event.tick + 1 <= frame.tick &&
         event.tick >= frame.phase.sinceTick &&
-        ['kick', 'shot', 'receive', 'interception', 'save', 'block', 'tackle'].includes(event.type),
+        [
+          'kick',
+          'shot',
+          'receive',
+          'interception',
+          'save',
+          'keeper_pickup',
+          'keeper_release',
+          'block',
+          'tackle',
+        ].includes(event.type),
     );
     if (!touch || frame.tick - touch.tick > ANTICIPATION.looseBallMemoryTicks) return null;
     team = touch.team ?? teamOf(recording, touch.playerId);

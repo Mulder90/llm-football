@@ -21,7 +21,7 @@ pnpm install
 pnpm dev
 ```
 
-Open the URL printed by Vite and press **Watch the match**. Included recordings need no API keys.
+Open the URL printed by Vite and press **Watch the match**. The current default is **Safe hands, open play**, a clearly labelled scripted goalkeeper drill requiring no API keys. A new LLM match under the current handling rules is the next recording milestone.
 
 ## Behind the match
 

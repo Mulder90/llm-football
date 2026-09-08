@@ -1,3 +1,4 @@
+import { clearHandPossession } from './ball-control.ts';
 import { emitEvent } from './events.ts';
 import { clamp, distanceBetween, unitVector } from './math.ts';
 import { BALL_CONTROL, FIELD, MATCH_TIMING, MOVEMENT, RESTART_RULES } from './rules.ts';
@@ -17,6 +18,7 @@ export function finishMatch(
   detail?: string,
 ): void {
   clearOrders(state);
+  clearHandPossession(state);
   state.ball.velocity = { x: 0, y: 0, z: 0 };
   state.phase = { type: 'full_time', sinceTick: state.tick, reason };
   emitEvent(
@@ -35,6 +37,7 @@ export function awardRestart(
   position: Vec2,
 ): void {
   clearOrders(state);
+  clearHandPossession(state);
   if (type === 'kickoff') resetFormation(state);
   const eligible = state.players.filter((player) => player.team === team && !player.dismissed);
   const defaultTaker =
@@ -200,6 +203,7 @@ export function advanceMatchClock(state: MatchState, wasPlaying: boolean): void 
       if (state.half === 2) finishMatch(state, 'completed');
       else {
         clearOrders(state);
+        clearHandPossession(state);
         state.ball.velocity = { x: 0, y: 0, z: 0 };
         state.phase = {
           type: 'halftime',

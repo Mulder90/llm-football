@@ -1,4 +1,4 @@
-import { BALL_CONTROL, FIELD, ORDER_LIFETIME, PLAYERS_PER_TEAM } from './rules.ts';
+import { BALL_CONTROL, FIELD, KEEPER, ORDER_LIFETIME, PLAYERS_PER_TEAM } from './rules.ts';
 import type { Batch, MatchState, Order, Team, Vec2 } from './types.ts';
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -28,6 +28,33 @@ function isPitchTarget(value: unknown): value is Vec2 {
 
 function parseOrder(raw: Record<string, unknown>, playerId: string): Order {
   switch (raw.type) {
+    case 'pickup':
+    case 'put_down':
+      if (containsOnlyKeys(raw, ['type', 'playerId'])) return { type: raw.type, playerId };
+      break;
+    case 'distribute': {
+      if (raw.delivery !== 'roll' && raw.delivery !== 'throw' && raw.delivery !== 'punt') break;
+      const bounds = KEEPER.deliveries[raw.delivery];
+      if (
+        containsOnlyKeys(raw, ['type', 'playerId', 'delivery', 'target', 'speed', 'loft']) &&
+        isPitchTarget(raw.target) &&
+        isFiniteNumber(raw.speed) &&
+        raw.speed >= BALL_CONTROL.minimumKickSpeed &&
+        raw.speed <= bounds.maximumSpeed &&
+        isFiniteNumber(raw.loft) &&
+        raw.loft >= 0 &&
+        raw.loft <= bounds.maximumLoft
+      )
+        return {
+          type: 'distribute',
+          playerId,
+          delivery: raw.delivery,
+          target: { ...raw.target },
+          speed: raw.speed,
+          loft: raw.loft,
+        };
+      break;
+    }
     case 'restart_taker':
       if (containsOnlyKeys(raw, ['type', 'playerId'])) return { type: 'restart_taker', playerId };
       break;
@@ -84,6 +111,8 @@ function validatePhaseOrder(order: Order, state: MatchState, team: Team): void {
   const phase = state.phase;
   if (phase.type === 'full_time' || phase.type === 'halftime')
     throw new Error('No orders during this phase');
+  if (['pickup', 'put_down', 'distribute'].includes(order.type) && phase.type !== 'open_play')
+    throw new Error('Keeper handling actions require open play');
   if (order.type === 'restart_taker') {
     if (phase.type !== 'restart_setup' || phase.restart.team !== team)
       throw new Error('Only the awarded team may choose its restart taker during setup');
@@ -135,8 +164,11 @@ export function validateBatch(raw: unknown, state: MatchState, team: Team): Batc
     const order = parseOrder(candidate, playerId);
     const player = state.players.find((player) => player.id === playerId)!;
     if (player.dismissed) throw new Error(`Dismissed player cannot receive orders: ${playerId}`);
-    if (order.type === 'guard' && player.role !== 'keeper')
-      throw new Error('Only keepers may guard');
+    if (
+      ['guard', 'pickup', 'put_down', 'distribute'].includes(order.type) &&
+      player.role !== 'keeper'
+    )
+      throw new Error('Only keepers may guard, pick up or distribute');
     if (
       order.type === 'tackle' &&
       !state.players.some(
@@ -188,8 +220,14 @@ export function applyDecision(
         state.phase = { ...state.phase, restart: { ...state.phase.restart, takerId: player.id } };
         continue;
       }
-      const instantaneous =
-        order.type === 'kick' || order.type === 'shoot' || order.type === 'tackle';
+      const instantaneous = [
+        'kick',
+        'shoot',
+        'tackle',
+        'pickup',
+        'put_down',
+        'distribute',
+      ].includes(order.type);
       const lifetime = instantaneous
         ? ORDER_LIFETIME.instantaneousTicks
         : ORDER_LIFETIME.persistentTicks;

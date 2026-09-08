@@ -104,6 +104,20 @@ export function resolveBoundary(state: MatchState, crossing: BoundaryCrossing): 
       else awardRestart(state, 'goal_kick', defending, goalKickPosition(state, defending));
       return;
     }
+    const handThrower = state.players.find(
+      (player) => player.id === state.ball.handling.directThrowBy,
+    );
+    if (handThrower?.team === attacking) {
+      emitEvent(
+        state,
+        'keeper_violation',
+        handThrower.id,
+        'A direct keeper hand distribution cannot score against opponents',
+        attacking,
+      );
+      awardRestart(state, 'goal_kick', defending, goalKickPosition(state, defending));
+      return;
+    }
     state.score[attacking]++;
     emitEvent(state, 'goal', lastTouch.id, `${attacking} scores`, attacking);
     awardRestart(state, 'kickoff', defending, { x: FIELD.length / 2, y: FIELD.width / 2 });

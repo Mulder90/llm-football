@@ -12,7 +12,7 @@ A compact scoreboard identifies teams and models. Playback controls disappear af
 
 ## Movement and atmosphere
 
-World metres stay separate from drawing pixels. Foot anchors, directional steps, leaning, kick/tackle recovery and keeper gloves make actions readable. Ball height is exaggerated to 12 pixels per metre above a ground shadow; this never changes flight physics.
+World metres stay separate from drawing pixels. Foot anchors, directional steps, leaning, kick/tackle recovery and keeper gloves make actions readable. Ball height is exaggerated to 12 pixels per metre above a ground shadow; this never changes flight physics. Keeper hands are drawn around the single held ball in the keeper's body layer. A real pickup/catch permits an 18-tick visual scoop/settle from collection height to hand height; reduced motion shows canonical hand height immediately. Recorded releases drive distinct roll/throw/punt/put-down poses, and the referee reads the held playing-time countdown.
 
 Static stadium geometry is cached. Trees, flags, spectators, coaches and bench crews animate separately. Attack buildup and actual saves, nearby misses, completed passes and goals drive different supporter and robot reactions. Two small drummers sit within the south supporter stand and produce no percussion. The referee follows a deterministic route through recorded play and signals actual incidents.
 
@@ -30,7 +30,7 @@ The watch timeline extends the stopped-clock vignette, never the football result
 
 ## Sound
 
-A locally bundled 30-second stadium recording supplies very quiet ambience at normal playback speed. A separate goal roar and synthesized ball contacts, post sounds and approved referee whistles follow recorded incidents. Synthetic drums, claps and crowd voices are removed. [Sound credits](SOUND-CREDITS.md) document licenses, edits and measured levels.
+A locally bundled 30-second stadium recording supplies very quiet ambience at normal playback speed. A separate goal roar and synthesized ball contacts, a restrained glove catch, post sounds and approved referee whistles follow recorded incidents. Catches add no crowd voices. The glove cue follows actual save/pickup events and is suppressed above 2× like other small contacts. Synthetic drums, claps and crowd voices are removed. [Sound credits](SOUND-CREDITS.md) document licenses, edits and measured levels.
 
 Sound is enabled by default and starts on a play gesture; a saved mute choice is respected. Pause, seek, mute, speed changes, hiding the page and full time stop the ambience. Loading alone cannot start it. Seeking resets event handling instead of replaying old sounds. The final whistle may finish after playback stops automatically.
 

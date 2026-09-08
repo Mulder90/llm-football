@@ -10,6 +10,7 @@ artifacts/private/
 artifacts/qa/
 artifacts/passing-fixture.json
 artifacts/full-match-fixture.json
+artifacts/keeper-fixture.json
 
 # Local Cloudflare state and credentials
 .wrangler/

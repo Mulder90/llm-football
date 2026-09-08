@@ -32,6 +32,12 @@ function describeOrder(order: Order): string {
       return 'Take a shot';
     case 'kick':
       return 'Play the ball';
+    case 'pickup':
+      return 'Pick up the ball';
+    case 'put_down':
+      return 'Put the ball at feet';
+    case 'distribute':
+      return `${order.delivery === 'roll' ? 'Roll' : order.delivery === 'throw' ? 'Throw' : 'Punt'} the ball`;
   }
 }
 
@@ -359,13 +365,17 @@ export function DecisionInspector({
               <select
                 disabled={loading}
                 value={
-                  recording.kind === 'llm'
-                    ? matches.some((entry) => entry.id === recording.initial.matchId)
-                      ? recording.initial.matchId
-                      : ''
-                    : recording.frames.at(-1)?.phase.type === 'full_time'
-                      ? 'full'
-                      : 'passing'
+                  recording.initial.matchId === 'keeper-practice-001'
+                    ? 'keeper'
+                    : recording.initial.matchId === 'carry-and-chip-fixture-001'
+                      ? 'carry-and-chip'
+                      : recording.kind === 'llm'
+                        ? matches.some((entry) => entry.id === recording.initial.matchId)
+                          ? recording.initial.matchId
+                          : ''
+                        : recording.frames.at(-1)?.phase.type === 'full_time'
+                          ? 'full'
+                          : 'passing'
                 }
                 onChange={(event) => onSelectFixture(event.target.value)}
               >
@@ -378,6 +388,7 @@ export function DecisionInspector({
                     {entry.complete ? '' : ' · incomplete'}
                   </option>
                 ))}
+                <option value="keeper">Keeper practice · scripted</option>
                 <option value="full">Full practice match · scripted</option>
                 <option value="passing">Passing practice · scripted</option>
                 <option value="carry-and-chip">Running & chips · scripted</option>

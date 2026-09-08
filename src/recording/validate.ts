@@ -7,7 +7,8 @@ import {
   tacticalMemorySchema,
   validateTacticalMemory,
 } from '../protocol/schema.ts';
-import { BALL_CONTROL, ENGINE_VERSION, MATCH_TIMING } from '../sim/rules.ts';
+import { BALL_CONTROL, ENGINE_VERSION, MATCH_TIMING, KEEPER } from '../sim/rules.ts';
+import { inPenaltyArea } from '../sim/state.ts';
 import type { Recording } from './record.ts';
 
 export const MAXIMUM_RECORDING_BYTES = 80 * 1024 * 1024;
@@ -49,22 +50,30 @@ const phase = z.discriminatedUnion('type', [
   }),
 ]);
 // Canonical engine orders may omit loft; strict model output always supplies it.
-const order = z.union([
-  modelOrderSchema,
-  z.strictObject({
-    type: z.enum(['kick', 'shoot']),
-    playerId: playerIdSchema,
-    target: pitchTargetSchema,
-    speed: z.number().min(BALL_CONTROL.minimumKickSpeed).max(BALL_CONTROL.maximumKickSpeed),
-    loft: z.number().min(0).max(BALL_CONTROL.maximumLoftSpeed).optional(),
-  }),
-  z.strictObject({
-    type: z.literal('move'),
-    playerId: playerIdSchema,
-    target: pitchTargetSchema,
-    pace: z.number().gt(0).max(1),
-  }),
-]);
+const order = z
+  .union([
+    modelOrderSchema,
+    z.strictObject({
+      type: z.enum(['kick', 'shoot']),
+      playerId: playerIdSchema,
+      target: pitchTargetSchema,
+      speed: z.number().min(BALL_CONTROL.minimumKickSpeed).max(BALL_CONTROL.maximumKickSpeed),
+      loft: z.number().min(0).max(BALL_CONTROL.maximumLoftSpeed).optional(),
+    }),
+    z.strictObject({
+      type: z.literal('move'),
+      playerId: playerIdSchema,
+      target: pitchTargetSchema,
+      pace: z.number().gt(0).max(1),
+    }),
+  ])
+  .refine(
+    (order) =>
+      order.type !== 'distribute' ||
+      (order.speed <= KEEPER.deliveries[order.delivery].maximumSpeed &&
+        order.loft <= KEEPER.deliveries[order.delivery].maximumLoft),
+    { message: 'Distribution exceeds its delivery bounds' },
+  );
 const batch = z.strictObject({
   version: z.literal(1),
   matchId: z.string().min(1).max(100),
@@ -85,6 +94,9 @@ const event = z.strictObject({
     'ball_out',
     'goal',
     'save',
+    'keeper_pickup',
+    'keeper_release',
+    'keeper_violation',
     'block',
     'post',
     'tackle',
@@ -103,6 +115,7 @@ const event = z.strictObject({
   playerId: playerIdSchema.nullable(),
   detail: text,
   team: teamSchema.optional(),
+  delivery: z.enum(['roll', 'throw', 'punt', 'put_down']).optional(),
 });
 const player = z.strictObject({
   id: playerIdSchema,
@@ -120,6 +133,14 @@ const player = z.strictObject({
   lastSaveTick: actionTick,
   distance: z.number().nonnegative(),
 });
+const handControl = z
+  .strictObject({
+    sinceTick: tick,
+    sincePlayingTick: tick,
+    kind: z.enum(['catch', 'pickup']),
+    height: z.number().min(0).max(KEEPER.guardingHeight),
+  })
+  .nullable();
 const state = z.strictObject({
   version: z.literal(ENGINE_VERSION),
   matchId: z.string().min(1).max(100),
@@ -137,6 +158,13 @@ const state = z.strictObject({
     position: point3,
     velocity: point3,
     owner: playerIdSchema.nullable(),
+    handControl,
+    handling: z.strictObject({
+      deliberateKick: z.strictObject({ playerId: playerIdSchema, team: teamSchema }).nullable(),
+      directThrowInTeam: teamSchema.nullable(),
+      releasedBy: playerIdSchema.nullable(),
+      directThrowBy: playerIdSchema.nullable(),
+    }),
     lastTouch: playerIdSchema.nullable(),
     kickedAt: actionTick,
     restartTouch: z
@@ -172,6 +200,7 @@ const frame = z.strictObject({
     .length(22),
   ball: point3,
   owner: playerIdSchema.nullable(),
+  handControl,
 });
 const tokens = z.int().nonnegative();
 const controller = z.strictObject({
@@ -297,9 +326,61 @@ export function parseRecording(raw: unknown): Recording {
     recording.frames.at(-1)!.tick !== recording.durationTicks
   )
     throw new Error('Recording is missing its start or final frame');
+  const keeperIds = new Set(
+    recording.initial.players
+      .filter((player) => player.role === 'keeper')
+      .map((player) => player.id),
+  );
+  const history = recording.initial.ball.handling;
+  if (
+    (history.deliberateKick &&
+      !history.deliberateKick.playerId.startsWith(`${history.deliberateKick.team}-`)) ||
+    [history.releasedBy, history.directThrowBy].some((id) => id !== null && !keeperIds.has(id))
+  )
+    throw new Error('Recording handling history is inconsistent');
+  function validateHandControl(
+    entry: Pick<
+      Recording['frames'][number],
+      'tick' | 'playingTicks' | 'half' | 'ball' | 'owner' | 'handControl' | 'phase'
+    >,
+    dismissed: boolean,
+  ): void {
+    const held = entry.handControl;
+    const owner = recording.initial.players.find((player) => player.id === entry.owner);
+    if (
+      held &&
+      (!owner ||
+        !keeperIds.has(owner.id) ||
+        dismissed ||
+        entry.phase.type !== 'open_play' ||
+        held.sinceTick > entry.tick ||
+        held.sinceTick < entry.phase.sinceTick ||
+        held.sincePlayingTick > entry.playingTicks ||
+        held.sincePlayingTick > held.sinceTick ||
+        entry.playingTicks - held.sincePlayingTick > KEEPER.maximumHoldTicks ||
+        entry.ball.z !== KEEPER.handHeight ||
+        (held.kind === 'pickup' && held.height > BALL_CONTROL.maximumFootControlHeight) ||
+        !inPenaltyArea({ ...recording.initial, half: entry.half }, owner.team, entry.ball))
+    )
+      throw new Error('Recording hand possession is inconsistent');
+  }
+  validateHandControl(
+    {
+      ...recording.initial,
+      owner: recording.initial.ball.owner,
+      handControl: recording.initial.ball.handControl,
+      ball: recording.initial.ball.position,
+    },
+    Boolean(
+      recording.initial.players.find((player) => player.id === recording.initial.ball.owner)
+        ?.dismissed,
+    ),
+  );
   let previousTick = -1;
   let playingTicks = 0;
   for (const entry of recording.frames) {
+    const ownerIndex = recording.initial.players.findIndex((player) => player.id === entry.owner);
+    validateHandControl(entry, Boolean(entry.players[ownerIndex]?.dismissed));
     if (
       entry.tick <= previousTick ||
       entry.tick > recording.durationTicks ||
@@ -321,7 +402,12 @@ export function parseRecording(raw: unknown): Recording {
           entry.matchId !== recording.initial.matchId ||
           entry.decisionId !== recording.initial.decisionId + index ||
           entry.team !== (side === 0 ? 'coral' : 'cyan') ||
-          entry.orders.some((order) => !order.playerId.startsWith(`${entry.team}-`)),
+          entry.orders.some(
+            (order) =>
+              !order.playerId.startsWith(`${entry.team}-`) ||
+              (['guard', 'pickup', 'put_down', 'distribute'].includes(order.type) &&
+                !order.playerId.endsWith('-1')),
+          ),
       )
     )
       throw new Error('Recording decision identity or timeline is inconsistent');
@@ -356,6 +442,8 @@ export function parseRecording(raw: unknown): Recording {
   for (const [index, entry] of recording.events.entries()) {
     if (entry.id !== index || entry.tick < previousTick || entry.tick > recording.durationTicks)
       throw new Error('Recording event timeline is inconsistent');
+    if ((entry.type === 'keeper_release') !== (entry.delivery !== undefined))
+      throw new Error('Keeper release requires a delivery and only releases may carry one');
     previousTick = entry.tick;
   }
   if (recording.kind === 'llm' && !recording.generation)
