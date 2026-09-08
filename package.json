@@ -18,7 +18,8 @@
     "format:check": "prettier --check .",
     "generate": "node --experimental-strip-types scripts/generate.ts",
     "evaluate-controllers": "node --experimental-strip-types scripts/evaluate-controllers.ts",
-    "publish-recording": "node --experimental-strip-types scripts/publish-recording.ts"
+    "publish-recording": "node --experimental-strip-types scripts/publish-recording.ts",
+    "deploy": "pnpm build && wrangler deploy"
   },
   "dependencies": {
     "react": "19.2.8",
@@ -32,6 +33,7 @@
     "prettier": "3.9.6",
     "typescript": "7.0.2",
     "vite": "8.2.2",
-    "vitest": "5.0.0"
+    "vitest": "5.0.0",
+    "wrangler": "^4.129.0"
   }
 }

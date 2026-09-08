@@ -1,4 +1,5 @@
 node_modules/
+.pnpm-store/
 dist/
 coverage/
 .env
@@ -9,3 +10,8 @@ artifacts/private/
 artifacts/qa/
 artifacts/passing-fixture.json
 artifacts/full-match-fixture.json
+
+# Local Cloudflare state and credentials
+.wrangler/
+.dev.vars
+.dev.vars.*

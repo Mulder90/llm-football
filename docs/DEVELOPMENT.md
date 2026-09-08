@@ -65,4 +65,27 @@ pnpm publish-recording artifacts/private/trial-01/match.json
 
 This validates the recording, verifies its replay, and writes compressed match data plus an entry in `public/matches/`. Refresh the viewer to load it. Incomplete matches remain labelled incomplete. The command updates the local catalogue; it does not deploy a website.
 
+## Deploy the website to Cloudflare
+
+The viewer deploys as Cloudflare Workers Static Assets. `wrangler.jsonc` uploads only the production `dist/` directory to the `llm-football` application. No server code, database or model provider keys are needed; the match generator stays local. The public website includes the bundled recordings and their inspection data.
+
+Authenticate with your own Cloudflare account, then publish deliberately:
+
+```sh
+pnpm exec wrangler login   # Once per local login; skip if already authenticated
+pnpm exec wrangler whoami # Check the destination account
+pnpm deploy               # Build, then publish dist/ to Cloudflare
+```
+
+Wrangler prints the deployed `workers.dev` URL. This command publishes publicly using the account's default Workers subdomain. A custom domain and automatic Git deployments are separate setup steps. Pushing to GitHub alone does not update the website.
+
+For a local deployment-package check without uploading:
+
+```sh
+pnpm build
+pnpm exec wrangler deploy --dry-run
+```
+
+Only `esbuild` and `workerd` dependency build scripts are enabled in `pnpm-workspace.yaml`; these support Wrangler's tooling. Local Cloudflare state and credentials are ignored. Keep private files outside `public/`, which Vite copies into the website. Compressed match files are served as assets; the viewer handles gzip decoding before validation.
+
 See [current progress](PROGRESS.md) for implemented slices, verification and remaining work, or the [product brief](01-PRODUCT.md) for the overall direction.
