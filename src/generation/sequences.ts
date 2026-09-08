@@ -222,6 +222,7 @@ export async function evaluateSequence(options: {
   limits?: GenerationProvenance['limits'];
   signal?: AbortSignal;
   onCheckpoint?: (recording: Recording) => Promise<void>;
+  onProgress?: Parameters<typeof runMatchFromState>[0]['onProgress'];
 }) {
   const { scenario } = options;
   const scripted = options.controllers.coral.config.provider === 'scripted';
@@ -233,6 +234,7 @@ export async function evaluateSequence(options: {
     limits: { ...(options.limits ?? SEQUENCE_LIMITS), maximumPlayingTicks: scenario.playingTicks },
     ...(options.signal && { signal: options.signal }),
     ...(options.onCheckpoint && { onCheckpoint: options.onCheckpoint }),
+    ...(options.onProgress && { onProgress: options.onProgress }),
   });
   parseRecording(recording);
   const metrics = measureSequence(recording);

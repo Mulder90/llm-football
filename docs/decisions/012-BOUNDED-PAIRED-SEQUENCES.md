@@ -25,3 +25,13 @@ A separate evaluation scheduler would be smaller initially but could validate be
 The offline harness proves infrastructure and deterministic scripted mechanics. It does not prove LLM teamwork or predict real latency, costs or scorelines. No keys are loaded and no provider adapter is constructed by `pnpm evaluate-sequences`. A paid entry point, fresh provider budgets and final publication are later work.
 
 [Slice 19](../slices/19-SUSTAINED-PLAY-HARNESS.md) records the tests and measured offline results. Revisit the fixed criteria after reviewing bounded model outcomes; retain the original results when changing criteria or scenarios.
+
+## 2026-09-08 amendment: a shared allowance for model scenarios
+
+The explicit model entry point now uses the same scheduler and fixed scenarios with the already reviewed GPT-5 mini / Gemini 3.8 Flash pair. Scripted mode remains the default. Model mode requires a combined dollar allowance and each provider's allowance; dry runs do not load keys.
+
+A serial trial debits completed scenarios before giving the next scenario its remaining request and dollar allowance. A single monotonic wall-clock deadline spans the whole job, including checkpoint writes. This extends decision 009's reservation contract across scenarios. Giving every scenario the full job budget was rejected because it could multiply the intended spend by the number of cases or repetitions.
+
+A failed football criterion is retained and subsequent planned scenarios still run. Any incomplete horizon stops the trial, preserving its stop reason and receipts. No automatic retry of a whole scenario, spending increase, new prompt or full match is authorized by completing the short trial. Price settings and exact configurations are captured in the plan and recordings. All existing scenario criteria remain unchanged for the first model comparison; review the underlying metrics when models choose a different legal tactic.
+
+Offline tests cover cumulative combined/provider limits, repair accounting, permanent failures, checkpoint errors and the shared deadline. The prepared entry point does not itself establish model behavior. [Slice 20](../slices/20-PAIRED-MODEL-TRIAL.md) records verification and the paid-run status.

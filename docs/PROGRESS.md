@@ -8,6 +8,14 @@ Development and readiness checks use the **local build**. The public website is 
 
 ## Latest work
 
+The paired-model entry point is implemented locally with one shared spending/request/time allowance across all scenarios. TypeScript, **251 tests** and the production build passed; six scripted CLI runs reproduced the prior hashes with 108 calls and zero cost.
+
+The user approved a $0.60 trial ($0.20 OpenAI / $0.40 Gemini), up to 144 request attempts and 15 minutes. `sustained-model-01` stopped at the first boundary after **3 requests in 32.7 seconds**: Gemini returned HTTP 400, “Request contains an invalid argument.” GPT-5 mini's initial reply incorrectly used keeper-only guard orders on outfielders; its one repair passed validation. No paired decision was applied, no playing time elapsed and the other two scenarios did not start.
+
+The saved conservative estimate is **$0.047654**: $0.007718 from OpenAI's reported tokens and $0.039936 reserved for Gemini's failed request with no usage. This is not confirmed billing. The tick-zero recording verifies to `1ad6ad38` and imports locally with incomplete status. No new complete match or sustained-teamwork evidence was produced. The exact Gemini rejection cause remains unconfirmed. [Slice 20](slices/20-PAIRED-MODEL-TRIAL.md) records the attempt and next diagnostic slice.
+
+## Previous offline harness work
+
 The offline sustained-play harness runs three eight-second scenarios through the real paired scheduler: carrying before pressure, a moving receiver acting after control, and keeper collection/distribution. Two repetitions of each produced **54 paired rounds and 108 scripted calls**, with zero repairs, fallbacks, order failures or paid requests. All six runs reached their horizon and passed the fixed criteria; repeated hashes matched. TypeScript, 242 tests, production build and local import/playback/inspection checks passed. These are scripted infrastructure checks, not measured LLM teamwork. [Slice 19](slices/19-SUSTAINED-PLAY-HARNESS.md) records the results and boundaries.
 
 Use `pnpm evaluate-sequences --dry-run` to inspect the offline plan, then `pnpm evaluate-sequences --name <fresh-name>` to write replayable recordings and a report under ignored `artifacts/private/`. The local viewer can import those excerpts.
@@ -51,7 +59,7 @@ That match predates the latest carrier and scheduling changes. Coral completed m
 
 ## Next step and limitations
 
-The next slice is bounded paired-model evaluation on the validated eight-second scenarios. Review the exact configurations, round/request allowance and fresh combined/per-provider budgets before dispatch. Then assess every outcome before a new complete two-half match. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled.
+The next slice is to isolate and fix Gemini request compatibility, preserving strict action validation and the failed attempt. Then continue the bounded paired-model evaluation and assess every outcome before a new complete two-half match. [The next-steps plan](06-BUILD-PLAN.md) describes the remaining sequence. No automatic new run is scheduled.
 
 The engine never chooses tactics or repairs a model's chosen target. The two-second evaluations cannot establish longer buildup, defensive coordination or full-match cost savings. A model's written review may be wrong.
 

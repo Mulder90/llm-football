@@ -21,3 +21,4 @@ These documents describe implementation and evidence **at the end of each slice*
 17. [Touchline and stadium rendering](17-TOUCHLINE-AND-STADIUM.md)
 18. [Persistent goalkeeper possession](18-GOALKEEPER-POSSESSION.md)
 19. [Offline sustained-play harness](19-SUSTAINED-PLAY-HARNESS.md)
+20. [Bounded paired-model trial and provider failure](20-PAIRED-MODEL-TRIAL.md)

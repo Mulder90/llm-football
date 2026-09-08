@@ -36,11 +36,27 @@ pnpm evaluate-sequences --dry-run
 pnpm evaluate-sequences --name sustained-check-01 --repetitions 2
 ```
 
-This CLI runs **scripted controllers only**, without reading `.env` or constructing provider adapters. Select any of `carry-pressure,receive-follow-up,keeper-outlet` with `--scenarios`. Each case uses eight playing seconds, a fixed seed and at most 32 paired rounds / 128 controller calls including repairs. The dry run reports those explicit ceilings and initial request sizes; duration alone does not predict the round count.
+The default mode runs **scripted controllers**, without reading `.env` or accessing provider credentials. Select any of `carry-pressure,receive-follow-up,keeper-outlet` with `--scenarios`. Each case uses eight playing seconds, a fixed seed and at most 32 paired rounds / 128 controller calls including repairs. The dry run reports those explicit ceilings and initial request sizes; duration alone does not predict the round count.
 
 Use a fresh name. Reports and one replayable recording per repetition go to `artifacts/private/<name>/`. Both sides replan using the real match scheduler, with private memory and bounded repair/fallback handling. Every result is retained, including failed criteria. A nonzero exit code signals incomplete runs or failed criteria. The common generation lock prevents overlap with another generation/evaluation job, and checkpoints use atomic rename.
 
-Open a generated JSON file with **Inside the match → Matches → Open a local recording**. The viewer labels it scripted and identifies the planned evaluation excerpt. No catalogue change or deployment is needed. [The handoff](slices/19-SUSTAINED-PLAY-HARNESS.md) defines the metrics and scripted baseline; paid paired evaluation is the next slice.
+Open a generated JSON file with **Inside the match → Matches → Open a local recording**. The viewer labels it scripted and identifies the planned evaluation excerpt. No catalogue change or deployment is needed. [The handoff](slices/19-SUSTAINED-PLAY-HARNESS.md) defines the metrics and scripted baseline.
+
+## Evaluate sustained play with models
+
+The explicit `--mode models` option pairs Coral's GPT-5 mini (low reasoning/verbosity) with Cyan's Gemini 3.8 Flash (LOW thinking, temperature 1). It uses the same three scenarios, unchanged prompts and scheduler. No environment model override is used. All three spending flags are required, including for a model dry run; these are trial allowances, not measured account balances.
+
+```sh
+pnpm evaluate-sequences --dry-run --mode models --usd .60 --openai-usd .20 --gemini-usd .40
+```
+
+This trial configuration requests one repetition per scenario, each capped at 12 paired rounds. That permits at most 24 initial requests and 24 repairs per scenario, 144 requests across the job. The shared deadline is 900 seconds. `--rounds`, `--requests`, `--wall-seconds` and `--repetitions` can tighten or explicitly revise the plan. The combined $0.60 allowance and $0.20/$0.40 provider allowances apply **once across all scenarios**. Review fresh allowances before dispatch. Remove `--dry-run` and add a fresh `--name` only when intending the paid run. Actual model mode then loads local credentials; dry runs never do.
+
+Each scenario starts with only the job's remaining dollars, requests and wall time. The normal scheduler reserves both teams and their full repair allowance before each boundary. Under the current reviewed prices, one paired boundary reserves $0.11264 ($0.032768 OpenAI / $0.079872 Gemini), using the 32 KiB input and 4096-token output ceilings. Reported usage reduces the charge; missing usage keeps its full request reservation. These are conservative application estimates, not a quoted final bill or guaranteed number of completed scenarios.
+
+The version-2 report records cumulative totals at every checkpoint, including the active run. Each recording stores its own remaining allowance and receipts. Completed horizons with failed football criteria remain in the report and do not trigger reruns. An incomplete scenario stops the job, preserving its exact stop reason and all prior outcomes. Ctrl+C also stops the entire job. Replay import identifies model controllers and the eight-second excerpt; a completed diagnostic is not a completed match.
+
+The receiver criterion still specifically checks Coral #7 passing to Coral #6 followed by at least 3 m of controlled movement. Models can choose other legal tactics. Review actual passes, carries and failures alongside that fixed diagnostic; do not interpret its boolean alone as a general model score. The first real attempt stopped at Gemini HTTP 400 before any paired decision; resolve request compatibility before repeating it. See [the trial handoff](slices/20-PAIRED-MODEL-TRIAL.md).
 
 ## Generate a match
 
