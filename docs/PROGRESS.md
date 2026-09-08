@@ -29,7 +29,7 @@ That match predates the latest carrier and scheduling changes. Coral completed m
 
 ## Next step and limitations
 
-Test sustained short possessions: retain a useful dribble across decisions, release when pressure arrives, and have the receiver control the pass. Assess the new cadence's football effect before another complete paid match. No automatic new run is scheduled.
+The proposed next slice is proper goalkeeper hand possession, legal handling and visible distribution, verified offline. Then test sustained short possessions across several paired decisions before another complete two-half match. [The next-steps plan](06-BUILD-PLAN.md) describes the sequence and the required replacement of incompatible development recordings. No automatic new run is scheduled.
 
 The engine never chooses tactics or repairs a model's chosen target. The two-second evaluations cannot establish longer buildup, defensive coordination or full-match cost savings. A model's written review may be wrong.
 
